@@ -4,7 +4,7 @@ use embedded_graphics::{
     prelude::*,
     primitives::{Circle, PrimitiveStyleBuilder},
 };
-use thumby::Thumby;
+use crate::thumby::Thumby;
 
 pub fn graphic_test() -> ! {
     let mut thumby = Thumby::new();

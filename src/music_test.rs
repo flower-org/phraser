@@ -1,6 +1,6 @@
 use cortex_m::asm;
-use thumby::music::{A, C, D, E, F, G, REST};
-use thumby::Thumby;
+use crate::thumby_audio::music::{A, C, D, E, F, G, REST};
+use crate::thumby::Thumby;
 
 const TWINKLE_TWINKLE: [f32; 48] = [
     C, C, G, G, A, A, G, REST,

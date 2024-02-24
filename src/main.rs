@@ -4,6 +4,9 @@
 mod graphic_test;
 mod music_test;
 mod text_test;
+mod thumby;
+mod thumby_audio;
+mod thumby_input;
 
 use embedded_graphics::{
     prelude::*,

@@ -3,7 +3,7 @@ use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::*,
 };
-use thumby::Thumby;
+use crate::thumby::Thumby;
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyle},
     text::Text,
