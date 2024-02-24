@@ -37,10 +37,10 @@ pub fn poll_to_dev_null<B: UsbBus>(usb_dev: &mut UsbDevice<B>, serial: &mut Seri
 
 pub fn open_serial_port<B: UsbBus>(usb_bus_allocator: &UsbBusAllocator<B>) -> (UsbDevice<B>, SerialPort<B>) {
     // Set up the USB Communications Class Device driver
-    let mut serial = SerialPort::new(&usb_bus_allocator);
+    let mut serial = SerialPort::new(usb_bus_allocator);
 
     // Create a USB device with a fake VID and PID
-    let mut usb_dev = UsbDeviceBuilder::new(&usb_bus_allocator, UsbVidPid(0x16c0, 0x27dd))
+    let mut usb_dev = UsbDeviceBuilder::new(usb_bus_allocator, UsbVidPid(0x16c0, 0x27dd))
         .manufacturer("flower-org")
         .product("Phraser Serial port")
         .serial_number("Phraser-9000")
