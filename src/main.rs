@@ -1,40 +1,38 @@
+//! # Pico USB Serial Example
+//!
+//! Creates a USB Serial device on a Pico board, with the USB driver running in
+//! the main thread.
+//!
+//! This will create a USB Serial device echoing anything it receives. Incoming
+//! ASCII characters are converted to upercase, so you can tell it is working
+//! and not just local-echo!
+//!
+//! See the `Cargo.toml` file for Copyright and license details.
+
 #![no_std]
 #![no_main]
 
-mod graphic_test;
-mod music_test;
-mod text_test;
 mod thumby;
 mod thumby_audio;
 mod thumby_input;
-
-use embedded_graphics::{
-    prelude::*,
-};
-use crate::music_test::music_test;
-use crate::graphic_test::graphic_test;
-use crate::text_test::text_test;
-
+mod thumby_serial;
+mod text_test;
+mod music_test;
+mod serial_test;
 
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
 use panic_halt as _;
 
-/// The linker will place this boot block at the start of our program image. We
-/// need this to help the ROM bootloader get our code up and running.
-/// Note: This boot block is not necessary when using a rp-hal based BSP
-/// as the BSPs already perform this step.
-#[link_section = ".boot2"]
-#[used]
-pub static BOOT2: [u8; 256] = rp2040_boot2::BOOT_LOADER_GENERIC_03H;
+// The macro for our start-up function
+use rp_pico::entry;
+use crate::thumby::Thumby;
 
 /// Entry point to our bare-metal application.
-///
-/// The `#[rp2040_hal::entry]` macro ensures the Cortex-M start-up code calls this function
-/// as soon as all global variables and the spinlock are initialised.
-#[rp2040_hal::entry]
+#[entry]
 fn main() -> ! {
-    //music_test();
-    //graphic_test();
-    text_test();
+    let mut thumby = Thumby::new();
+
+    text_test::text_test(&mut thumby);
+    serial_test::serial_test(&mut thumby)
 }

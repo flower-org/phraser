@@ -23,7 +23,5 @@ pub fn graphic_test() -> ! {
 
     thumby.display.flush().unwrap();
 
-    loop {
-        asm::wfe();
-    }
+    loop { asm::wfe(); }
 }

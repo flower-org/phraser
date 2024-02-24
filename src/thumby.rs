@@ -36,6 +36,9 @@ use rp2040_hal::{
     spi::Enabled,
     Clock, Sio, Spi, Watchdog,
 };
+use rp_pico::hal;
+use usb_device::bus::{UsbBus, UsbBusAllocator};
+
 
 type Ssd1306Thumby = Ssd1306<
     SPIInterface<Spi<Enabled, SPI0, 8>, Pin<Gpio17, PushPullOutput>, Pin<Gpio16, PushPullOutput>>,
@@ -51,10 +54,14 @@ pub struct Thumby {
     pub display: Ssd1306Thumby,
     /// Data structure to interface with the Thumby's input D-pad and buttons.
     pub input: Input,
+    /// Data structure describing usb bus.
+    pub usb_bus_allocator: UsbBusAllocator<rp2040_hal::usb::UsbBus>,
+
     delay: Delay,
+    pub timer: hal::Timer
 }
 
-impl Thumby {
+impl Thumby  {
     /// Create a new Thumby instance.
     pub fn new() -> Self {
         let mut pac = Peripherals::take().expect("Failed to take Peripherals singleton");
@@ -119,11 +126,26 @@ impl Thumby {
             pins.gpio24.into_pull_up_input(),
         );
 
+        // Set up the USB bus
+        let usb_bus = hal::usb::UsbBus::new(
+            pac.USBCTRL_REGS,
+            pac.USBCTRL_DPRAM,
+            clocks.usb_clock,
+            true,
+            &mut pac.RESETS,
+        );
+
+        let timer = hal::Timer::new(pac.TIMER, &mut pac.RESETS);
+
+        let usb_bus_allocator = UsbBusAllocator::new(usb_bus);
+
         Self {
             audio,
             display,
             input,
             delay,
+            usb_bus_allocator,
+            timer
         }
     }
 
