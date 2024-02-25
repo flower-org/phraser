@@ -15,7 +15,7 @@ pub fn input_test(thumby: &mut Thumby) -> ! {
     let input = &mut thumby.input;
 
     loop {
-        input.update();
+        thumby.update();
         let mut result = String::new();
 
         if (input.left.pressed()) {

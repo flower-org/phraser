@@ -37,7 +37,7 @@ use rp2040_hal::{
     Clock, Sio, Spi, Watchdog,
 };
 use rp_pico::hal;
-use usb_device::bus::{UsbBus, UsbBusAllocator};
+use usb_device::bus::{UsbBusAllocator};
 
 
 type Ssd1306Thumby = Ssd1306<
@@ -92,6 +92,24 @@ impl Thumby  {
             sio.gpio_bank0,
             &mut pac.RESETS,
         );
+
+        //Flash BEGIN
+        // add some delay to give an attached debug probe time to parse the
+        // defmt RTT header. Reading that header might touch flash memory, which
+        // interferes with flash write operations.
+        // https://github.com/knurling-rs/defmt/pull/683
+        delay.delay_ms(10);
+
+        let psm = pac.PSM;
+
+        // Reset core1 so it's guaranteed to be running
+        // ROM code, waiting for the wakeup sequence
+        psm.frce_off.modify(|_, w| w.proc1().set_bit());
+        while !psm.frce_off.read().proc1().bit_is_set() {
+            cortex_m::asm::nop();
+        }
+        psm.frce_off.modify(|_, w| w.proc1().clear_bit());
+        //Flash END
 
         let pwm_slices = Slices::new(pac.PWM, &mut pac.RESETS);
         let pwm = pwm_slices.pwm6;
