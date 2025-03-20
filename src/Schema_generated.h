@@ -32,6 +32,9 @@ struct SymbolSetsBlockBuilder;
 struct WordTemplate;
 struct WordTemplateBuilder;
 
+struct WordTemplateRef;
+struct WordTemplateRefBuilder;
+
 struct PhraseTemplate;
 struct PhraseTemplateBuilder;
 
@@ -49,6 +52,147 @@ struct PhraseBlockBuilder;
 
 struct KeyBlock;
 struct KeyBlockBuilder;
+
+enum BlockType : int8_t {
+  BlockType_Unknown = 0,
+  BlockType_FoldersBlock = 1,
+  BlockType_SymbolSetsBlock = 2,
+  BlockType_PhraseTemplatesBlock = 3,
+  BlockType_PhraseBlock = 4,
+  BlockType_KeyBlock = 5,
+  BlockType_MIN = BlockType_Unknown,
+  BlockType_MAX = BlockType_KeyBlock
+};
+
+inline const BlockType (&EnumValuesBlockType())[6] {
+  static const BlockType values[] = {
+    BlockType_Unknown,
+    BlockType_FoldersBlock,
+    BlockType_SymbolSetsBlock,
+    BlockType_PhraseTemplatesBlock,
+    BlockType_PhraseBlock,
+    BlockType_KeyBlock
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesBlockType() {
+  static const char * const names[7] = {
+    "Unknown",
+    "FoldersBlock",
+    "SymbolSetsBlock",
+    "PhraseTemplatesBlock",
+    "PhraseBlock",
+    "KeyBlock",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameBlockType(BlockType e) {
+  if (::flatbuffers::IsOutRange(e, BlockType_Unknown, BlockType_KeyBlock)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesBlockType()[index];
+}
+
+enum Icon : int8_t {
+  Icon_Unknown = 0,
+  Icon_Key = 1,
+  Icon_Login = 2,
+  Icon_Asterisk = 3,
+  Icon_Lock = 4,
+  Icon_Aa = 5,
+  Icon_Star = 6,
+  Icon_Settings = 7,
+  Icon_Folder = 8,
+  Icon_ToParentFolder = 9,
+  Icon_LookingGlass = 10,
+  Icon_LTTriangle = 11,
+  Icon_GTTriangle = 12,
+  Icon_TextOut = 13,
+  Icon_Ledger = 14,
+  Icon_PlusMinus = 15,
+  Icon_Stars = 16,
+  Icon_Message = 17,
+  Icon_Quote = 18,
+  Icon_Question = 19,
+  Icon_Plus = 20,
+  Icon_Minus = 21,
+  Icon_X = 22,
+  Icon_Check = 23,
+  Icon_Copy = 24,
+  Icon_MIN = Icon_Unknown,
+  Icon_MAX = Icon_Copy
+};
+
+inline const Icon (&EnumValuesIcon())[25] {
+  static const Icon values[] = {
+    Icon_Unknown,
+    Icon_Key,
+    Icon_Login,
+    Icon_Asterisk,
+    Icon_Lock,
+    Icon_Aa,
+    Icon_Star,
+    Icon_Settings,
+    Icon_Folder,
+    Icon_ToParentFolder,
+    Icon_LookingGlass,
+    Icon_LTTriangle,
+    Icon_GTTriangle,
+    Icon_TextOut,
+    Icon_Ledger,
+    Icon_PlusMinus,
+    Icon_Stars,
+    Icon_Message,
+    Icon_Quote,
+    Icon_Question,
+    Icon_Plus,
+    Icon_Minus,
+    Icon_X,
+    Icon_Check,
+    Icon_Copy
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesIcon() {
+  static const char * const names[26] = {
+    "Unknown",
+    "Key",
+    "Login",
+    "Asterisk",
+    "Lock",
+    "Aa",
+    "Star",
+    "Settings",
+    "Folder",
+    "ToParentFolder",
+    "LookingGlass",
+    "LTTriangle",
+    "GTTriangle",
+    "TextOut",
+    "Ledger",
+    "PlusMinus",
+    "Stars",
+    "Message",
+    "Quote",
+    "Question",
+    "Plus",
+    "Minus",
+    "X",
+    "Check",
+    "Copy",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameIcon(Icon e) {
+  if (::flatbuffers::IsOutRange(e, Icon_Unknown, Icon_Copy)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesIcon()[index];
+}
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) StoreBlock FLATBUFFERS_FINAL_CLASS {
  private:
@@ -426,23 +570,23 @@ struct WordTemplate FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   bool mutate_permissions(int8_t _permissions = 0) {
     return SetField<int8_t>(VT_PERMISSIONS, _permissions, 0);
   }
-  int8_t icon() const {
-    return GetField<int8_t>(VT_ICON, 0);
+  phraser::Icon icon() const {
+    return static_cast<phraser::Icon>(GetField<int8_t>(VT_ICON, 0));
   }
-  bool mutate_icon(int8_t _icon = 0) {
-    return SetField<int8_t>(VT_ICON, _icon, 0);
+  bool mutate_icon(phraser::Icon _icon = static_cast<phraser::Icon>(0)) {
+    return SetField<int8_t>(VT_ICON, static_cast<int8_t>(_icon), 0);
   }
-  uint32_t min_length() const {
-    return GetField<uint32_t>(VT_MIN_LENGTH, 0);
+  uint16_t min_length() const {
+    return GetField<uint16_t>(VT_MIN_LENGTH, 0);
   }
-  bool mutate_min_length(uint32_t _min_length = 0) {
-    return SetField<uint32_t>(VT_MIN_LENGTH, _min_length, 0);
+  bool mutate_min_length(uint16_t _min_length = 0) {
+    return SetField<uint16_t>(VT_MIN_LENGTH, _min_length, 0);
   }
-  uint32_t max_length() const {
-    return GetField<uint32_t>(VT_MAX_LENGTH, 0);
+  uint16_t max_length() const {
+    return GetField<uint16_t>(VT_MAX_LENGTH, 0);
   }
-  bool mutate_max_length(uint32_t _max_length = 0) {
-    return SetField<uint32_t>(VT_MAX_LENGTH, _max_length, 0);
+  bool mutate_max_length(uint16_t _max_length = 0) {
+    return SetField<uint16_t>(VT_MAX_LENGTH, _max_length, 0);
   }
   const ::flatbuffers::String *word_template_name() const {
     return GetPointer<const ::flatbuffers::String *>(VT_WORD_TEMPLATE_NAME);
@@ -461,8 +605,8 @@ struct WordTemplate FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint16_t>(verifier, VT_WORD_TEMPLATE_ID, 2) &&
            VerifyField<int8_t>(verifier, VT_PERMISSIONS, 1) &&
            VerifyField<int8_t>(verifier, VT_ICON, 1) &&
-           VerifyField<uint32_t>(verifier, VT_MIN_LENGTH, 4) &&
-           VerifyField<uint32_t>(verifier, VT_MAX_LENGTH, 4) &&
+           VerifyField<uint16_t>(verifier, VT_MIN_LENGTH, 2) &&
+           VerifyField<uint16_t>(verifier, VT_MAX_LENGTH, 2) &&
            VerifyOffset(verifier, VT_WORD_TEMPLATE_NAME) &&
            verifier.VerifyString(word_template_name()) &&
            VerifyOffset(verifier, VT_SYMBOL_SET_IDS) &&
@@ -481,14 +625,14 @@ struct WordTemplateBuilder {
   void add_permissions(int8_t permissions) {
     fbb_.AddElement<int8_t>(WordTemplate::VT_PERMISSIONS, permissions, 0);
   }
-  void add_icon(int8_t icon) {
-    fbb_.AddElement<int8_t>(WordTemplate::VT_ICON, icon, 0);
+  void add_icon(phraser::Icon icon) {
+    fbb_.AddElement<int8_t>(WordTemplate::VT_ICON, static_cast<int8_t>(icon), 0);
   }
-  void add_min_length(uint32_t min_length) {
-    fbb_.AddElement<uint32_t>(WordTemplate::VT_MIN_LENGTH, min_length, 0);
+  void add_min_length(uint16_t min_length) {
+    fbb_.AddElement<uint16_t>(WordTemplate::VT_MIN_LENGTH, min_length, 0);
   }
-  void add_max_length(uint32_t max_length) {
-    fbb_.AddElement<uint32_t>(WordTemplate::VT_MAX_LENGTH, max_length, 0);
+  void add_max_length(uint16_t max_length) {
+    fbb_.AddElement<uint16_t>(WordTemplate::VT_MAX_LENGTH, max_length, 0);
   }
   void add_word_template_name(::flatbuffers::Offset<::flatbuffers::String> word_template_name) {
     fbb_.AddOffset(WordTemplate::VT_WORD_TEMPLATE_NAME, word_template_name);
@@ -511,9 +655,9 @@ inline ::flatbuffers::Offset<WordTemplate> CreateWordTemplate(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     uint16_t word_template_id = 0,
     int8_t permissions = 0,
-    int8_t icon = 0,
-    uint32_t min_length = 0,
-    uint32_t max_length = 0,
+    phraser::Icon icon = phraser::Icon_Unknown,
+    uint16_t min_length = 0,
+    uint16_t max_length = 0,
     ::flatbuffers::Offset<::flatbuffers::String> word_template_name = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<uint16_t>> symbol_set_ids = 0) {
   WordTemplateBuilder builder_(_fbb);
@@ -531,9 +675,9 @@ inline ::flatbuffers::Offset<WordTemplate> CreateWordTemplateDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     uint16_t word_template_id = 0,
     int8_t permissions = 0,
-    int8_t icon = 0,
-    uint32_t min_length = 0,
-    uint32_t max_length = 0,
+    phraser::Icon icon = phraser::Icon_Unknown,
+    uint16_t min_length = 0,
+    uint16_t max_length = 0,
     const char *word_template_name = nullptr,
     const std::vector<uint16_t> *symbol_set_ids = nullptr) {
   auto word_template_name__ = word_template_name ? _fbb.CreateString(word_template_name) : 0;
@@ -549,12 +693,69 @@ inline ::flatbuffers::Offset<WordTemplate> CreateWordTemplateDirect(
       symbol_set_ids__);
 }
 
+struct WordTemplateRef FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef WordTemplateRefBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_WORD_TEMPLATE_ID = 4,
+    VT_WORD_TEMPLATE_ORDINAL = 6
+  };
+  uint16_t word_template_id() const {
+    return GetField<uint16_t>(VT_WORD_TEMPLATE_ID, 0);
+  }
+  bool mutate_word_template_id(uint16_t _word_template_id = 0) {
+    return SetField<uint16_t>(VT_WORD_TEMPLATE_ID, _word_template_id, 0);
+  }
+  int8_t word_template_ordinal() const {
+    return GetField<int8_t>(VT_WORD_TEMPLATE_ORDINAL, 0);
+  }
+  bool mutate_word_template_ordinal(int8_t _word_template_ordinal = 0) {
+    return SetField<int8_t>(VT_WORD_TEMPLATE_ORDINAL, _word_template_ordinal, 0);
+  }
+  bool Verify(::flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint16_t>(verifier, VT_WORD_TEMPLATE_ID, 2) &&
+           VerifyField<int8_t>(verifier, VT_WORD_TEMPLATE_ORDINAL, 1) &&
+           verifier.EndTable();
+  }
+};
+
+struct WordTemplateRefBuilder {
+  typedef WordTemplateRef Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_word_template_id(uint16_t word_template_id) {
+    fbb_.AddElement<uint16_t>(WordTemplateRef::VT_WORD_TEMPLATE_ID, word_template_id, 0);
+  }
+  void add_word_template_ordinal(int8_t word_template_ordinal) {
+    fbb_.AddElement<int8_t>(WordTemplateRef::VT_WORD_TEMPLATE_ORDINAL, word_template_ordinal, 0);
+  }
+  explicit WordTemplateRefBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<WordTemplateRef> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<WordTemplateRef>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<WordTemplateRef> CreateWordTemplateRef(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    uint16_t word_template_id = 0,
+    int8_t word_template_ordinal = 0) {
+  WordTemplateRefBuilder builder_(_fbb);
+  builder_.add_word_template_id(word_template_id);
+  builder_.add_word_template_ordinal(word_template_ordinal);
+  return builder_.Finish();
+}
+
 struct PhraseTemplate FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef PhraseTemplateBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_PHRASE_TEMPLATE_ID = 4,
     VT_PHRASE_TEMPLATE_NAME = 6,
-    VT_WORD_TEMPLATES = 8
+    VT_WORD_TEMPLATE_REFS = 8
   };
   uint16_t phrase_template_id() const {
     return GetField<uint16_t>(VT_PHRASE_TEMPLATE_ID, 0);
@@ -568,20 +769,20 @@ struct PhraseTemplate FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   ::flatbuffers::String *mutable_phrase_template_name() {
     return GetPointer<::flatbuffers::String *>(VT_PHRASE_TEMPLATE_NAME);
   }
-  const ::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>> *word_templates() const {
-    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>> *>(VT_WORD_TEMPLATES);
+  const ::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplateRef>> *word_template_refs() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplateRef>> *>(VT_WORD_TEMPLATE_REFS);
   }
-  ::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>> *mutable_word_templates() {
-    return GetPointer<::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>> *>(VT_WORD_TEMPLATES);
+  ::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplateRef>> *mutable_word_template_refs() {
+    return GetPointer<::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplateRef>> *>(VT_WORD_TEMPLATE_REFS);
   }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint16_t>(verifier, VT_PHRASE_TEMPLATE_ID, 2) &&
            VerifyOffset(verifier, VT_PHRASE_TEMPLATE_NAME) &&
            verifier.VerifyString(phrase_template_name()) &&
-           VerifyOffset(verifier, VT_WORD_TEMPLATES) &&
-           verifier.VerifyVector(word_templates()) &&
-           verifier.VerifyVectorOfTables(word_templates()) &&
+           VerifyOffset(verifier, VT_WORD_TEMPLATE_REFS) &&
+           verifier.VerifyVector(word_template_refs()) &&
+           verifier.VerifyVectorOfTables(word_template_refs()) &&
            verifier.EndTable();
   }
 };
@@ -596,8 +797,8 @@ struct PhraseTemplateBuilder {
   void add_phrase_template_name(::flatbuffers::Offset<::flatbuffers::String> phrase_template_name) {
     fbb_.AddOffset(PhraseTemplate::VT_PHRASE_TEMPLATE_NAME, phrase_template_name);
   }
-  void add_word_templates(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>>> word_templates) {
-    fbb_.AddOffset(PhraseTemplate::VT_WORD_TEMPLATES, word_templates);
+  void add_word_template_refs(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplateRef>>> word_template_refs) {
+    fbb_.AddOffset(PhraseTemplate::VT_WORD_TEMPLATE_REFS, word_template_refs);
   }
   explicit PhraseTemplateBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -614,9 +815,9 @@ inline ::flatbuffers::Offset<PhraseTemplate> CreatePhraseTemplate(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     uint16_t phrase_template_id = 0,
     ::flatbuffers::Offset<::flatbuffers::String> phrase_template_name = 0,
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>>> word_templates = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplateRef>>> word_template_refs = 0) {
   PhraseTemplateBuilder builder_(_fbb);
-  builder_.add_word_templates(word_templates);
+  builder_.add_word_template_refs(word_template_refs);
   builder_.add_phrase_template_name(phrase_template_name);
   builder_.add_phrase_template_id(phrase_template_id);
   return builder_.Finish();
@@ -626,21 +827,22 @@ inline ::flatbuffers::Offset<PhraseTemplate> CreatePhraseTemplateDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     uint16_t phrase_template_id = 0,
     const char *phrase_template_name = nullptr,
-    const std::vector<::flatbuffers::Offset<phraser::WordTemplate>> *word_templates = nullptr) {
+    const std::vector<::flatbuffers::Offset<phraser::WordTemplateRef>> *word_template_refs = nullptr) {
   auto phrase_template_name__ = phrase_template_name ? _fbb.CreateString(phrase_template_name) : 0;
-  auto word_templates__ = word_templates ? _fbb.CreateVector<::flatbuffers::Offset<phraser::WordTemplate>>(*word_templates) : 0;
+  auto word_template_refs__ = word_template_refs ? _fbb.CreateVector<::flatbuffers::Offset<phraser::WordTemplateRef>>(*word_template_refs) : 0;
   return phraser::CreatePhraseTemplate(
       _fbb,
       phrase_template_id,
       phrase_template_name__,
-      word_templates__);
+      word_template_refs__);
 }
 
 struct PhraseTemplatesBlock FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef PhraseTemplatesBlockBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_BLOCK = 4,
-    VT_PHRASE_TEMPLATES = 6
+    VT_PHRASE_TEMPLATES = 6,
+    VT_WORD_TEMPLATES = 8
   };
   const phraser::StoreBlock *block() const {
     return GetStruct<const phraser::StoreBlock *>(VT_BLOCK);
@@ -654,12 +856,21 @@ struct PhraseTemplatesBlock FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
   ::flatbuffers::Vector<::flatbuffers::Offset<phraser::PhraseTemplate>> *mutable_phrase_templates() {
     return GetPointer<::flatbuffers::Vector<::flatbuffers::Offset<phraser::PhraseTemplate>> *>(VT_PHRASE_TEMPLATES);
   }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>> *word_templates() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>> *>(VT_WORD_TEMPLATES);
+  }
+  ::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>> *mutable_word_templates() {
+    return GetPointer<::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>> *>(VT_WORD_TEMPLATES);
+  }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<phraser::StoreBlock>(verifier, VT_BLOCK, 8) &&
            VerifyOffset(verifier, VT_PHRASE_TEMPLATES) &&
            verifier.VerifyVector(phrase_templates()) &&
            verifier.VerifyVectorOfTables(phrase_templates()) &&
+           VerifyOffset(verifier, VT_WORD_TEMPLATES) &&
+           verifier.VerifyVector(word_templates()) &&
+           verifier.VerifyVectorOfTables(word_templates()) &&
            verifier.EndTable();
   }
 };
@@ -673,6 +884,9 @@ struct PhraseTemplatesBlockBuilder {
   }
   void add_phrase_templates(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<phraser::PhraseTemplate>>> phrase_templates) {
     fbb_.AddOffset(PhraseTemplatesBlock::VT_PHRASE_TEMPLATES, phrase_templates);
+  }
+  void add_word_templates(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>>> word_templates) {
+    fbb_.AddOffset(PhraseTemplatesBlock::VT_WORD_TEMPLATES, word_templates);
   }
   explicit PhraseTemplatesBlockBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -688,8 +902,10 @@ struct PhraseTemplatesBlockBuilder {
 inline ::flatbuffers::Offset<PhraseTemplatesBlock> CreatePhraseTemplatesBlock(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const phraser::StoreBlock *block = nullptr,
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<phraser::PhraseTemplate>>> phrase_templates = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<phraser::PhraseTemplate>>> phrase_templates = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<phraser::WordTemplate>>> word_templates = 0) {
   PhraseTemplatesBlockBuilder builder_(_fbb);
+  builder_.add_word_templates(word_templates);
   builder_.add_phrase_templates(phrase_templates);
   builder_.add_block(block);
   return builder_.Finish();
@@ -698,19 +914,26 @@ inline ::flatbuffers::Offset<PhraseTemplatesBlock> CreatePhraseTemplatesBlock(
 inline ::flatbuffers::Offset<PhraseTemplatesBlock> CreatePhraseTemplatesBlockDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const phraser::StoreBlock *block = nullptr,
-    const std::vector<::flatbuffers::Offset<phraser::PhraseTemplate>> *phrase_templates = nullptr) {
+    const std::vector<::flatbuffers::Offset<phraser::PhraseTemplate>> *phrase_templates = nullptr,
+    const std::vector<::flatbuffers::Offset<phraser::WordTemplate>> *word_templates = nullptr) {
   auto phrase_templates__ = phrase_templates ? _fbb.CreateVector<::flatbuffers::Offset<phraser::PhraseTemplate>>(*phrase_templates) : 0;
+  auto word_templates__ = word_templates ? _fbb.CreateVector<::flatbuffers::Offset<phraser::WordTemplate>>(*word_templates) : 0;
   return phraser::CreatePhraseTemplatesBlock(
       _fbb,
       block,
-      phrase_templates__);
+      phrase_templates__,
+      word_templates__);
 }
 
 struct Word FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef WordBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_WORD_TEMPLATE_ID = 4,
-    VT_WORD = 6
+    VT_WORD_TEMPLATE_ORDINAL = 6,
+    VT_NAME = 8,
+    VT_WORD = 10,
+    VT_PERMISSIONS = 12,
+    VT_ICON = 14
   };
   uint16_t word_template_id() const {
     return GetField<uint16_t>(VT_WORD_TEMPLATE_ID, 0);
@@ -718,17 +941,46 @@ struct Word FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   bool mutate_word_template_id(uint16_t _word_template_id = 0) {
     return SetField<uint16_t>(VT_WORD_TEMPLATE_ID, _word_template_id, 0);
   }
+  int8_t word_template_ordinal() const {
+    return GetField<int8_t>(VT_WORD_TEMPLATE_ORDINAL, 0);
+  }
+  bool mutate_word_template_ordinal(int8_t _word_template_ordinal = 0) {
+    return SetField<int8_t>(VT_WORD_TEMPLATE_ORDINAL, _word_template_ordinal, 0);
+  }
+  const ::flatbuffers::String *name() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_NAME);
+  }
+  ::flatbuffers::String *mutable_name() {
+    return GetPointer<::flatbuffers::String *>(VT_NAME);
+  }
   const ::flatbuffers::String *word() const {
     return GetPointer<const ::flatbuffers::String *>(VT_WORD);
   }
   ::flatbuffers::String *mutable_word() {
     return GetPointer<::flatbuffers::String *>(VT_WORD);
   }
+  int8_t permissions() const {
+    return GetField<int8_t>(VT_PERMISSIONS, 0);
+  }
+  bool mutate_permissions(int8_t _permissions = 0) {
+    return SetField<int8_t>(VT_PERMISSIONS, _permissions, 0);
+  }
+  phraser::Icon icon() const {
+    return static_cast<phraser::Icon>(GetField<int8_t>(VT_ICON, 0));
+  }
+  bool mutate_icon(phraser::Icon _icon = static_cast<phraser::Icon>(0)) {
+    return SetField<int8_t>(VT_ICON, static_cast<int8_t>(_icon), 0);
+  }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint16_t>(verifier, VT_WORD_TEMPLATE_ID, 2) &&
+           VerifyField<int8_t>(verifier, VT_WORD_TEMPLATE_ORDINAL, 1) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
            VerifyOffset(verifier, VT_WORD) &&
            verifier.VerifyString(word()) &&
+           VerifyField<int8_t>(verifier, VT_PERMISSIONS, 1) &&
+           VerifyField<int8_t>(verifier, VT_ICON, 1) &&
            verifier.EndTable();
   }
 };
@@ -740,8 +992,20 @@ struct WordBuilder {
   void add_word_template_id(uint16_t word_template_id) {
     fbb_.AddElement<uint16_t>(Word::VT_WORD_TEMPLATE_ID, word_template_id, 0);
   }
+  void add_word_template_ordinal(int8_t word_template_ordinal) {
+    fbb_.AddElement<int8_t>(Word::VT_WORD_TEMPLATE_ORDINAL, word_template_ordinal, 0);
+  }
+  void add_name(::flatbuffers::Offset<::flatbuffers::String> name) {
+    fbb_.AddOffset(Word::VT_NAME, name);
+  }
   void add_word(::flatbuffers::Offset<::flatbuffers::String> word) {
     fbb_.AddOffset(Word::VT_WORD, word);
+  }
+  void add_permissions(int8_t permissions) {
+    fbb_.AddElement<int8_t>(Word::VT_PERMISSIONS, permissions, 0);
+  }
+  void add_icon(phraser::Icon icon) {
+    fbb_.AddElement<int8_t>(Word::VT_ICON, static_cast<int8_t>(icon), 0);
   }
   explicit WordBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -757,22 +1021,39 @@ struct WordBuilder {
 inline ::flatbuffers::Offset<Word> CreateWord(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     uint16_t word_template_id = 0,
-    ::flatbuffers::Offset<::flatbuffers::String> word = 0) {
+    int8_t word_template_ordinal = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> name = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> word = 0,
+    int8_t permissions = 0,
+    phraser::Icon icon = phraser::Icon_Unknown) {
   WordBuilder builder_(_fbb);
   builder_.add_word(word);
+  builder_.add_name(name);
   builder_.add_word_template_id(word_template_id);
+  builder_.add_icon(icon);
+  builder_.add_permissions(permissions);
+  builder_.add_word_template_ordinal(word_template_ordinal);
   return builder_.Finish();
 }
 
 inline ::flatbuffers::Offset<Word> CreateWordDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     uint16_t word_template_id = 0,
-    const char *word = nullptr) {
+    int8_t word_template_ordinal = 0,
+    const char *name = nullptr,
+    const char *word = nullptr,
+    int8_t permissions = 0,
+    phraser::Icon icon = phraser::Icon_Unknown) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
   auto word__ = word ? _fbb.CreateString(word) : 0;
   return phraser::CreateWord(
       _fbb,
       word_template_id,
-      word__);
+      word_template_ordinal,
+      name__,
+      word__,
+      permissions,
+      icon);
 }
 
 struct PhraseHistory FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -982,7 +1263,9 @@ struct KeyBlock FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_BLOCK = 4,
     VT_KEY = 6,
-    VT_IV = 8
+    VT_DB_NAME = 8,
+    VT_IV = 10,
+    VT_BLOCK_COUNT = 12
   };
   const phraser::StoreBlock *block() const {
     return GetStruct<const phraser::StoreBlock *>(VT_BLOCK);
@@ -996,19 +1279,34 @@ struct KeyBlock FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   ::flatbuffers::Vector<int8_t> *mutable_key() {
     return GetPointer<::flatbuffers::Vector<int8_t> *>(VT_KEY);
   }
+  const ::flatbuffers::Vector<int8_t> *db_name() const {
+    return GetPointer<const ::flatbuffers::Vector<int8_t> *>(VT_DB_NAME);
+  }
+  ::flatbuffers::Vector<int8_t> *mutable_db_name() {
+    return GetPointer<::flatbuffers::Vector<int8_t> *>(VT_DB_NAME);
+  }
   const ::flatbuffers::Vector<int8_t> *iv() const {
     return GetPointer<const ::flatbuffers::Vector<int8_t> *>(VT_IV);
   }
   ::flatbuffers::Vector<int8_t> *mutable_iv() {
     return GetPointer<::flatbuffers::Vector<int8_t> *>(VT_IV);
   }
+  uint16_t block_count() const {
+    return GetField<uint16_t>(VT_BLOCK_COUNT, 0);
+  }
+  bool mutate_block_count(uint16_t _block_count = 0) {
+    return SetField<uint16_t>(VT_BLOCK_COUNT, _block_count, 0);
+  }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<phraser::StoreBlock>(verifier, VT_BLOCK, 8) &&
            VerifyOffset(verifier, VT_KEY) &&
            verifier.VerifyVector(key()) &&
+           VerifyOffset(verifier, VT_DB_NAME) &&
+           verifier.VerifyVector(db_name()) &&
            VerifyOffset(verifier, VT_IV) &&
            verifier.VerifyVector(iv()) &&
+           VerifyField<uint16_t>(verifier, VT_BLOCK_COUNT, 2) &&
            verifier.EndTable();
   }
 };
@@ -1023,8 +1321,14 @@ struct KeyBlockBuilder {
   void add_key(::flatbuffers::Offset<::flatbuffers::Vector<int8_t>> key) {
     fbb_.AddOffset(KeyBlock::VT_KEY, key);
   }
+  void add_db_name(::flatbuffers::Offset<::flatbuffers::Vector<int8_t>> db_name) {
+    fbb_.AddOffset(KeyBlock::VT_DB_NAME, db_name);
+  }
   void add_iv(::flatbuffers::Offset<::flatbuffers::Vector<int8_t>> iv) {
     fbb_.AddOffset(KeyBlock::VT_IV, iv);
+  }
+  void add_block_count(uint16_t block_count) {
+    fbb_.AddElement<uint16_t>(KeyBlock::VT_BLOCK_COUNT, block_count, 0);
   }
   explicit KeyBlockBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1041,11 +1345,15 @@ inline ::flatbuffers::Offset<KeyBlock> CreateKeyBlock(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const phraser::StoreBlock *block = nullptr,
     ::flatbuffers::Offset<::flatbuffers::Vector<int8_t>> key = 0,
-    ::flatbuffers::Offset<::flatbuffers::Vector<int8_t>> iv = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<int8_t>> db_name = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<int8_t>> iv = 0,
+    uint16_t block_count = 0) {
   KeyBlockBuilder builder_(_fbb);
   builder_.add_iv(iv);
+  builder_.add_db_name(db_name);
   builder_.add_key(key);
   builder_.add_block(block);
+  builder_.add_block_count(block_count);
   return builder_.Finish();
 }
 
@@ -1053,14 +1361,19 @@ inline ::flatbuffers::Offset<KeyBlock> CreateKeyBlockDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const phraser::StoreBlock *block = nullptr,
     const std::vector<int8_t> *key = nullptr,
-    const std::vector<int8_t> *iv = nullptr) {
+    const std::vector<int8_t> *db_name = nullptr,
+    const std::vector<int8_t> *iv = nullptr,
+    uint16_t block_count = 0) {
   auto key__ = key ? _fbb.CreateVector<int8_t>(*key) : 0;
+  auto db_name__ = db_name ? _fbb.CreateVector<int8_t>(*db_name) : 0;
   auto iv__ = iv ? _fbb.CreateVector<int8_t>(*iv) : 0;
   return phraser::CreateKeyBlock(
       _fbb,
       block,
       key__,
-      iv__);
+      db_name__,
+      iv__,
+      block_count);
 }
 
 }  // namespace phraser

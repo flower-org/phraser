@@ -16,13 +16,14 @@ Thumby* thumby = new Thumby();
 
 void play_with_words() {
   flatbuffers::FlatBufferBuilder builder(1024);
-  auto name = builder.CreateString("worrd_tmpl");
+  auto name = builder.CreateString("worrd_name");
+  auto word = builder.CreateString("worrd_tmpl");
   short word_id = 3;
 
   //auto name2 = builder.CreateString("worrd_tmpl_2");
   //short word_id2 = 23;
 
-  auto word1 = CreateWord(builder, word_id, name);
+  auto word1 = CreateWord(builder, word_id, 0, name, word, 15, phraser::Icon_GTTriangle);
 
   builder.Finish(word1);
 
