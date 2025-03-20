@@ -27,7 +27,13 @@ extern "C" {
 //TODO: restore original BLOCK_COUNT,
 //TODO: slow startup due to full AES decoding of all 384 blocks
 //TODO: speed up startup by introducing independent checksum encryption and restore full block count
-#define BLOCK_COUNT 50
+
+// Startup times (flash load):
+// 256 - 15s
+// 128 - 8s
+// 64 - 4.5s
+// 32 - 3s
+#define BLOCK_COUNT 32
 //#define BLOCK_COUNT ((PICO_FLASH_SIZE_BYTES - FIRST_DATA_BLOCK_OFFSET) / DATA_BLOCK_SIZE)
 
 #define POINTER_SIZE 4

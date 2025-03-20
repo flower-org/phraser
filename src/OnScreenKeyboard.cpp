@@ -60,8 +60,8 @@ void initOnScreenKeyboard() {
   selectedCharset = 0;
 }
 
-void keyboardLoop(Thumby* thumby) {
-/*  drawKeyboard(thumby, charsets[selectedCharset], selectedX, selectedY);
+void keyboardLoop(Thumby* thumby, bool is_emulated_keyboard) {
+  drawKeyboard(thumby, charsets[selectedCharset], selectedX, selectedY);
 
   if (thumby->isPressed(BUTTON_L)) {
     l_pressed = true;
@@ -124,50 +124,31 @@ void keyboardLoop(Thumby* thumby) {
     if (a_pressed) {
       if (selectedX == 10) {
         if (selectedY == 0) {
-          //Keyboard.press(KEY_BACKSPACE);
-          deleteLastChar();
+          if (is_emulated_keyboard) {
+            Keyboard.press(KEY_BACKSPACE);
+          } else {
+            deleteLastChar();
+          }
         } else {
-          //Keyboard.press(KEY_RETURN);
+          if (is_emulated_keyboard) {
+            Keyboard.press(KEY_RETURN);
+          }
         }
         delay(50);
-        //Keyboard.releaseAll();
+        if (is_emulated_keyboard) {
+          Keyboard.releaseAll();
+        }
       } else {
         char c = charsets[selectedCharset][selectedX + selectedY*10];
-        appendChar(c);
-        //Keyboard.print(c);
+        if (is_emulated_keyboard) {
+          Keyboard.print(c);
+        } else {
+          appendChar(c);
+        }
       }
     }
     a_pressed = false;
   }
 
   textFieldLoop(thumby);
-  */
-
-  drawFolderIcon(thumby, 3+12*0, 3, WHITE);
-  drawToParentFolder(thumby, 3+12*1, 3, WHITE);
-  drawAsterisk(thumby, 3+12*2, 3, WHITE);
-  drawKey(thumby, 3+12*3, 3, WHITE);
-  drawAa(thumby, 3+12*4, 3, WHITE);
-  drawLTTriangle(thumby, 3+12*5, 3, WHITE, false);
-  
-  drawSettings(thumby, 3+12*0, 13, WHITE);
-  drawLock(thumby, 3+12*1, 13, WHITE);
-  drawLogin(thumby, 3+12*2, 13, WHITE);
-  drawStar(thumby, 3+12*3, 13, WHITE);
-  drawLookingGlass(thumby, 3+12*4, 13, WHITE);
-  drawGTTriangle(thumby, 3+12*5, 13, WHITE, false);
-
-  drawTextOut(thumby, 3+12*0, 23, WHITE);
-  drawLedger(thumby, 3+12*1, 23, WHITE);
-  drawPlusMinus(thumby, 3+12*2, 23, WHITE);
-  drawStars(thumby, 3+12*3, 23, WHITE);
-  drawMessage(thumby, 3+12*4, 23, WHITE);
-  drawQuote(thumby, 3+12*5, 23, WHITE);
-  
-  drawQuestion(thumby, 3+12*0, 33, WHITE);
-  drawPlus(thumby, 3+12*1, 33, WHITE);
-  drawMinus(thumby, 3+12*2, 33, WHITE);
-  drawX(thumby, 3+12*3, 33, WHITE);
-  drawCheck(thumby, 3+12*4, 33, WHITE);
-  drawCopy(thumby, 3+12*5, 33, WHITE);
 }

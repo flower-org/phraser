@@ -4,6 +4,7 @@
 #include "ThumbyUtils.h"
 #include "PhraserUtils.h"
 #include "OnScreenKeyboard.h"
+#include "ScreenSymbolDrawer.h"
 #include "TextField.h"
 #include "Registry.h"
 
@@ -77,7 +78,9 @@ void loop() {
   // Clear the screen to black
   thumby->clear();
 
-  keyboardLoop(thumby);
+  //symbolLoop(thumby);
+  
+  keyboardLoop(thumby, true);
 
   // Receive and display a message from link
   receive(thumby);
