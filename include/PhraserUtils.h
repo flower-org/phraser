@@ -35,6 +35,10 @@ void drawMinus(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 void drawX(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 void drawCheck(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 void drawCopy(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
+void drawUpload(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
+void drawDownload(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 
 void drawLoadingScreen(Thumby* thumby);
 void printAt(Thumby* thumby, int x, int y, char* str);
+
+void drawSpace(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected);

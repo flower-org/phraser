@@ -7,8 +7,6 @@ void drawIcon(Thumby* thumby, int lineIndex, phraser::Icon icon) {
   int icon_offset_y = 2;
   int line = lines[lineIndex];
 
-  drawFolderIcon(thumby, icon_offset_x, line+icon_offset_y, WHITE);
-
   switch (icon) {
     case phraser::Icon_Key: 
       drawKey(thumby, icon_offset_x, line+icon_offset_y, WHITE);
@@ -41,10 +39,10 @@ void drawIcon(Thumby* thumby, int lineIndex, phraser::Icon icon) {
       drawLookingGlass(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
     case phraser::Icon_LTTriangle: 
-      drawLTTriangle(thumby, icon_offset_x, line+icon_offset_y, WHITE, true);
+      drawLTTriangle(thumby, icon_offset_x, line+icon_offset_y, WHITE, false);
       break;
     case phraser::Icon_GTTriangle: 
-      drawGTTriangle(thumby, icon_offset_x, line+icon_offset_y, WHITE, true);
+      drawGTTriangle(thumby, icon_offset_x, line+icon_offset_y, WHITE, false);
       break;
     case phraser::Icon_TextOut: 
       drawTextOut(thumby, icon_offset_x, line+icon_offset_y, WHITE);
@@ -82,8 +80,14 @@ void drawIcon(Thumby* thumby, int lineIndex, phraser::Icon icon) {
     case phraser::Icon_Copy: 
       drawCopy(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
+    case phraser::Icon_Download: 
+      drawDownload(thumby, icon_offset_x, line+icon_offset_y, WHITE);
+      break;
+    case phraser::Icon_Upload: 
+      drawUpload(thumby, icon_offset_x, line+icon_offset_y, WHITE);
+      break;
     default: 
-      drawFolderIcon(thumby, icon_offset_x, line+icon_offset_y, WHITE);
+      drawSpace(thumby, icon_offset_x+2, line+icon_offset_y-1, WHITE, false);
       break;
   }
 }
@@ -99,7 +103,6 @@ void drawLineSelectionBorder(Thumby* thumby, int lineIndex) {
     selection_border_x2, line + selection_border_offset_y2, WHITE);
 }
 
-// TODO: scroll text horizontally if it's too long
 void printLineText(Thumby* thumby, int lineIndex, char* str) {
   int text_offset = 13;
   int text_offset_y = 1;
@@ -109,16 +112,12 @@ void printLineText(Thumby* thumby, int lineIndex, char* str) {
 }
 
 int r = 0;
+// TODO: scroll text horizontally if it's too long
 void listLoop(Thumby* thumby) {
   int line1 = 0;
   int line2 = 10;
   int line3 = 20;
   int line4 = 30;
-
-  drawIcon(thumby, 0, phraser::Icon_Folder);
-  drawIcon(thumby, 1, phraser::Icon_Folder);
-  drawIcon(thumby, 2, phraser::Icon_Folder);
-  drawIcon(thumby, 3, phraser::Icon_Folder);
 
   switch (r%4) {
     case 0:
@@ -137,8 +136,19 @@ void listLoop(Thumby* thumby) {
   r++;
   delay(2500);
 
+  drawIcon(thumby, 0, phraser::Icon_Lock);
   printLineText(thumby, 0, "Unseal");
-  printLineText(thumby, 1, "Download DB");
-  printLineText(thumby, 2, "Upload DB");
+
+  drawIcon(thumby, 1, phraser::Icon_Download);
+  printLineText(thumby, 1, "Backup DB");
+
+  drawIcon(thumby, 2, phraser::Icon_Upload);
+  printLineText(thumby, 2, "Restore DB");
+
+  drawIcon(thumby, 3, phraser::Icon_Settings);
+  printLineText(thumby, 3, "Create New DB");
+
+/*  drawIcon(thumby, 3, phraser::Icon_Lock);
   printLineText(thumby, 3, "Unseal (show password)");
+  */
 }

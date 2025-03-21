@@ -250,6 +250,26 @@ void drawCopy(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color) {
   thumby->drawLine(x0+3, y0+6, x0+7, y0+6, color);
 }
 
+void drawUpload(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color) {
+  thumby->drawLine(x0+1, y0, x0+7, y0, color);
+  thumby->drawLine(x0+1, y0, x0+1, y0+1, color);
+  thumby->drawLine(x0+7, y0, x0+7, y0+1, color);
+
+  thumby->drawLine(x0+2, y0+4, x0+4, y0+2, color);
+  thumby->drawLine(x0+6, y0+4, x0+4, y0+2, color);
+  thumby->drawLine(x0+4, y0+2, x0+4, y0+6, color);
+}
+
+void drawDownload(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color) {
+  thumby->drawLine(x0+1, y0+6, x0+7, y0+6, color);
+  thumby->drawLine(x0+1, y0+6, x0+1, y0+5, color);
+  thumby->drawLine(x0+7, y0+6, x0+7, y0+5, color);
+
+  thumby->drawLine(x0+2, y0+2, x0+4, y0+4, color);
+  thumby->drawLine(x0+6, y0+2, x0+4, y0+4, color);
+  thumby->drawLine(x0+4, y0+4, x0+4, y0, color);
+}
+
 void drawLoadingScreen(Thumby* thumby) {
   // Clear the screen to black
   thumby->clear();
