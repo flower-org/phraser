@@ -1,4 +1,4 @@
-#include "OnScreenKeyboard.h"
+#include "ScreenKeyboard.h"
 
 void drawEnter(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, char isSelected) {
   if (isSelected) {

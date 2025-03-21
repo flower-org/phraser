@@ -7,11 +7,14 @@ void drawRect(Thumby* thumby, int16_t x0, int16_t y0, int16_t x1, int16_t y1, ui
   thumby->drawLine(x1, y0, x1, y1, color);
 }
 
-
-void drawThreeDots(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected) {
+void drawSelectedRect(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected) {
   if (isSelected) {
     drawRect(thumby, x0-2, y0-1, x0+6, y0+9, color);
   }
+}
+
+void drawThreeDots(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected) {
+  drawSelectedRect(thumby, x0, y0, color, isSelected);
   
   thumby->drawPixel(x0, y0+7, color);
   thumby->drawPixel(x0+2, y0+7, color);
@@ -19,9 +22,7 @@ void drawThreeDots(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte 
 }
 
 void drawSpace(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected) {
-  if (isSelected) {
-    drawRect(thumby, x0-2, y0-1, x0+6, y0+9, color);
-  }
+  drawSelectedRect(thumby, x0, y0, color, isSelected);
   
   thumby->drawLine(x0, y0+7, x0+4, y0+7, color);
   thumby->drawLine(x0, y0+7, x0, y0+6, color);
@@ -32,9 +33,7 @@ void drawLetter(Thumby* thumby, char letter, int16_t x0, int16_t y0, uint16_t co
   if (letter == ' ') {
     drawSpace(thumby, x0, y0, color, isSelected);
   } else {
-    if (isSelected) {
-      drawRect(thumby, x0-2, y0-1, x0+6, y0+9, color);
-    }
+    drawSelectedRect(thumby, x0, y0, color, isSelected);
 
     thumby->goTo(x0, y0);
     thumby->write(letter);
@@ -42,9 +41,7 @@ void drawLetter(Thumby* thumby, char letter, int16_t x0, int16_t y0, uint16_t co
 }
 
 void drawLTTriangle(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected) {
-  if (isSelected) {
-    drawRect(thumby, x0-2, y0-1, x0+6, y0+9, color);
-  }
+  drawSelectedRect(thumby, x0, y0, color, isSelected);
   
   thumby->drawLine(x0+1, y0+4, x0+3, y0+2, color);
   thumby->drawLine(x0+1, y0+4, x0+3, y0+6, color);
@@ -53,9 +50,7 @@ void drawLTTriangle(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte
 }
 
 void drawGTTriangle(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected) {
-  if (isSelected) {
-    drawRect(thumby, x0-2, y0-1, x0+6, y0+9, color);
-  }
+  drawSelectedRect(thumby, x0, y0, color, isSelected);
   
   thumby->drawLine(x0+1, y0+2, x0+3, y0+4, color);
   thumby->drawLine(x0+3, y0+4, x0+1, y0+6, color);
@@ -259,8 +254,14 @@ void drawLoadingScreen(Thumby* thumby) {
   // Clear the screen to black
   thumby->clear();
 
-  thumby->print("Loading...");
+  thumby->setCursor(0, 0);
+  printAt(thumby, 0, 0, "Loading...");
 
   // Update the screen
   thumby->writeBuffer(thumby->getBuffer(), thumby->getBufferSize());
+}
+
+void printAt(Thumby* thumby, int x, int y, char* str) {
+  thumby->setCursor(x, y);
+  thumby->print(str);
 }

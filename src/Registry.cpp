@@ -342,7 +342,7 @@ void loadRegistryFromFlash() {
   //Serial.printf("loadRegistryFromFlash: block count %d\n", BLOCK_COUNT);
   for (uint16_t i = 0; i < BLOCK_COUNT; i++) {
     readBlock4096DataFromFlash(i, checkBlock4096);
-    Serial.println("Resolving store block; index: " + i);
+    Serial.printf("Resolving store block; index: %d\r\n", i);
 
     uint8_t sbInitSuccess = initStoreBlock(checkBlock4096, &storeBlock);
     if (sbInitSuccess) {

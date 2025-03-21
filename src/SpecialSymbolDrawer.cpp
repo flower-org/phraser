@@ -1,4 +1,4 @@
-#include "ScreenSymbolDrawer.h"
+#include "SpecialSymbolDrawer.h"
 
 void symbolLoop(Thumby* thumby) {
   drawFolderIcon(thumby, 3+12*0, 3, WHITE);

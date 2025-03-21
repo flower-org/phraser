@@ -3,8 +3,9 @@
 
 #include "ThumbyUtils.h"
 #include "PhraserUtils.h"
-#include "OnScreenKeyboard.h"
-#include "ScreenSymbolDrawer.h"
+#include "ScreenKeyboard.h"
+#include "ScreenList.h"
+#include "SpecialSymbolDrawer.h"
 #include "TextField.h"
 #include "Registry.h"
 
@@ -53,7 +54,7 @@ void setup() {
   //TODO: Disable serial in the final version
   Serial.begin(115200);
   delay(1000);
-  
+
   Serial.printf("PSM-1 (Phraser)\n");
   Serial.printf("Thumby (Pi Pico) USB Password Manager\n\n");
 
@@ -73,14 +74,16 @@ void setup() {
 
 int i = 0;
 void loop() {
-//  Serial.printf("PSM-1 (Phraser) %d\n", i++);
+  //  Serial.printf("PSM-1 (Phraser) %d\n", i++);
 
   // Clear the screen to black
   thumby->clear();
 
   //symbolLoop(thumby);
   
-  keyboardLoop(thumby, true);
+  //keyboardLoop(thumby, true);
+
+  listLoop(thumby);
 
   // Receive and display a message from link
   receive(thumby);
