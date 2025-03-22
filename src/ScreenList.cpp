@@ -144,16 +144,52 @@ ListItem** getLoopItems() {
   return items;
 }
 
-void drawItem(Thumby* thumby, ListItem* item, int line) {
+char* truncateString(const char* original, size_t length_to_copy) {
+  if (original == NULL) {return NULL; }
+
+  char* truncated = (char*)malloc((length_to_copy + 1) * sizeof(char));
+  strncpy(truncated, original, length_to_copy);
+  truncated[length_to_copy] = '\0'; // Null-terminate
+
+  return truncated;
+}
+
+void drawItem(Thumby* thumby, ListItem* item, int line, bool is_selected, bool new_selection) {
   drawIcon(thumby, line, item->icon);
 
-  // TODO: scroll text horizontally if it's too long
-  printLineText(thumby, line, item->name);
+  if (item->too_wide_need_scroll) {
+    unsigned long now = millis();
+    if (new_selection) {
+      item->last_move = now + 300;
+      item->shift = 0;
+    }
+    char* truncated;
+    if (is_selected) {
+      if (item->last_move + 120 < now) {
+        item->last_move = now;
+        item->shift++;
+        if (item->shift > item->name_length) {
+          item->shift = 0;
+          item->last_move = now + 1000;
+        }
+      }
+
+      truncated = truncateString(item->double_name + item->shift, max_letters_to_show);
+    } else {
+      truncated = truncateString(item->name, max_letters_to_show);
+    }
+    printLineText(thumby, line, truncated);
+    free(truncated);
+  } else {
+    printLineText(thumby, line, item->name);
+  }
 }
 
 bool down_pressed = false;
 bool up_pressed = false;
 ListItem* listLoop(Thumby* thumby) {
+  ListItem* previously_selected = items[item_cursor + selection_pos];
+  
   if (thumby->isPressed(BUTTON_U)) {
     up_pressed = true;
   } else {
@@ -196,6 +232,8 @@ ListItem* listLoop(Thumby* thumby) {
     down_pressed = false;
   }
 
+  ListItem* newly_selected = items[item_cursor + selection_pos];
+
   if (items != NULL) {
     for (int i = 0; i < lines_count; i++) {
       int item_index = item_cursor + i;
@@ -203,7 +241,11 @@ ListItem* listLoop(Thumby* thumby) {
         break;
       } else {
         ListItem* item = items[item_index];
-        drawItem(thumby, item, i);
+        if (item != newly_selected) {
+          drawItem(thumby, item, i, false, false);
+        } else {
+          drawItem(thumby, item, i, true, previously_selected != newly_selected);
+        }
       }
     }
   }
@@ -223,9 +265,9 @@ ListItem* listLoop(Thumby* thumby) {
 
 char* createDoubleName(char* name, int name_length) {
   if (name == NULL || name_length <= 0) { return NULL; }
-  int double_name_length = name_length * 2 + 1; // +1 for the null terminator
+  int double_name_length = name_length * 2 + 1 + 1; // +1 for separator, +1 for the null terminator
   char* double_name = (char*)malloc(double_name_length * sizeof(char));
-  snprintf(double_name, double_name_length, "%s%s", name, name);
+  snprintf(double_name, double_name_length, "%s/%s", name, name);
   return double_name;
 }
 
@@ -239,6 +281,7 @@ ListItem* createListItem(char* name, int name_length, phraser::Icon icon) {
   listItem->nameCursor = 0;
   listItem->last_move = 0;
   listItem->icon = icon;
+  listItem->shift = 0;
 
   return listItem;
 }

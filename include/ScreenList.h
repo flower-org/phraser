@@ -13,7 +13,8 @@ struct ListItem {
   int name_length;
   bool too_wide_need_scroll;
   int nameCursor;
-  u_int64_t last_move;
+  unsigned long last_move;
+  int shift;
 };
 
 ListItem* listLoop(Thumby* thumby);
