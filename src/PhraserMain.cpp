@@ -16,6 +16,20 @@ using namespace phraser;
 
 Thumby* thumby = new Thumby();
 
+void mainScreenInit() {
+  int new_item_count = 6;
+  ListItem** new_items = (ListItem**)malloc(new_item_count * sizeof(ListItem*));
+
+  new_items[0] = createListItem("Unseal", phraser::Icon_Lock);
+  new_items[1] = createListItem("Backup DB", phraser::Icon_Download);
+  new_items[2] = createListItem("Restore DB", phraser::Icon_Upload);
+  new_items[3] = createListItem("Test Keyboard", phraser::Icon_TextOut);
+  new_items[4] = createListItem("Unseal (show password)", phraser::Icon_Lock);
+  new_items[5] = createListItem("Create New DB", phraser::Icon_Settings);
+
+  initList(new_items, new_item_count);
+}
+
 void play_with_words() {
   flatbuffers::FlatBufferBuilder builder(1024);
   auto name = builder.CreateString("worrd_name");
@@ -69,6 +83,8 @@ void setup() {
 
   initOnScreenKeyboard();
   
+  mainScreenInit();
+
   playMessageSound(thumby);
 }
 
