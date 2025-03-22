@@ -126,12 +126,16 @@ void keyboardLoop(Thumby* thumby, bool is_emulated_keyboard) {
         if (selectedY == 0) {
           if (is_emulated_keyboard) {
             Keyboard.press(KEY_BACKSPACE);
+            setChar(' ');
           } else {
             deleteLastChar();
           }
         } else {
           if (is_emulated_keyboard) {
+            setChar(' ');
             Keyboard.press(KEY_RETURN);
+          } else {
+            //TODO: return entered string
           }
         }
         delay(50);
@@ -141,6 +145,7 @@ void keyboardLoop(Thumby* thumby, bool is_emulated_keyboard) {
       } else {
         char c = charsets[selectedCharset][selectedX + selectedY*10];
         if (is_emulated_keyboard) {
+          setChar(c);
           Keyboard.print(c);
         } else {
           appendChar(c);

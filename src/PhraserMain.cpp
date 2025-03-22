@@ -48,18 +48,24 @@ void playWithWords() {
 // ---------- Common ---------- 
 
 typedef enum {
+  UNDEFINED,//If something bad happens, fall back here
   STARTUP_SCREEN,
   UNSEAL,
   BACKUP,
   RESTORE,
   TEST_KEYBOARD,
   UNSEAL_SHOW_PASS,
-  CREATE_NEW_DB
+  CREATE_NEW_DB,
 } Mode;
-
 
 Mode currentMode;
 Thumby* thumby = new Thumby();
+
+// ---------- Undefined ---------- 
+
+void undefinedLoop() {
+  symbolLoop(thumby);
+}
 
 // ---------- Startup Screen ---------- 
 
@@ -86,14 +92,25 @@ void releaseStartupScreenContext() {
 void startuptScreenLoop() {
   ListItem* chosenItem = listLoop(thumby);
   if (chosenItem != NULL) {
-    if (chosenItem == startup_screen_items[0]) { currentMode = UNSEAL; } //Unseal
-    else if (chosenItem == startup_screen_items[1]) { currentMode = BACKUP; } //Backup DB
-    else if (chosenItem == startup_screen_items[2]) { currentMode = RESTORE; } //Restore DB
-    else if (chosenItem == startup_screen_items[3]) { currentMode = TEST_KEYBOARD; } //Test Keyboard
-    else if (chosenItem == startup_screen_items[4]) { currentMode = UNSEAL_SHOW_PASS; } //Unseal (show password)
-    else if (chosenItem == startup_screen_items[5]) { currentMode = CREATE_NEW_DB; } //New DB
+    currentMode = UNDEFINED;
+    if (chosenItem == startup_screen_items[0]) { currentMode = UNSEAL; }
+    else if (chosenItem == startup_screen_items[1]) { currentMode = BACKUP; }
+    else if (chosenItem == startup_screen_items[2]) { currentMode = RESTORE; }
+    else if (chosenItem == startup_screen_items[3]) { currentMode = TEST_KEYBOARD; }
+    else if (chosenItem == startup_screen_items[4]) { currentMode = UNSEAL_SHOW_PASS; }
+    else if (chosenItem == startup_screen_items[5]) { currentMode = CREATE_NEW_DB; }
     releaseStartupScreenContext();
   }
+}
+
+// ---------- Test Keyboard ---------- 
+
+void testKeyboardInit() {
+  initOnScreenKeyboard();
+}
+
+void testKeyboardLoop() {
+  keyboardLoop(thumby, true);
 }
 
 // ---------- DB Backup ---------- 
@@ -106,12 +123,6 @@ void backupLoop() {
 
 void restoreLoop() {
   drawMessage(thumby, "restoreLoop");
-}
-
-// ---------- Test Keyboard ---------- 
-
-void testKeyboardLoop() {
-  drawMessage(thumby, "testKeyboardLoop");
 }
 
 // ---------- New DB ---------- 
@@ -163,8 +174,6 @@ void setup() {
   drawLoadingScreen(thumby);
 
   loadRegistryFromFlash();
-
-  initOnScreenKeyboard();
   */
 }
 
@@ -174,6 +183,7 @@ void loop() {
   thumby->clear();
 
   switch (currentMode) {
+    case UNDEFINED: undefinedLoop(); break;
     case STARTUP_SCREEN: startuptScreenLoop(); break;
     case UNSEAL: unsealLoop(); break;
     case BACKUP: backupLoop(); break;
@@ -187,11 +197,6 @@ void loop() {
   thumby->writeBuffer(thumby->getBuffer(), thumby->getBufferSize());
 
 
-  //symbolLoop(thumby);
-  
-  //keyboardLoop(thumby, true);
-
-  //listLoop(thumby);
 
   //Receive and display a message from link
   //receive(thumby);

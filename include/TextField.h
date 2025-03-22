@@ -13,3 +13,4 @@ void textFieldLoop(Thumby* thumby);
 void initTextField();
 void appendChar(char c);
 void deleteLastChar();
+void setChar(char c);

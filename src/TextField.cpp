@@ -1,9 +1,9 @@
 #include "TextField.h"
 
-char* showWord = 0;
+char* showWord = NULL;
 
 void initTextField() {
-  if (showWord != 0) {
+  if (showWord != NULL) {
     free(showWord);
   }
   
@@ -24,6 +24,16 @@ void appendChar(char c) {
     free(showWord);
     showWord = newShowWord;
   }
+}
+
+void setChar(char c) {
+    char* newShowWord = (char*)malloc(2 * sizeof(char));
+    newShowWord[0] = c;   // Set the first character
+    newShowWord[1] = '\0'; // Set the null terminator
+
+    free(showWord);
+    showWord = newShowWord;
+
 }
 
 void deleteLastChar() {
