@@ -86,6 +86,9 @@ void drawIcon(Thumby* thumby, int lineIndex, phraser::Icon icon) {
     case phraser::Icon_Upload: 
       drawUpload(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
+    case phraser::Icon_Skull: 
+      drawSkull(thumby, icon_offset_x, line+icon_offset_y, WHITE);
+      break;
     default: 
       drawSpace(thumby, icon_offset_x+2, line+icon_offset_y-1, WHITE, false);
       break;
@@ -94,13 +97,23 @@ void drawIcon(Thumby* thumby, int lineIndex, phraser::Icon icon) {
 
 void drawLineSelectionBorder(Thumby* thumby, int lineIndex) {
   int selection_border_x1 = 11;
-  int selection_border_x2 = 71;
+  int selection_border_x2 = 67;
   int selection_border_offset_y1 = 0;
   int selection_border_offset_y2 = 10;
 
   int line = lines[lineIndex];
   drawRect(thumby, selection_border_x1, line + selection_border_offset_y1, 
     selection_border_x2, line + selection_border_offset_y2, WHITE);
+}
+
+void drawUpScrollable(Thumby* thumby) {
+  thumby->drawLine(69, 1, 70, 0, WHITE);
+  thumby->drawLine(70, 0, 71, 1, WHITE);
+}
+
+void drawDownScrollable(Thumby* thumby) {
+  thumby->drawLine(69, 38, 70, 39, WHITE);
+  thumby->drawLine(70, 39, 71, 38, WHITE);
 }
 
 void printLineText(Thumby* thumby, int lineIndex, char* str) {
@@ -111,9 +124,21 @@ void printLineText(Thumby* thumby, int lineIndex, char* str) {
   printAt(thumby, text_offset, line + text_offset_y, str);
 }
 
+ListItem** items;
+int item_count;
+
+void initList(ListItem** new_items, int new_item_count) {
+  items = new_items;
+  item_count = new_item_count;
+}
+
+ListItem** getLoopItems() {
+  return items;
+}
+
 int r = 0;
 // TODO: scroll text horizontally if it's too long
-void listLoop(Thumby* thumby) {
+ListItem* listLoop(Thumby* thumby) {
   int line1 = 0;
   int line2 = 10;
   int line3 = 20;
@@ -142,13 +167,19 @@ void listLoop(Thumby* thumby) {
   drawIcon(thumby, 1, phraser::Icon_Download);
   printLineText(thumby, 1, "Backup DB");
 
-  drawIcon(thumby, 2, phraser::Icon_Upload);
+  drawIcon(thumby, 2, phraser::Icon_Skull);
   printLineText(thumby, 2, "Restore DB");
 
   drawIcon(thumby, 3, phraser::Icon_Settings);
-  printLineText(thumby, 3, "Create New DB");
+  printLineText(thumby, 3, "Create New");
+//  printLineText(thumby, 3, "Create New DB");
 
 /*  drawIcon(thumby, 3, phraser::Icon_Lock);
   printLineText(thumby, 3, "Unseal (show password)");
   */
+
+  drawUpScrollable(thumby);
+  drawDownScrollable(thumby);
+
+  return NULL;
 }

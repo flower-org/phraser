@@ -270,6 +270,22 @@ void drawDownload(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color) {
   thumby->drawLine(x0+4, y0+4, x0+4, y0, color);
 }
 
+void drawSkull(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color) {
+  x0 = x0+1;
+  thumby->drawLine(x0+1, y0, x0+5, y0, color);
+  thumby->drawLine(x0, y0+1, x0+6, y0+1, color);
+  drawRect(thumby, x0, y0+3, x0+2, y0+4, color);
+  drawRect(thumby, x0+4, y0+3, x0+6, y0+4, color);
+
+  thumby->drawPixel(x0, y0+2, color);
+  thumby->drawPixel(x0+6, y0+2, color);
+  thumby->drawLine(x0+3, y0+2, x0+3, y0+3, color);
+  thumby->drawLine(x0+1, y0+5, x0+5, y0+5, color);
+  thumby->drawPixel(x0+1, y0+6, color);
+  thumby->drawPixel(x0+3, y0+6, color);
+  thumby->drawPixel(x0+5, y0+6, color);
+}
+
 void drawLoadingScreen(Thumby* thumby) {
   // Clear the screen to black
   thumby->clear();
