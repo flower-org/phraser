@@ -53,8 +53,8 @@ char selectedCharset = 0;
 char u_pressed = 0, d_pressed = 0, l_pressed = 0, r_pressed = 0, b_pressed = 0, a_pressed = 0;
 bool is_emulated_keyboard;
 
-void initOnScreenKeyboard(bool emulated_keyboard) {
-  initTextField();
+void initOnScreenKeyboard(bool emulated_keyboard, bool password_mode) {
+  initTextField(password_mode);
   
   selectedX = 0;
   selectedY = 0;

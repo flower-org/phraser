@@ -6,5 +6,5 @@
 #include "PhraserUtils.h"
 #include "TextField.h"
 
-void initOnScreenKeyboard(bool emulated_keyboard);
+void initOnScreenKeyboard(bool emulated_keyboard, bool password_mode);
 char* keyboardLoop(Thumby* thumby);

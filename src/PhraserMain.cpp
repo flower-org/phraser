@@ -93,7 +93,7 @@ void testKeyboardInit() {
   // Init duplex UART for Thumby to PC comms
   Keyboard.begin(KeyboardLayout_en_US);
 
-  initOnScreenKeyboard(true);
+  initOnScreenKeyboard(true, false);
 }
 
 void testKeyboardLoop() {
@@ -106,7 +106,7 @@ void unsealShowPassInit() {
   // Init duplex UART for Thumby to PC comms
   Keyboard.begin(KeyboardLayout_en_US);
 
-  initOnScreenKeyboard(false);
+  initOnScreenKeyboard(false, false);
 }
 
 char* aes256KeyBlockKey = NULL;
@@ -138,13 +138,29 @@ void unsealShowPassLoop() {
 void unsealInit() {
   // Init duplex UART for Thumby to PC comms
   Keyboard.begin(KeyboardLayout_en_US);
-
-  initOnScreenKeyboard(false);
-  drawMessage(thumby, "unsealLoop");
+  initOnScreenKeyboard(false, true);
 }
 
 void unsealLoop() {
-  drawMessage(thumby, "unsealLoop");
+  if (aes256KeyBlockKey == NULL) {
+    char* new_password = keyboardLoop(thumby);
+    if (new_password != NULL) {
+      size_t length = strlen(new_password);
+
+      int key_length = 32;
+      aes256KeyBlockKey = (char*)malloc(key_length);
+
+      PKCS5_PBKDF2_SHA256_HMAC((unsigned char*)new_password, length,
+          HARDCODED_SALT, HARDCODED_SALT_LEN, 
+          PBKDF_INTERATIONS_COUNT,
+          key_length, (unsigned char*)aes256KeyBlockKey);
+
+      // TODO: remove output, proceed with store init and AES decryption
+      password = bytesToHexString((const unsigned char*)aes256KeyBlockKey, key_length);
+    }
+  } else {
+    drawMessage(thumby, password);
+  }
 }
 
 // ---------- DB Backup ---------- 

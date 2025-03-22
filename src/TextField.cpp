@@ -1,17 +1,20 @@
 #include "TextField.h"
 
 char* textFieldText = NULL;
+unsigned long last_letter_added;
+bool password_mode;
 
-void initTextField() {
+void initTextField(bool set_password_mode) {
   if (textFieldText != NULL) {
     free(textFieldText);
   }
   
   textFieldText = (char*)malloc(sizeof(char));
   *textFieldText = '\0';
+  password_mode = set_password_mode;
 }
 
-//TODO: change to x2 resize
+//TODO: change to x2 resize?
 void appendChar(char c) {
   int wordLength = strlen(textFieldText);
   if (wordLength < MAX_INPUT_LENGTH) {
@@ -23,6 +26,7 @@ void appendChar(char c) {
     
     free(textFieldText);
     textFieldText = newTextFiedText;
+    last_letter_added = millis();
   }
 }
 
@@ -40,6 +44,7 @@ void deleteLastChar() {
   if (wordLength > 0) {
     textFieldText[wordLength-1] = '\0';
   }
+  last_letter_added = 0;
 }
 
 void textFieldLoop(Thumby* thumby) {
@@ -47,14 +52,26 @@ void textFieldLoop(Thumby* thumby) {
 
   int wordLength = strlen(textFieldText);
   if (wordLength <= MAX_DISPLAY_CHARS) {
-    for (int i = 0; i <= wordLength; i++) {
-      drawLetter(thumby, textFieldText[i], 3 + i*6, 2, WHITE, false);
+    for (int i = 0; i < wordLength; i++) {
+      if (!password_mode) {
+        drawLetter(thumby, textFieldText[i], 3 + i*6, 2, WHITE, false);
+      } else {
+        bool is_last_char = i == wordLength-1;
+        bool show_char = is_last_char && (last_letter_added + 500) > millis();
+        drawLetter(thumby, show_char ? textFieldText[i] : '*', 3 + i*6, 2, WHITE, false);
+      }
     }
   } else {
     int diff = wordLength - MAX_DISPLAY_CHARS;
     drawThreeDots(thumby, 3, 2, WHITE, false);
     for (int i = 1; i < MAX_DISPLAY_CHARS; i++) {
-      drawLetter(thumby, textFieldText[diff + i], 3 + i*6, 2, WHITE, false);
+      if (!password_mode) {
+        drawLetter(thumby, textFieldText[diff + i], 3 + i*6, 2, WHITE, false);
+      } else {
+        bool is_last_char = diff + i == wordLength-1;
+        bool show_char = is_last_char && (last_letter_added + 500) > millis();
+        drawLetter(thumby, show_char ? textFieldText[diff + i] : '*', 3 + i*6, 2, WHITE, false);
+      }
     }
   }
 }

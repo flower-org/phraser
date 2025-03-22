@@ -10,7 +10,7 @@ const int MAX_INPUT_LENGTH = 256;
 
 void textFieldLoop(Thumby* thumby);
 
-void initTextField();
+void initTextField(bool password_mode);
 void appendChar(char c);
 void deleteLastChar();
 void setChar(char c);
