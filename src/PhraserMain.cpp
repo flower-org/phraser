@@ -12,42 +12,11 @@
 #include "Schema_generated.h"
 #include "RootTypeFinishingMethods.h"
 
-using namespace phraser;
+using namespace phraser; // FlatBuf
 
-typedef enum {
-  INIT_SCREEN,
-  UNSEAL,
-  BACKUP,
-  RESTORE,
-  TEST_KEYBOARD,
-  UNSEAL_SHOW_PASS,
-  CREATE_NEW_DB
-} Mode;
+// -------------------------------------------------------------------------
 
-
-Mode currentMode;
-Thumby* thumby = new Thumby();
-
-ListItem** init_screen_items = NULL;
-const int init_screen_item_count = 6;
-void mainScreenInit() {
-  init_screen_items = (ListItem**)malloc(init_screen_item_count * sizeof(ListItem*));
-
-  init_screen_items[0] = createListItem("Unseal", phraser::Icon_Lock);
-  init_screen_items[1] = createListItem("Backup DB", phraser::Icon_Download);
-  init_screen_items[2] = createListItem("Restore DB", phraser::Icon_Upload);
-  init_screen_items[3] = createListItem("Test Keyboard", phraser::Icon_TextOut);
-  init_screen_items[4] = createListItem("Unseal (show password)", phraser::Icon_Lock);
-  init_screen_items[5] = createListItem("Create New DB", phraser::Icon_Settings);
-
-  initList(init_screen_items, init_screen_item_count);
-}
-
-void releaseMainScreenContext() {
-  freeList(init_screen_items, init_screen_item_count);
-  init_screen_items = NULL;
-}
-
+// TODO: FlatBuf usage example, for now keep it for the reference, remove later
 void playWithWords() {
   flatbuffers::FlatBufferBuilder builder(1024);
   auto name = builder.CreateString("worrd_name");
@@ -76,12 +45,104 @@ void playWithWords() {
   Serial.printf("deserialized word %s\n", wordCstr);
 }
 
+// ---------- Common ---------- 
+
+typedef enum {
+  STARTUP_SCREEN,
+  UNSEAL,
+  BACKUP,
+  RESTORE,
+  TEST_KEYBOARD,
+  UNSEAL_SHOW_PASS,
+  CREATE_NEW_DB
+} Mode;
+
+
+Mode currentMode;
+Thumby* thumby = new Thumby();
+
+// ---------- Startup Screen ---------- 
+
+ListItem** startup_screen_items = NULL;
+const int startup_screen_item_count = 6;
+void startupScreenInit() {
+  startup_screen_items = (ListItem**)malloc(startup_screen_item_count * sizeof(ListItem*));
+
+  startup_screen_items[0] = createListItem("Unseal", phraser::Icon_Lock);
+  startup_screen_items[1] = createListItem("Backup DB", phraser::Icon_Download);
+  startup_screen_items[2] = createListItem("Restore DB", phraser::Icon_Upload);
+  startup_screen_items[3] = createListItem("Test Keyboard", phraser::Icon_TextOut);
+  startup_screen_items[4] = createListItem("Unseal (show password)", phraser::Icon_Lock);
+  startup_screen_items[5] = createListItem("Create New DB", phraser::Icon_Settings);
+
+  initList(startup_screen_items, startup_screen_item_count);
+}
+
+void releaseStartupScreenContext() {
+  freeList(startup_screen_items, startup_screen_item_count);
+  startup_screen_items = NULL;
+}
+
+void startuptScreenLoop() {
+  ListItem* chosenItem = listLoop(thumby);
+  if (chosenItem != NULL) {
+    if (chosenItem == startup_screen_items[0]) { currentMode = UNSEAL; } //Unseal
+    else if (chosenItem == startup_screen_items[1]) { currentMode = BACKUP; } //Backup DB
+    else if (chosenItem == startup_screen_items[2]) { currentMode = RESTORE; } //Restore DB
+    else if (chosenItem == startup_screen_items[3]) { currentMode = TEST_KEYBOARD; } //Test Keyboard
+    else if (chosenItem == startup_screen_items[4]) { currentMode = UNSEAL_SHOW_PASS; } //Unseal (show password)
+    else if (chosenItem == startup_screen_items[5]) { currentMode = CREATE_NEW_DB; } //New DB
+    releaseStartupScreenContext();
+  }
+}
+
+// ---------- DB Backup ---------- 
+
+void backupLoop() {
+  drawMessage(thumby, "backupLoop");
+}
+
+// ---------- DB Restore ---------- 
+
+void restoreLoop() {
+  drawMessage(thumby, "restoreLoop");
+}
+
+// ---------- Test Keyboard ---------- 
+
+void testKeyboardLoop() {
+  drawMessage(thumby, "testKeyboardLoop");
+}
+
+// ---------- New DB ---------- 
+
+void createNewDbLoop() {
+  drawMessage(thumby, "createNewDbLoop");
+}
+
+// ---------- Unseal ---------- 
+
+void unsealLoop() {
+  drawMessage(thumby, "unsealLoop");
+}
+
+// ---------- Unseal Show Password ---------- 
+
+void unsealShowPassLoop() {
+  drawMessage(thumby, "unsealShowPassLoop");
+}
+
+// ---------- Main logic ---------- 
+
+// Entry point - setup
 void setup() {
   // Sets up buttons, audio, link pins, and screen
   thumby->begin();
 
-  currentMode = INIT_SCREEN;
-  mainScreenInit();
+  currentMode = STARTUP_SCREEN;
+  startupScreenInit();
+
+  playStartupSound(thumby);
 
 /*
   // Init duplex UART for Thumby to PC comms
@@ -104,55 +165,16 @@ void setup() {
   loadRegistryFromFlash();
 
   initOnScreenKeyboard();
-  
-  mainScreenInit();
-
-  playMessageSound(thumby);*/
+  */
 }
 
-void initScreenLoop() {
-  ListItem* chosenItem = listLoop(thumby);
-  if (chosenItem != NULL) {
-    if (chosenItem == init_screen_items[0]) { currentMode = UNSEAL; } //Unseal
-    else if (chosenItem == init_screen_items[1]) { currentMode = BACKUP; } //Backup DB
-    else if (chosenItem == init_screen_items[2]) { currentMode = RESTORE; } //Restore DB
-    else if (chosenItem == init_screen_items[3]) { currentMode = TEST_KEYBOARD; } //Test Keyboard
-    else if (chosenItem == init_screen_items[4]) { currentMode = UNSEAL_SHOW_PASS; } //Unseal (show password)
-    else if (chosenItem == init_screen_items[5]) { currentMode = CREATE_NEW_DB; } //New DB
-    releaseMainScreenContext();
-  }
-}
-
-void backupLoop() {
-  drawMessage(thumby, "backupLoop");
-}
-
-void restoreLoop() {
-  drawMessage(thumby, "restoreLoop");
-}
-
-void testKeyboardLoop() {
-  drawMessage(thumby, "testKeyboardLoop");
-}
-
-void createNewDbLoop() {
-  drawMessage(thumby, "createNewDbLoop");
-}
-
-void unsealLoop() {
-  drawMessage(thumby, "unsealLoop");
-}
-
-void unsealShowPassLoop() {
-  drawMessage(thumby, "unsealShowPassLoop");
-}
-
+// Entry point - loop
 void loop() {
   // Clear the screen to black
   thumby->clear();
 
   switch (currentMode) {
-    case INIT_SCREEN: initScreenLoop(); break;
+    case STARTUP_SCREEN: startuptScreenLoop(); break;
     case UNSEAL: unsealLoop(); break;
     case BACKUP: backupLoop(); break;
     case RESTORE: restoreLoop(); break;

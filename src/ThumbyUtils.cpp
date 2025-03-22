@@ -13,7 +13,7 @@ void removeRxBytes() {
 }
 
 // Play a sound that sweeps a frequency range
-void playMessageSound(Thumby* thumby) {
+void playStartupSound(Thumby* thumby) {
   for(uint16_t f=3000; f<10000; f+=250){
     thumby->play(f);
     delay(10);
@@ -49,7 +49,7 @@ void receive(Thumby* thumby) {
       thumby->setCursor(0, 20);
       thumby->print((char*)dataBuf);
 
-      playMessageSound(thumby);
+      playStartupSound(thumby);
     }else{
       thumby->setCursor(0, 20);
       thumby->print("Unacking Error!");
