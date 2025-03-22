@@ -51,16 +51,18 @@ void drawKeyboard(Thumby* thumby, const char* characters, int16_t selectedX, int
 int16_t selectedX = 0, selectedY = 0;
 char selectedCharset = 0;
 char u_pressed = 0, d_pressed = 0, l_pressed = 0, r_pressed = 0, b_pressed = 0, a_pressed = 0;
+bool is_emulated_keyboard;
 
-void initOnScreenKeyboard() {
+void initOnScreenKeyboard(bool emulated_keyboard) {
   initTextField();
   
   selectedX = 0;
   selectedY = 0;
   selectedCharset = 0;
+  is_emulated_keyboard = emulated_keyboard;
 }
 
-void keyboardLoop(Thumby* thumby, bool is_emulated_keyboard) {
+char* keyboardLoop(Thumby* thumby) {
   drawKeyboard(thumby, charsets[selectedCharset], selectedX, selectedY);
 
   if (thumby->isPressed(BUTTON_L)) {
@@ -135,7 +137,8 @@ void keyboardLoop(Thumby* thumby, bool is_emulated_keyboard) {
             setChar(' ');
             Keyboard.press(KEY_RETURN);
           } else {
-            //TODO: return entered string
+            //return entered string
+            return getTextFieldText();
           }
         }
         delay(50);
@@ -156,4 +159,5 @@ void keyboardLoop(Thumby* thumby, bool is_emulated_keyboard) {
   }
 
   textFieldLoop(thumby);
+  return NULL;
 }

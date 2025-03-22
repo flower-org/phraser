@@ -14,3 +14,4 @@ void initTextField();
 void appendChar(char c);
 void deleteLastChar();
 void setChar(char c);
+char* getTextFieldText();
