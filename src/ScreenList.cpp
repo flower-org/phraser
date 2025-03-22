@@ -4,8 +4,8 @@ const int max_letters_to_show = 10;
 const int lines_count = 4;
 const int lines[lines_count] = { 0, 10, 20, 30 };
 
-ListItem** items = NULL;
-int item_count;
+ListItem** list_items = NULL;
+int list_item_count;
 int item_cursor;
 int selection_pos;
 
@@ -141,7 +141,7 @@ void freeList(ListItem** items, int count) {
 }
 
 ListItem** getLoopItems() {
-  return items;
+  return list_items;
 }
 
 char* truncateString(const char* original, size_t length_to_copy) {
@@ -185,42 +185,45 @@ void drawItem(Thumby* thumby, ListItem* item, int line, bool is_selected, bool n
   }
 }
 
-bool down_pressed = false;
-bool up_pressed = false;
+bool list_down_pressed = false;
+bool list_up_pressed = false;
+bool list_a_pressed = false;
 ListItem* listLoop(Thumby* thumby) {
-  ListItem* previously_selected = items[item_cursor + selection_pos];
-  
+  ListItem* previously_selected = list_items[item_cursor + selection_pos];
+
+  // Up 
   if (thumby->isPressed(BUTTON_U)) {
-    up_pressed = true;
+    list_up_pressed = true;
   } else {
-    if (up_pressed) {
+    if (list_up_pressed) {
       selection_pos--;
       if (selection_pos < 0) {
         if (item_cursor > 0) {
           item_cursor--;
           selection_pos = 0;
         } else {
-          if (item_count > lines_count) {
-            item_cursor = item_count - lines_count;
+          if (list_item_count > lines_count) {
+            item_cursor = list_item_count - lines_count;
             selection_pos = lines_count-1;
           } else {
             item_cursor = 0;
-            selection_pos = item_count-1;
+            selection_pos = list_item_count-1;
           }
         }
       }
     }
-    up_pressed = false;
+    list_up_pressed = false;
   }
 
+  // Down
   if (thumby->isPressed(BUTTON_D)) {
-    down_pressed = true;
+    list_down_pressed = true;
   } else {
-    if (down_pressed) {
+    if (list_down_pressed) {
       selection_pos++;
-      int last_line = item_count > lines_count ? lines_count-1 : item_count-1;
+      int last_line = list_item_count > lines_count ? lines_count-1 : list_item_count-1;
       if (selection_pos > last_line) {
-        if (item_cursor < item_count - lines_count) {
+        if (item_cursor < list_item_count - lines_count) {
           item_cursor++;
           selection_pos = last_line;
         } else {
@@ -229,18 +232,29 @@ ListItem* listLoop(Thumby* thumby) {
         }
       }
     }
-    down_pressed = false;
+    list_down_pressed = false;
   }
 
-  ListItem* newly_selected = items[item_cursor + selection_pos];
+  ListItem* newly_selected = list_items[item_cursor + selection_pos];
 
-  if (items != NULL) {
+  // A (select item)
+  if (thumby->isPressed(BUTTON_A)) {
+    list_a_pressed = true;
+  } else {
+    if (list_a_pressed) {
+      list_a_pressed = false;
+      return newly_selected;
+    }
+  }
+
+
+  if (list_items != NULL) {
     for (int i = 0; i < lines_count; i++) {
       int item_index = item_cursor + i;
-      if (item_index >= item_count) {
+      if (item_index >= list_item_count) {
         break;
       } else {
-        ListItem* item = items[item_index];
+        ListItem* item = list_items[item_index];
         if (item != newly_selected) {
           drawItem(thumby, item, i, false, false);
         } else {
@@ -251,11 +265,11 @@ ListItem* listLoop(Thumby* thumby) {
   }
 
   drawLineSelectionBorder(thumby, selection_pos);
-  if (item_count > lines_count) {
+  if (list_item_count > lines_count) {
     if (item_cursor > 0) {
       drawUpScrollable(thumby);
     }
-    if (item_cursor < item_count-lines_count) {
+    if (item_cursor < list_item_count-lines_count) {
       drawDownScrollable(thumby);
     }
   }
@@ -292,12 +306,12 @@ ListItem* createListItem(const char* name, phraser::Icon icon) {
 
 void initList(ListItem** new_items, int new_item_count) {
   //Reset list view state 
-  down_pressed = false;
-  up_pressed = false;
+  list_down_pressed = false;
+  list_up_pressed = false;
   item_cursor = 0;
   selection_pos = 0;
   
   //Initialize new list items
-  items = new_items;
-  item_count = new_item_count;
+  list_items = new_items;
+  list_item_count = new_item_count;
 }

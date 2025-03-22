@@ -39,7 +39,7 @@ void drawUpload(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 void drawDownload(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 void drawSkull(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 
-void drawLoadingScreen(Thumby* thumby);
+void drawMessage(Thumby* thumby, const char* str);
 void printAt(Thumby* thumby, int x, int y, char* str);
 
 void drawSpace(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected);

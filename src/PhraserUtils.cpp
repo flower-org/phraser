@@ -286,12 +286,12 @@ void drawSkull(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color) {
   thumby->drawPixel(x0+5, y0+6, color);
 }
 
-void drawLoadingScreen(Thumby* thumby) {
+void drawMessage(Thumby* thumby, const char* str) {
   // Clear the screen to black
   thumby->clear();
 
   thumby->setCursor(0, 0);
-  printAt(thumby, 0, 0, "Loading...");
+  printAt(thumby, 0, 0, (char*)str);
 
   // Update the screen
   thumby->writeBuffer(thumby->getBuffer(), thumby->getBufferSize());
