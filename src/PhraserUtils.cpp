@@ -301,3 +301,20 @@ void printAt(Thumby* thumby, int x, int y, char* str) {
   thumby->setCursor(x, y);
   thumby->print(str);
 }
+
+char* bytesToHexString(const unsigned char* bytes, size_t length) {
+  // Allocate memory for the hex string (2 characters per byte + 1 for null terminator)
+  char* hexString = (char*)malloc(length * 2 + 1);
+  if (hexString == NULL) {
+      return NULL; // Memory allocation failed
+  }
+
+  // Convert each byte to two hex characters
+  for (size_t i = 0; i < length; i++) {
+      sprintf(hexString + (i * 2), "%02X", bytes[i]);
+  }
+
+  // Null-terminate the string
+  hexString[length * 2] = '\0';
+  return hexString;
+}

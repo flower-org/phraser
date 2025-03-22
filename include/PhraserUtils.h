@@ -43,3 +43,4 @@ void drawMessage(Thumby* thumby, const char* str);
 void printAt(Thumby* thumby, int x, int y, char* str);
 
 void drawSpace(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected);
+char* bytesToHexString(const unsigned char* bytes, size_t length);
