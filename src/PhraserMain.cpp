@@ -16,6 +16,8 @@
 
 using namespace phraser; // FlatBuf
 
+void startupScreenInit();
+
 // -------------------------------------------------------------------------
 
 // TODO: FlatBuf usage example, for now keep it for the reference, remove later
@@ -166,19 +168,62 @@ void unsealLoop() {
 
 // ---------- DB Backup ---------- 
 
+int backup_phase = 0;
 void backupInit() {
-  char* text = "backupLoop\nQWERRTYU!\nNEXTLINE!\nWEREW\nlast line";
+  backup_phase = 0;
+  char* text = "Backup DB?";
   initTextAreaDialog(text, strlen(text), DLG_YES_NO);
 }
 
 void backupLoop() {
-  textAreaLoop(thumby);
+  if (backup_phase == 0) {
+    DialogResult result = textAreaLoop(thumby);
+    if (result == DLG_RES_YES) {
+      backup_phase = 1;
+      char* text = "Backup DB\nnot implemented";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+    } else if (result == DLG_RES_NO) {
+      currentMode = STARTUP_SCREEN;
+      startupScreenInit();
+    }
+  } else if (backup_phase == 1) {
+    DialogResult result = textAreaLoop(thumby);
+    if (result == DLG_RES_OK) {
+      backup_phase = 2;
+    }
+  } else if (backup_phase == 2) {
+    drawTurnOffMessage(thumby);
+  }
 }
 
 // ---------- DB Restore ---------- 
 
+int restore_phase = 0;
+void restoreInit() {
+  restore_phase = 0;
+  char* text = "Restore DB?\nExisting data\nwill be lost!";
+  initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+}
+
 void restoreLoop() {
-  drawMessage(thumby, "restoreLoop");
+  if (restore_phase == 0) {
+    DialogResult result = textAreaLoop(thumby);
+    if (result == DLG_RES_YES) {
+      restore_phase = 1;
+      char* text = "Restore DB\nnot implemented";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+    } else if (result == DLG_RES_NO) {
+      currentMode = STARTUP_SCREEN;
+      startupScreenInit();
+    }
+  } else if (restore_phase == 1) {
+    DialogResult result = textAreaLoop(thumby);
+    if (result == DLG_RES_OK) {
+      restore_phase = 2;
+    }
+  } else if (restore_phase == 2) {
+    drawTurnOffMessage(thumby);
+  }
 
   // Make sure RX buffer is empty
   //removeRxBytes();
@@ -186,7 +231,7 @@ void restoreLoop() {
   //Receive and display a message from link
   //receive(thumby);
 
-  Serial.begin(115200);
+  //Serial.begin(115200);
   //delay(1000);
 
   //Serial.printf("PSM-1 (Phraser)\n");
@@ -216,11 +261,6 @@ void startupScreenInit() {
   initList(startup_screen_items, startup_screen_item_count);
 }
 
-void releaseStartupScreenContext() {
-  freeList(startup_screen_items, startup_screen_item_count);
-  startup_screen_items = NULL;
-}
-
 void startupScreenLoop() {
   ListItem* chosenItem = listLoop(thumby);
   if (chosenItem != NULL) {
@@ -232,12 +272,12 @@ void startupScreenLoop() {
     else if (chosenItem == startup_screen_items[4]) { currentMode = UNSEAL_SHOW_PASS; } 
     else if (chosenItem == startup_screen_items[5]) { currentMode = CREATE_NEW_DB; }
 
-    releaseStartupScreenContext();
+    startup_screen_items = NULL;
 
     switch (currentMode) {
       case UNSEAL: unsealInit(); break;
       case BACKUP: backupInit(); break;
-      case RESTORE: break;
+      case RESTORE: restoreInit(); break;
       case TEST_KEYBOARD: testKeyboardInit(); break;
       case UNSEAL_SHOW_PASS: unsealShowPassInit(); break;
       case CREATE_NEW_DB: break;

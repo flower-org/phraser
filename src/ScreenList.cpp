@@ -305,6 +305,10 @@ ListItem* createListItem(const char* name, phraser::Icon icon) {
 }
 
 void initList(ListItem** new_items, int new_item_count) {
+  if (list_items != NULL) {
+    freeList(list_items, list_item_count);
+  }
+
   //Reset list view state 
   list_down_pressed = false;
   list_up_pressed = false;

@@ -12,14 +12,15 @@ typedef enum {
 } TextAreaType;
 
 typedef enum {
+  DLG_RES_NONE,
   DLG_RES_OK,
   DLG_RES_YES,
   DLG_RES_NO
 } DialogResult;
 
-const int MAX_DISPLAY_CHARS_PER_LINE = 13;
+const int MAX_DISPLAY_CHARS_PER_LINE = 14;
 const int TEXT_AREA_LINES = 4;
 const int DIALOG_LINES = 3;
 
 void initTextAreaDialog(char* text, int text_length, TextAreaType type);
-void textAreaLoop(Thumby* thumby);
+DialogResult textAreaLoop(Thumby* thumby);

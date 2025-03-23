@@ -19,7 +19,6 @@ struct ListItem {
 
 ListItem* listLoop(Thumby* thumby);
 void initList(ListItem** new_items, int new_item_count);
-void freeList(ListItem** items, int count);
 
 ListItem* createListItem(char* name, int name_length, phraser::Icon icon);
 ListItem* createListItem(const char* name, phraser::Icon icon);

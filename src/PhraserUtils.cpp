@@ -287,13 +287,17 @@ void drawSkull(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color) {
 }
 
 void drawMessage(Thumby* thumby, const char* str) {
-  // Clear the screen to black
-  thumby->clear();
-
   printAt(thumby, 0, 0, (char*)str);
+}
 
-  // Update the screen
-  thumby->writeBuffer(thumby->getBuffer(), thumby->getBufferSize());
+void drawTurnOffMessage(Thumby* thumby, int x, int y) {
+  printAt(thumby, x+3, y, "It's now safe");
+  printAt(thumby, x+8, y+8, "to turn off");
+  printAt(thumby, x+2, y+16, "your computer.");
+}
+
+void drawTurnOffMessage(Thumby* thumby) {
+  drawTurnOffMessage(thumby, 0, 7);
 }
 
 void printAt(Thumby* thumby, int x, int y, char* str) {

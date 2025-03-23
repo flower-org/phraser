@@ -71,6 +71,7 @@ void clearList(CList* list) {
   }
 }
 
+bool text_area_a_pressed = false;
 bool text_area_down_pressed = false;
 bool text_area_up_pressed = false;
 int text_area_selection_pos;
@@ -79,6 +80,7 @@ bool text_area_right_pressed = false;
 DialogResult text_area_result;
 
 void initTextAreaDialog(char* text, int text_length, TextAreaType type) {
+  text_area_a_pressed = false;
   text_area_down_pressed = false;
   text_area_up_pressed = false;
   text_area_left_pressed = false;
@@ -113,7 +115,7 @@ void drawTextAreaBorder(Thumby* thumby) {
   }
 }
 
-void textAreaLoop(Thumby* thumby) {
+DialogResult textAreaLoop(Thumby* thumby) {
   int text_area_line_count = text_area_type == TEXT_AREA ? TEXT_AREA_LINES : DIALOG_LINES;
   
   // Up 
@@ -190,4 +192,16 @@ void textAreaLoop(Thumby* thumby) {
       drawRect(thumby, 41, 29, 60, 39, WHITE);
     }
   }
+
+  // A
+  if (thumby->isPressed(BUTTON_A)) {
+    text_area_a_pressed = true;
+  } else {
+    if (text_area_a_pressed) {
+      return text_area_result;
+    }
+    text_area_a_pressed = false;
+  }
+
+  return DLG_RES_NONE;
 }
