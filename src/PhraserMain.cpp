@@ -196,6 +196,36 @@ void backupLoop() {
   }
 }
 
+// ---------- New DB ---------- 
+
+int create_new_db_phase = 0;
+void createNewDbInit() {
+  create_new_db_phase = 0;
+  char* text = "Create DB?\nExisting data\nwill be lost!";
+  initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+}
+
+void createNewDbLoop() {
+  if (create_new_db_phase == 0) {
+    DialogResult result = textAreaLoop(thumby);
+    if (result == DLG_RES_YES) {
+      create_new_db_phase = 1;
+      char* text = "Create DB\nnot implemented";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+    } else if (result == DLG_RES_NO) {
+      currentMode = STARTUP_SCREEN;
+      startupScreenInit();
+    }
+  } else if (create_new_db_phase == 1) {
+    DialogResult result = textAreaLoop(thumby);
+    if (result == DLG_RES_OK) {
+      create_new_db_phase = 2;
+    }
+  } else if (create_new_db_phase == 2) {
+    drawTurnOffMessage(thumby);
+  }
+}
+
 // ---------- DB Restore ---------- 
 
 int restore_phase = 0;
@@ -238,12 +268,6 @@ void restoreLoop() {
   //Serial.printf("Thumby (Pi Pico) USB Password Manager\n\n");
 }
 
-// ---------- New DB ---------- 
-
-void createNewDbLoop() {
-  drawMessage(thumby, "createNewDbLoop");
-}
-
 // ---------- Startup Screen ---------- 
 
 ListItem** startup_screen_items = NULL;
@@ -280,7 +304,7 @@ void startupScreenLoop() {
       case RESTORE: restoreInit(); break;
       case TEST_KEYBOARD: testKeyboardInit(); break;
       case UNSEAL_SHOW_PASS: unsealShowPassInit(); break;
-      case CREATE_NEW_DB: break;
+      case CREATE_NEW_DB: createNewDbInit(); break;
     }
   }
 }
