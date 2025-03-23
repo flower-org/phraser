@@ -290,7 +290,6 @@ void drawMessage(Thumby* thumby, const char* str) {
   // Clear the screen to black
   thumby->clear();
 
-  thumby->setCursor(0, 0);
   printAt(thumby, 0, 0, (char*)str);
 
   // Update the screen

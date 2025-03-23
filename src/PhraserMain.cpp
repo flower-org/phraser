@@ -8,6 +8,7 @@
 #include "SpecialSymbolDrawer.h"
 #include "TextField.h"
 #include "Registry.h"
+#include "TextAreaDialog.h"
 
 #include "Schema_generated.h"
 #include "RootTypeFinishingMethods.h"
@@ -165,8 +166,13 @@ void unsealLoop() {
 
 // ---------- DB Backup ---------- 
 
+void backupInit() {
+  char* text = "backupLoop\nQWERRTYU!\nNEXTLINE!\nWEREW\nlast line";
+  initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+}
+
 void backupLoop() {
-  drawMessage(thumby, "backupLoop");
+  textAreaLoop(thumby);
 }
 
 // ---------- DB Restore ---------- 
@@ -180,7 +186,7 @@ void restoreLoop() {
   //Receive and display a message from link
   //receive(thumby);
 
-  //Serial.begin(115200);
+  Serial.begin(115200);
   //delay(1000);
 
   //Serial.printf("PSM-1 (Phraser)\n");
@@ -230,7 +236,7 @@ void startupScreenLoop() {
 
     switch (currentMode) {
       case UNSEAL: unsealInit(); break;
-      case BACKUP: break;
+      case BACKUP: backupInit(); break;
       case RESTORE: break;
       case TEST_KEYBOARD: testKeyboardInit(); break;
       case UNSEAL_SHOW_PASS: unsealShowPassInit(); break;
