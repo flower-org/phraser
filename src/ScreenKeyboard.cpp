@@ -1,5 +1,7 @@
 #include "ScreenKeyboard.h"
 
+const char* KB_B_PRESSED = "B";
+
 void drawEnter(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, char isSelected) {
   if (isSelected) {
     drawRect(thumby, x0-2, y0-2, x0+7, y0+11, WHITE);
@@ -50,16 +52,51 @@ void drawKeyboard(Thumby* thumby, const char* characters, int16_t selectedX, int
 
 int16_t selectedX = 0, selectedY = 0;
 char selectedCharset = 0;
-char u_pressed = 0, d_pressed = 0, l_pressed = 0, r_pressed = 0, b_pressed = 0, a_pressed = 0;
+bool u_pressed = false, d_pressed = false, l_pressed = false, r_pressed = false, b_pressed = false, a_pressed = false;
 bool is_emulated_keyboard;
+bool special_activated = false;
+bool int_mode = false;
 
 void initOnScreenKeyboard(bool emulated_keyboard, bool password_mode) {
+  initOnScreenKeyboard(emulated_keyboard, password_mode, false);
+}
+
+void initOnScreenKeyboard(bool emulated_keyboard, bool password_mode, bool integer_mode) {
   initTextField(password_mode);
   
+  int_mode = integer_mode;
   selectedX = 0;
   selectedY = 0;
-  selectedCharset = 0;
+  selectedCharset = integer_mode ? 2 : 0;
+  u_pressed = false; d_pressed = false; l_pressed = false; r_pressed = false; b_pressed = false; a_pressed = false;
   is_emulated_keyboard = emulated_keyboard;
+  special_activated = false;
+}
+
+void initOnScreenKeyboard(char* init_text, int init_text_length, bool emulated_keyboard, bool password_mode, bool integer_mode) {
+  initTextField(init_text, init_text_length, password_mode);
+  
+  int_mode = integer_mode;
+  selectedX = 0;
+  selectedY = 0;
+  selectedCharset = integer_mode ? 2 : 0;
+  u_pressed = false; d_pressed = false; l_pressed = false; r_pressed = false; b_pressed = false; a_pressed = false;
+  is_emulated_keyboard = emulated_keyboard;
+  special_activated = false;
+}
+
+char* specialKeyboardLoop(Thumby* thumby) {
+  char* originalResult = keyboardLoop(thumby);
+  if (u_pressed && a_pressed && b_pressed) {
+    special_activated = true;
+  }
+  if (special_activated) {
+    if (!u_pressed && !a_pressed && !b_pressed) {
+      special_activated = false;
+      return (char*)KB_B_PRESSED;
+    }
+  }
+  return originalResult;
 }
 
 char* keyboardLoop(Thumby* thumby) {
@@ -114,7 +151,11 @@ char* keyboardLoop(Thumby* thumby) {
     b_pressed = true;
   } else {
     if (b_pressed) {
-      selectedCharset = selectedCharset == 3 ? 0 : selectedCharset + 1;
+      if (int_mode) {
+        selectedCharset = 2;
+      } else {
+        selectedCharset = selectedCharset == 3 ? 0 : selectedCharset + 1;
+      }
     }
     b_pressed = false;
   }
@@ -137,6 +178,7 @@ char* keyboardLoop(Thumby* thumby) {
             setChar(' ');
             Keyboard.press(KEY_RETURN);
           } else {
+            a_pressed = false;
             //return entered string
             return getTextFieldText();
           }
@@ -147,11 +189,20 @@ char* keyboardLoop(Thumby* thumby) {
         }
       } else {
         char c = charsets[selectedCharset][selectedX + selectedY*10];
-        if (is_emulated_keyboard) {
-          setChar(c);
-          Keyboard.print(c);
-        } else {
-          appendChar(c);
+        boolean allowed = true;
+        if (int_mode) {
+          if (c < '0' || c > '9') {
+            allowed = false;
+          }
+        } 
+
+        if (allowed) {
+          if (is_emulated_keyboard) {
+            setChar(c);
+            Keyboard.print(c);
+          } else {
+            appendChar(c);
+          }
         }
       }
     }

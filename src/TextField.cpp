@@ -14,6 +14,18 @@ void initTextField(bool set_password_mode) {
   password_mode = set_password_mode;
 }
 
+void initTextField(char* init_text, int init_text_length, bool set_password_mode) {
+  if (textFieldText != NULL) {
+    free(textFieldText);
+  }
+  
+  textFieldText = (char*)malloc(init_text_length + 1); // +1 for the null terminator
+  strncpy(textFieldText, init_text, init_text_length);
+  textFieldText[init_text_length] = '\0'; // Ensure null termination
+
+  password_mode = set_password_mode;
+}
+
 //TODO: change to x2 resize?
 void appendChar(char c) {
   int wordLength = strlen(textFieldText);

@@ -198,9 +198,9 @@ DialogResult textAreaLoop(Thumby* thumby) {
     text_area_a_pressed = true;
   } else {
     if (text_area_a_pressed) {
+      text_area_a_pressed = false;
       return text_area_result;
     }
-    text_area_a_pressed = false;
   }
 
   return DLG_RES_NONE;

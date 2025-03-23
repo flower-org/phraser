@@ -103,66 +103,65 @@ void testKeyboardLoop() {
   keyboardLoop(thumby);
 }
 
-// ---------- Unseal Show Password ---------- 
-
-void unsealShowPassInit() {
-  // Init duplex UART for Thumby to PC comms
-  Keyboard.begin(KeyboardLayout_en_US);
-
-  initOnScreenKeyboard(false, false);
-}
+// ---------- Unseal ---------- 
 
 char* aes256KeyBlockKey = NULL;
 char* password = NULL;
-void unsealShowPassLoop() {
-  if (aes256KeyBlockKey == NULL) {
-    char* new_password = keyboardLoop(thumby);
-    if (new_password != NULL) {
-      size_t length = strlen(new_password);
+int unseal_phase = 0;
+bool unseal_password_mode = false;
 
-      int key_length = 32;
-      aes256KeyBlockKey = (char*)malloc(key_length);
-
-      PKCS5_PBKDF2_SHA256_HMAC((unsigned char*)new_password, length,
-          HARDCODED_SALT, HARDCODED_SALT_LEN, 
-          PBKDF_INTERATIONS_COUNT,
-          key_length, (unsigned char*)aes256KeyBlockKey);
-
-      // TODO: remove output, proceed with store init and AES decryption
-      password = bytesToHexString((const unsigned char*)aes256KeyBlockKey, key_length);
-    }
-  } else {
-    drawMessage(thumby, password);
-  }
-}
-
-// ---------- Unseal ---------- 
-
-void unsealInit() {
+void unsealInit(bool password_mode) {
   // Init duplex UART for Thumby to PC comms
   Keyboard.begin(KeyboardLayout_en_US);
-  initOnScreenKeyboard(false, true);
+  unseal_phase = 0;
+  unseal_password_mode = password_mode;
+  initOnScreenKeyboard(false, password_mode);
 }
 
+int pbkdf2_iterations_count = PBKDF_INTERATIONS_COUNT;
 void unsealLoop() {
-  if (aes256KeyBlockKey == NULL) {
-    char* new_password = keyboardLoop(thumby);
-    if (new_password != NULL) {
-      size_t length = strlen(new_password);
-
-      int key_length = 32;
-      aes256KeyBlockKey = (char*)malloc(key_length);
-
-      PKCS5_PBKDF2_SHA256_HMAC((unsigned char*)new_password, length,
-          HARDCODED_SALT, HARDCODED_SALT_LEN, 
-          PBKDF_INTERATIONS_COUNT,
-          key_length, (unsigned char*)aes256KeyBlockKey);
-
-      // TODO: remove output, proceed with store init and AES decryption
-      password = bytesToHexString((const unsigned char*)aes256KeyBlockKey, key_length);
+  if (unseal_phase == 0) {
+    if (aes256KeyBlockKey == NULL) {
+      char* new_password = specialKeyboardLoop(thumby);
+      if (new_password == KB_B_PRESSED) {
+        unseal_phase = 1;
+        char* text = "Set custom #\nof PBKDF2 iterations?";
+        initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+      } else if (new_password != NULL) {
+        size_t length = strlen(new_password);
+  
+        int key_length = 32;
+        aes256KeyBlockKey = (char*)malloc(key_length);
+  
+        PKCS5_PBKDF2_SHA256_HMAC((unsigned char*)new_password, length,
+            HARDCODED_SALT, HARDCODED_SALT_LEN, 
+            pbkdf2_iterations_count,
+            key_length, (unsigned char*)aes256KeyBlockKey);
+  
+        // TODO: remove output, proceed with store init and AES decryption
+        password = bytesToHexString((const unsigned char*)aes256KeyBlockKey, key_length);
+      }
+    } else {
+      drawMessage(thumby, password);
     }
-  } else {
-    drawMessage(thumby, password);
+  } else if (unseal_phase == 1) {
+    DialogResult result = textAreaLoop(thumby);
+    Serial.printf("Result: %d\r\n", (int)result);
+    if (result == DLG_RES_NO) {
+      unseal_phase = 0;
+    } else if (result == DLG_RES_YES) {
+      unseal_phase = 2;
+      char buffer[20]; 
+      itoa(pbkdf2_iterations_count, buffer, 10);
+      initOnScreenKeyboard(buffer, strlen(buffer), false, false, true);
+    }
+  } else if (unseal_phase == 2) {
+    // Keyboard - numbers only
+    char* new_iterations = keyboardLoop(thumby);
+    if (new_iterations != NULL) {
+      pbkdf2_iterations_count = atoi(new_iterations);
+      unsealInit(unseal_password_mode);
+    }
   }
 }
 
@@ -299,11 +298,11 @@ void startupScreenLoop() {
     startup_screen_items = NULL;
 
     switch (currentMode) {
-      case UNSEAL: unsealInit(); break;
+      case UNSEAL: unsealInit(true); break;
       case BACKUP: backupInit(); break;
       case RESTORE: restoreInit(); break;
       case TEST_KEYBOARD: testKeyboardInit(); break;
-      case UNSEAL_SHOW_PASS: unsealShowPassInit(); break;
+      case UNSEAL_SHOW_PASS: unsealInit(false); break;
       case CREATE_NEW_DB: createNewDbInit(); break;
     }
   }
@@ -313,6 +312,7 @@ void startupScreenLoop() {
 
 // Entry point - setup
 void setup() {
+  Serial.begin(115200);
   // Sets up buttons, audio, link pins, and screen
   thumby->begin();
 
@@ -333,11 +333,11 @@ void loop() {
   switch (currentMode) {
     case UNDEFINED: undefinedLoop(); break;
     case STARTUP_SCREEN: startupScreenLoop(); break;
-    case UNSEAL: unsealLoop(); break;
+    case UNSEAL:
+    case UNSEAL_SHOW_PASS: unsealLoop(); break;
     case BACKUP: backupLoop(); break;
     case RESTORE: restoreLoop(); break;
     case TEST_KEYBOARD: testKeyboardLoop(); break;
-    case UNSEAL_SHOW_PASS: unsealShowPassLoop(); break;
     case CREATE_NEW_DB: createNewDbLoop(); break;
   }
 
