@@ -344,7 +344,7 @@ void readDbBlockFromFlash(uint16_t block_number, void* to_address) {
 }
 
 void writeDbBlockToFlash(uint16_t block_number, uint8_t* block) {
-  uint32_t write_addr = XIP_BASE + DB_OFFSET + (block_number * FLASH_SECTOR_SIZE);
+  uint32_t write_addr = DB_OFFSET + (block_number * FLASH_SECTOR_SIZE);
 
   //Disable interrupts for safe write Flash operation
   uint32_t ints = save_and_disable_interrupts();

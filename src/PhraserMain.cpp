@@ -11,6 +11,7 @@
 #include "TextAreaDialog.h"
 #include "UiCommon.h"
 #include "DbBackup.h"
+#include "DbRestore.h"
 
 #include "Schema_generated.h"
 #include "RootTypeFinishingMethods.h"
@@ -157,8 +158,6 @@ void unsealLoop() {
   }
 }
 
-// ---------- DB Backup ---------- 
-
 // ---------- New DB ---------- 
 
 int create_new_db_phase = 0;
@@ -188,49 +187,7 @@ void createNewDbLoop() {
   }
 }
 
-// ---------- DB Restore ---------- 
-
-int restore_phase = 0;
-void restoreInit() {
-  restore_phase = 0;
-  char* text = "Restore DB?\nExisting data\nwill be lost!";
-  initTextAreaDialog(text, strlen(text), DLG_YES_NO);
-}
-
-void restoreLoop() {
-  if (restore_phase == 0) {
-    DialogResult result = textAreaLoop(thumby);
-    if (result == DLG_RES_YES) {
-      restore_phase = 1;
-      char* text = "Restore DB\nnot implemented";
-      initTextAreaDialog(text, strlen(text), DLG_OK);
-    } else if (result == DLG_RES_NO) {
-      switchToStartupScreen();
-    }
-  } else if (restore_phase == 1) {
-    DialogResult result = textAreaLoop(thumby);
-    if (result == DLG_RES_OK) {
-      restore_phase = 2;
-    }
-  } else if (restore_phase == 2) {
-    drawTurnOffMessage(thumby);
-  }
-
-  // Make sure RX buffer is empty
-  //removeRxBytes();
-
-  //Receive and display a message from link
-  //receive(thumby);
-
-  //Serial.begin(115200);
-  //delay(1000);
-
-  //Serial.printf("PSM-1 (Phraser)\n");
-  //Serial.printf("Thumby (Pi Pico) USB Password Manager\n\n");
-}
-
 // ---------- Startup Screen ---------- 
-
 
 void startupScreenLoop() {
   ListItem* chosenItem = listLoop(thumby);
@@ -282,7 +239,7 @@ void loop() {
     case UNSEAL:
     case UNSEAL_SHOW_PASS: unsealLoop(); break;
     case BACKUP: backupLoop(thumby); break;
-    case RESTORE: restoreLoop(); break;
+    case RESTORE: restoreLoop(thumby); break;
     case TEST_KEYBOARD: testKeyboardLoop(); break;
     case CREATE_NEW_DB: createNewDbLoop(); break;
   }
