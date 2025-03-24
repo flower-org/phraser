@@ -54,7 +54,7 @@ void addLinesToList(char* text, int text_length, CList* list) {
     c_list_link_tail(list, &tl->link);
   }
 
-  Serial.printf("Init List size %d\r\n", c_list_length(list));
+  //Serial.printf("Init List size %d\r\n", c_list_length(list));
 
   free(currentLine);
 }

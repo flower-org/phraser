@@ -41,16 +41,16 @@ void playWithWords() {
   uint8_t *buf = builder.GetBufferPointer();
   int size = builder.GetSize();
 
-  Serial.printf("serialized address %d\n", buf);
-  Serial.printf("serialized size %d\n\n", size);
+  //Serial.printf("serialized address %d\n", buf);
+  //Serial.printf("serialized size %d\n\n", size);
 
   const phraser::Word* word_r = GetWord(buf);
 
   const flatbuffers::String* wordName = word_r->word();
   const char* wordCstr = wordName->c_str();
 
-  Serial.printf("deserialized template_id %d\n", word_r->word_template_id());
-  Serial.printf("deserialized word %s\n", wordCstr);
+  //Serial.printf("deserialized template_id %d\n", word_r->word_template_id());
+  //Serial.printf("deserialized word %s\n", wordCstr);
 }
 
 // ---------- Common ---------- 
@@ -138,7 +138,7 @@ void unsealLoop() {
     }
   } else if (unseal_phase == 1) {
     DialogResult result = textAreaLoop(thumby);
-    Serial.printf("Result: %d\r\n", (int)result);
+    //Serial.printf("Result: %d\r\n", (int)result);
     if (result == DLG_RES_NO) {
       unseal_phase = 0;
     } else if (result == DLG_RES_YES) {
@@ -259,7 +259,7 @@ void startupScreenLoop() {
 
 // Entry point - setup
 void setup() {
-  Serial.begin(115200);
+  //Serial.begin(115200);
   // Sets up buttons, audio, link pins, and screen
   thumby->begin();
 

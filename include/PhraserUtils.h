@@ -1,7 +1,16 @@
 #pragma once
 
+extern "C" {
+  #include <hardware/sync.h>
+  #include <hardware/flash.h>
+  #include <string.h>
+};
+
 #define BLACK 0
 #define WHITE 1
+
+//0.5 mb mark
+#define DB_OFFSET (1024*512)
 
 #include <Thumby.h>
 
@@ -46,3 +55,6 @@ void drawTurnOffMessage(Thumby* thumby);
 
 void drawSpace(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSelected);
 char* bytesToHexString(const unsigned char* bytes, size_t length);
+
+void readDbBlockFromFlash(uint16_t block_number, void* to_address);
+void writeDbBlockToFlash(uint16_t block_number, uint8_t* block);

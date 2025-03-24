@@ -337,3 +337,21 @@ char* bytesToHexString(const unsigned char* bytes, size_t length) {
   hexString[length * 2] = '\0';
   return hexString;
 }
+
+void readDbBlockFromFlash(uint16_t block_number, void* to_address) {
+  uint32_t read_address = XIP_BASE + DB_OFFSET + (block_number * FLASH_SECTOR_SIZE);
+  memcpy(to_address, (void* )read_address, FLASH_SECTOR_SIZE);
+}
+
+void writeDbBlockToFlash(uint16_t block_number, uint8_t* block) {
+  uint32_t write_addr = XIP_BASE + DB_OFFSET + (block_number * FLASH_SECTOR_SIZE);
+
+  //Disable interrupts for safe write Flash operation
+  uint32_t ints = save_and_disable_interrupts();
+  // Erase the sector of the flash
+  flash_range_erase(write_addr, FLASH_SECTOR_SIZE);
+  // Program block4096 into the sector
+  flash_range_program(write_addr, block, FLASH_SECTOR_SIZE);
+  //Restore interrupts
+  restore_interrupts(ints);
+}
