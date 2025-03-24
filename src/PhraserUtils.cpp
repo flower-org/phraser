@@ -286,6 +286,22 @@ void drawSkull(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color) {
   thumby->drawPixel(x0+5, y0+6, color);
 }
 
+void drawEmail(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color) {
+  x0 = x0+1;
+  thumby->drawLine(x0+1, y0+2, x0+1, y0+5, color);
+  thumby->drawLine(x0+3, y0, x0+6, y0, color);
+  thumby->drawPixel(x0+2, y0+1, color);
+
+  thumby->drawLine(x0+7, y0+1, x0+7, y0+3, color);
+  thumby->drawLine(x0+2, y0+6, x0+5, y0+6, color);
+  thumby->drawPixel(x0+6, y0+4, color);
+
+  thumby->drawLine(x0+4, y0+2, x0+5, y0+2, color);
+  thumby->drawLine(x0+5, y0+2, x0+5, y0+3, color);
+  thumby->drawLine(x0+3, y0+3, x0+3, y0+4, color);
+  thumby->drawLine(x0+3, y0+4, x0+4, y0+4, color);
+}
+
 void drawMessage(Thumby* thumby, const char* str) {
   printAt(thumby, 0, 0, (char*)str);
 }

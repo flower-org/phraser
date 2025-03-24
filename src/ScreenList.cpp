@@ -96,6 +96,9 @@ void drawIcon(Thumby* thumby, int lineIndex, phraser::Icon icon) {
     case phraser::Icon_Skull: 
       drawSkull(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
+    case phraser::Icon_Email: 
+      drawEmail(thumby, icon_offset_x, line+icon_offset_y, WHITE);
+      break;
     default: 
       drawSpace(thumby, icon_offset_x+2, line+icon_offset_y-1, WHITE, false);
       break;

@@ -38,6 +38,7 @@ void drawCopy(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 void drawUpload(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 void drawDownload(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 void drawSkull(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
+void drawEmail(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color);
 
 void drawMessage(Thumby* thumby, const char* str);
 void printAt(Thumby* thumby, int x, int y, char* str);

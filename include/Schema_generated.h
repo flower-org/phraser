@@ -124,11 +124,12 @@ enum Icon : int8_t {
   Icon_Download = 25,
   Icon_Upload = 26,
   Icon_Skull = 27,
+  Icon_Email = 28,
   Icon_MIN = Icon_Unknown,
-  Icon_MAX = Icon_Skull
+  Icon_MAX = Icon_Email
 };
 
-inline const Icon (&EnumValuesIcon())[28] {
+inline const Icon (&EnumValuesIcon())[29] {
   static const Icon values[] = {
     Icon_Unknown,
     Icon_Key,
@@ -157,13 +158,14 @@ inline const Icon (&EnumValuesIcon())[28] {
     Icon_Copy,
     Icon_Download,
     Icon_Upload,
-    Icon_Skull
+    Icon_Skull,
+    Icon_Email
   };
   return values;
 }
 
 inline const char * const *EnumNamesIcon() {
-  static const char * const names[29] = {
+  static const char * const names[30] = {
     "Unknown",
     "Key",
     "Login",
@@ -192,13 +194,14 @@ inline const char * const *EnumNamesIcon() {
     "Download",
     "Upload",
     "Skull",
+    "Email",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameIcon(Icon e) {
-  if (::flatbuffers::IsOutRange(e, Icon_Unknown, Icon_Skull)) return "";
+  if (::flatbuffers::IsOutRange(e, Icon_Unknown, Icon_Email)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesIcon()[index];
 }
