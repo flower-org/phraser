@@ -9,12 +9,16 @@
 #include "TextField.h"
 #include "Registry.h"
 #include "TextAreaDialog.h"
+#include "UiCommon.h"
+#include "DbBackup.h"
 
 #include "Schema_generated.h"
 #include "RootTypeFinishingMethods.h"
 #include "pbkdf2-sha256.h"
 
 using namespace phraser; // FlatBuf
+
+unsigned char MAGIC_NUMBER[] = {0xC3, 0xD2, 0xE1, 0xF0};
 
 void startupScreenInit();
 
@@ -70,18 +74,6 @@ unsigned char HARDCODED_IV_MASK[] = {
 };
 const int HARDCODED_IV_MASK_LEN = 16;
 
-typedef enum {
-  UNDEFINED,//If something bad happens, fall back here
-  STARTUP_SCREEN,
-  UNSEAL,
-  BACKUP,
-  RESTORE,
-  TEST_KEYBOARD,
-  UNSEAL_SHOW_PASS,
-  CREATE_NEW_DB,
-} Mode;
-
-Mode currentMode;
 Thumby* thumby = new Thumby();
 
 // ---------- Undefined ---------- 
@@ -167,34 +159,6 @@ void unsealLoop() {
 
 // ---------- DB Backup ---------- 
 
-int backup_phase = 0;
-void backupInit() {
-  backup_phase = 0;
-  char* text = "Backup DB?";
-  initTextAreaDialog(text, strlen(text), DLG_YES_NO);
-}
-
-void backupLoop() {
-  if (backup_phase == 0) {
-    DialogResult result = textAreaLoop(thumby);
-    if (result == DLG_RES_YES) {
-      backup_phase = 1;
-      char* text = "Backup DB\nnot implemented";
-      initTextAreaDialog(text, strlen(text), DLG_OK);
-    } else if (result == DLG_RES_NO) {
-      currentMode = STARTUP_SCREEN;
-      startupScreenInit();
-    }
-  } else if (backup_phase == 1) {
-    DialogResult result = textAreaLoop(thumby);
-    if (result == DLG_RES_OK) {
-      backup_phase = 2;
-    }
-  } else if (backup_phase == 2) {
-    drawTurnOffMessage(thumby);
-  }
-}
-
 // ---------- New DB ---------- 
 
 int create_new_db_phase = 0;
@@ -212,8 +176,7 @@ void createNewDbLoop() {
       char* text = "Create DB\nnot implemented";
       initTextAreaDialog(text, strlen(text), DLG_OK);
     } else if (result == DLG_RES_NO) {
-      currentMode = STARTUP_SCREEN;
-      startupScreenInit();
+      switchToStartupScreen();
     }
   } else if (create_new_db_phase == 1) {
     DialogResult result = textAreaLoop(thumby);
@@ -242,8 +205,7 @@ void restoreLoop() {
       char* text = "Restore DB\nnot implemented";
       initTextAreaDialog(text, strlen(text), DLG_OK);
     } else if (result == DLG_RES_NO) {
-      currentMode = STARTUP_SCREEN;
-      startupScreenInit();
+      switchToStartupScreen();
     }
   } else if (restore_phase == 1) {
     DialogResult result = textAreaLoop(thumby);
@@ -269,20 +231,6 @@ void restoreLoop() {
 
 // ---------- Startup Screen ---------- 
 
-ListItem** startup_screen_items = NULL;
-const int startup_screen_item_count = 6;
-void startupScreenInit() {
-  startup_screen_items = (ListItem**)malloc(startup_screen_item_count * sizeof(ListItem*));
-
-  startup_screen_items[0] = createListItem("Unseal", phraser::Icon_Lock);
-  startup_screen_items[1] = createListItem("Backup DB", phraser::Icon_Download);
-  startup_screen_items[2] = createListItem("Restore DB", phraser::Icon_Upload);
-  startup_screen_items[3] = createListItem("Test Keyboard", phraser::Icon_TextOut);
-  startup_screen_items[4] = createListItem("Unseal (show password)", phraser::Icon_Lock);
-  startup_screen_items[5] = createListItem("Create New DB", phraser::Icon_Settings);
-
-  initList(startup_screen_items, startup_screen_item_count);
-}
 
 void startupScreenLoop() {
   ListItem* chosenItem = listLoop(thumby);
@@ -294,8 +242,6 @@ void startupScreenLoop() {
     else if (chosenItem == startup_screen_items[3]) { currentMode = TEST_KEYBOARD; } 
     else if (chosenItem == startup_screen_items[4]) { currentMode = UNSEAL_SHOW_PASS; } 
     else if (chosenItem == startup_screen_items[5]) { currentMode = CREATE_NEW_DB; }
-
-    startup_screen_items = NULL;
 
     switch (currentMode) {
       case UNSEAL: unsealInit(true); break;
@@ -310,14 +256,14 @@ void startupScreenLoop() {
 
 // ---------- Main logic ---------- 
 
+
 // Entry point - setup
 void setup() {
   Serial.begin(115200);
   // Sets up buttons, audio, link pins, and screen
   thumby->begin();
 
-  currentMode = STARTUP_SCREEN;
-  startupScreenInit();
+  switchToStartupScreen();
 
   playStartupSound(thumby);
 
@@ -335,7 +281,7 @@ void loop() {
     case STARTUP_SCREEN: startupScreenLoop(); break;
     case UNSEAL:
     case UNSEAL_SHOW_PASS: unsealLoop(); break;
-    case BACKUP: backupLoop(); break;
+    case BACKUP: backupLoop(thumby); break;
     case RESTORE: restoreLoop(); break;
     case TEST_KEYBOARD: testKeyboardLoop(); break;
     case CREATE_NEW_DB: createNewDbLoop(); break;
