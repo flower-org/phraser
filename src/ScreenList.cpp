@@ -9,94 +9,94 @@ int list_item_count;
 int item_cursor;
 int selection_pos;
 
-void drawIcon(Thumby* thumby, int lineIndex, phraser::Icon icon) {
+void drawIcon(Thumby* thumby, int lineIndex, phraser_Icon_enum_t icon) {
   const int icon_offset_x = 1;
   const int icon_offset_y = 2;
   const int line = lines[lineIndex];
 
   switch (icon) {
-    case phraser::Icon_Key: 
+    case phraser_Icon_Key: 
       drawKey(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Login: 
+    case phraser_Icon_Login: 
       drawLogin(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Asterisk: 
+    case phraser_Icon_Asterisk: 
       drawAsterisk(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Lock: 
+    case phraser_Icon_Lock: 
       drawLock(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Aa: 
+    case phraser_Icon_Aa: 
       drawAa(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Star: 
+    case phraser_Icon_Star: 
       drawStar(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Settings: 
+    case phraser_Icon_Settings: 
       drawSettings(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Folder: 
+    case phraser_Icon_Folder: 
       drawFolderIcon(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_ToParentFolder: 
+    case phraser_Icon_ToParentFolder: 
       drawToParentFolder(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_LookingGlass: 
+    case phraser_Icon_LookingGlass: 
       drawLookingGlass(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_LTTriangle: 
+    case phraser_Icon_LTTriangle: 
       drawLTTriangle(thumby, icon_offset_x, line+icon_offset_y, WHITE, false);
       break;
-    case phraser::Icon_GTTriangle: 
+    case phraser_Icon_GTTriangle: 
       drawGTTriangle(thumby, icon_offset_x, line+icon_offset_y, WHITE, false);
       break;
-    case phraser::Icon_TextOut: 
+    case phraser_Icon_TextOut: 
       drawTextOut(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Ledger: 
+    case phraser_Icon_Ledger: 
       drawLedger(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_PlusMinus: 
+    case phraser_Icon_PlusMinus: 
       drawPlusMinus(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Stars: 
+    case phraser_Icon_Stars: 
       drawStars(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Message: 
+    case phraser_Icon_Message: 
       drawMessage(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Quote: 
+    case phraser_Icon_Quote: 
       drawQuote(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Question: 
+    case phraser_Icon_Question: 
       drawQuestion(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Plus: 
+    case phraser_Icon_Plus: 
       drawPlus(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Minus: 
+    case phraser_Icon_Minus: 
       drawMinus(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_X: 
+    case phraser_Icon_X: 
       drawX(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Check: 
+    case phraser_Icon_Check: 
       drawCheck(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Copy: 
+    case phraser_Icon_Copy: 
       drawCopy(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Download: 
+    case phraser_Icon_Download: 
       drawDownload(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Upload: 
+    case phraser_Icon_Upload: 
       drawUpload(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Skull: 
+    case phraser_Icon_Skull: 
       drawSkull(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
-    case phraser::Icon_Email: 
+    case phraser_Icon_Email: 
       drawEmail(thumby, icon_offset_x, line+icon_offset_y, WHITE);
       break;
     default: 
@@ -288,7 +288,7 @@ char* createDoubleName(char* name, int name_length) {
   return double_name;
 }
 
-ListItem* createListItem(char* name, int name_length, phraser::Icon icon) {
+ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon) {
   ListItem* listItem = (ListItem*)malloc(sizeof(ListItem));
 
   listItem->name = strdup(name);
@@ -303,7 +303,7 @@ ListItem* createListItem(char* name, int name_length, phraser::Icon icon) {
   return listItem;
 }
 
-ListItem* createListItem(const char* name, phraser::Icon icon) {
+ListItem* createListItem(const char* name, phraser_Icon_enum_t icon) {
   return createListItem((char*)name, (int)strlen(name), icon);
 }
 

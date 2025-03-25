@@ -4,12 +4,12 @@
 
 #include "PhraserUtils.h"
 #include "TextField.h"
-#include "Schema_generated.h"
+#include "Schema_reader.h"
 
 struct ListItem {
   char* name;
   char* double_name;
-  phraser::Icon icon;
+  phraser_Icon_enum_t icon;
   int name_length;
   bool too_wide_need_scroll;
   int nameCursor;
@@ -20,5 +20,5 @@ struct ListItem {
 ListItem* listLoop(Thumby* thumby);
 void initList(ListItem** new_items, int new_item_count);
 
-ListItem* createListItem(char* name, int name_length, phraser::Icon icon);
-ListItem* createListItem(const char* name, phraser::Icon icon);
+ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon);
+ListItem* createListItem(const char* name, phraser_Icon_enum_t icon);
