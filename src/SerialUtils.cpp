@@ -22,10 +22,7 @@ void sendBye() {
 
 void sendUInt32Serial(uint32_t value) {
   uint8_t bytes[4];
-  bytes[0] = (value >> 24) & 0xFF;
-  bytes[1] = (value >> 16) & 0xFF;
-  bytes[2] = (value >> 8) & 0xFF;
-  bytes[3] = value & 0xFF;
+  uInt32ToBytes(value, bytes);
   Serial.write(bytes, 4);
 }
 
@@ -63,12 +60,7 @@ uint32_t readUInt32Serial() {
   bytes[2] = Serial.read();
   bytes[3] = Serial.read();
 
-  uint32_t result = (static_cast<uint32_t>(bytes[0]) << 24) |
-                    (static_cast<uint32_t>(bytes[1]) << 16) |
-                    (static_cast<uint32_t>(bytes[2]) << 8)  |
-                    (static_cast<uint32_t>(bytes[3]));
-
-  return result;
+  return bytesToUInt32(bytes);
 }
 
 boolean canReadOperationSerial() {

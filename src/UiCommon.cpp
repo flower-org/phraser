@@ -21,3 +21,12 @@ void switchToStartupScreen() {
   currentMode = STARTUP_SCREEN;
   startupScreenInit();
 }
+
+void dbRuntimeInit(char* password) {
+  //
+}
+
+void switchToDbRuntime() {
+  currentMode = DB_RUNTIME;
+//  dbRuntimeInit();
+}

@@ -13,6 +13,7 @@ extern "C" {
 #define DB_OFFSET (1024*512)
 
 #include <Thumby.h>
+#include "aes.hpp"
 
 void drawRect(Thumby* thumby, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 void drawLetter(Thumby* thumby, char letter, int16_t x0, int16_t y0, uint16_t color, byte isSelected);
@@ -58,3 +59,9 @@ char* bytesToHexString(const unsigned char* bytes, size_t length);
 
 void readDbBlockFromFlash(uint16_t block_number, void* to_address);
 void writeDbBlockToFlash(uint16_t block_number, uint8_t* block);
+
+void inPlaceDecryptBlock4096(uint8_t* key, uint8_t* iv, uint8_t* block4096);
+
+uint8_t* xorByteArrays(uint8_t* array1, uint8_t* array2, size_t length);
+void uInt32ToBytes(uint32_t value, uint8_t* bytes);
+uint32_t bytesToUInt32(uint8_t* bytes);

@@ -11,9 +11,11 @@ typedef enum {
   TEST_KEYBOARD,
   UNSEAL_SHOW_PASS,
   CREATE_NEW_DB,
+  DB_RUNTIME
 } Mode;
 
 extern Mode currentMode;
 extern ListItem** startup_screen_items;
 
 void switchToStartupScreen();
+void switchToDbRuntime();

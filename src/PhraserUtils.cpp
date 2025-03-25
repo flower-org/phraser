@@ -355,3 +355,33 @@ void writeDbBlockToFlash(uint16_t block_number, uint8_t* block) {
   //Restore interrupts
   restore_interrupts(ints);
 }
+
+void inPlaceDecryptBlock4096(uint8_t* key, uint8_t* iv, uint8_t* block4096) {
+  struct AES_ctx ctx;
+  AES_init_ctx_iv(&ctx, key, iv);
+  AES_CBC_decrypt_buffer(&ctx, block4096, FLASH_SECTOR_SIZE-16);//last 16 is IV
+}
+
+uint8_t* xorByteArrays(uint8_t* array1, uint8_t* array2, size_t length) {
+  uint8_t* result = (uint8_t*)malloc(length * sizeof(uint8_t));
+  for (size_t i = 0; i < length; i++) {
+      result[i] = array1[i] ^ array2[i];
+  }
+
+  return result;
+}
+
+void uInt32ToBytes(uint32_t value, uint8_t* bytes) {
+  bytes[0] = (value >> 24) & 0xFF;
+  bytes[1] = (value >> 16) & 0xFF;
+  bytes[2] = (value >> 8) & 0xFF;
+  bytes[3] = value & 0xFF;
+}
+
+uint32_t bytesToUInt32(uint8_t* bytes) {
+  uint32_t result = (static_cast<uint32_t>(bytes[0]) << 24) |
+                    (static_cast<uint32_t>(bytes[1]) << 16) |
+                    (static_cast<uint32_t>(bytes[2]) << 8)  |
+                    (static_cast<uint32_t>(bytes[3]));
+  return result;
+}
