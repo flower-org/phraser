@@ -1,6 +1,8 @@
 #include <Thumby.h>
 #include <Keyboard.h>
 
+#include <vector>
+
 #include "ThumbyUtils.h"
 #include "PhraserUtils.h"
 #include "ScreenKeyboard.h"
@@ -27,7 +29,7 @@ void startupScreenInit();
 
 // TODO: FlatBuf usage example, for now keep it for the reference, remove later
 void playWithWords() {
-  flatbuffers::FlatBufferBuilder builder(1024);
+  flatbuffers::FlatBufferBuilder builder(4096);
   auto name = builder.CreateString("worrd_name");
   auto word = builder.CreateString("worrd_tmpl");
   short word_id = 3;

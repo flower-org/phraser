@@ -385,3 +385,26 @@ uint32_t bytesToUInt32(uint8_t* bytes) {
                     (static_cast<uint32_t>(bytes[3]));
   return result;
 }
+
+uint16_t bytesToUInt16(uint8_t* bytes) {
+  uint16_t result = (static_cast<uint16_t>(bytes[0]) << 8)  |
+                    (static_cast<uint16_t>(bytes[1]));
+  return result;
+}
+
+void uInt16ToBytes(uint16_t value, uint8_t* bytes) {
+  bytes[0] = (value >> 8) & 0xFF;
+  bytes[1] = value & 0xFF;
+}
+
+void reverseInPlace(uint8_t* array, size_t length) {
+  if (array == NULL || length == 0) {
+      return;
+  }
+
+  for (size_t start = 0, end = length - 1; start < end; start++, end--) {
+      uint8_t temp = array[start];
+      array[start] = array[end];
+      array[end] = temp;
+  }
+}

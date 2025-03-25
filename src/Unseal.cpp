@@ -7,6 +7,12 @@
 #include "Adler.h"
 
 #include "pbkdf2-sha256.h"
+//#include "Schema_generated.h"
+//#include "RootTypeFinishingMethods.h"
+#include "Schema_reader.h"
+
+#undef ns
+#define ns(x) FLATBUFFERS_WRAP_NAMESPACE(phraser, x)
 
 // ---------- Unseal ---------- 
 
@@ -36,6 +42,7 @@ bool unseal_password_mode = false;
 bool ui_draw_cycle = false;
 int key_block_decrypt_cursor = 0;
 int max_key_blocks = 384;
+uint32_t latest_found_keyblock_version = 0;
 
 void unsealInit(bool password_mode) {
   // Init duplex UART for Thumby to PC comms
@@ -47,6 +54,7 @@ void unsealInit(bool password_mode) {
   aes256_key_block_key = NULL;
   debug_hex_key = NULL;
   max_key_blocks = 384;
+  latest_found_keyblock_version = 0;
   initOnScreenKeyboard(false, password_mode);
 }
 
@@ -116,7 +124,9 @@ void unsealLoop(Thumby* thumby) {
 
     if (key_block_decrypt_cursor >= max_key_blocks) {
       //if key_block_decrypt_cursor >= 384, go to fail screen
-      char* text = "Failed to find KeyBlock.";
+      char text[50];
+      sprintf(text, "max key blocks %d version %d", max_key_blocks, latest_found_keyblock_version);
+//      char* text = "Failed to find KeyBlock.";
       initTextAreaDialog(text, strlen(text), DLG_OK);
       unseal_phase = -1;
     } else {
@@ -133,22 +143,64 @@ void unsealLoop(Thumby* thumby) {
       //2. Decrypt using aes256_key_block_key and HARDCODED_IV_MASK
       uint8_t* iv = xorByteArrays(HARDCODED_IV_MASK, db_block+(db_block_size - HARDCODED_IV_MASK_LEN), HARDCODED_IV_MASK_LEN);
       inPlaceDecryptBlock4096(aes256_key_block_key, iv, db_block);
-      
+      free(iv);
+
       //3. validate Adler32 checksum
-      uint32_t expected_adler = bytesToUInt32(db_block+(db_block_size - HARDCODED_IV_MASK_LEN - 4));
-      uint32_t adler32_checksum = adler32(db_block, db_block_size - HARDCODED_IV_MASK_LEN - 4);
+      uint32_t length_without_adler = db_block_size - HARDCODED_IV_MASK_LEN - 4;
+      uint32_t expected_adler = bytesToUInt32(db_block+length_without_adler);
+      uint32_t adler32_checksum = adler32(db_block, length_without_adler);
       if (expected_adler == adler32_checksum) {
-        //4. validate KEY_BLOCK block type
+        //4. reverse decrypted block
+        reverseInPlace(db_block, length_without_adler);
 
-        //5. read version of KEY_BLOCK
+        //5. validate KEY_BLOCK block type (1st byte in a buffer is BlockType)
+//        if (db_block[0] == phraser::BlockType::BlockType_KeyBlock) {
+        if (db_block[0] == phraser_BlockType_KeyBlock) {
+          Serial.println("OK WE HERE");
 
-        //6. if latest version of KeyBlock found (so far), update `max_key_blocks`
+          uint16_t size = bytesToUInt16(db_block+1);
+          Serial.printf("size %u", size);
 
-        char text[50];
-        sprintf(text, "Adler matched Block %d", key_block_decrypt_cursor);
-        initTextAreaDialog(text, strlen(text), DLG_OK);
-        unseal_phase = -1;
+          ns(KeyBlock_table_t) key_block;
+          if (!(key_block = ns(KeyBlock_as_root(db_block+3)))) {
+            Serial.printf("Key Block not available\n");
+            return;
+          }
+
+          ns(StoreBlock_struct_t) keyblock_storeblock;
+          keyblock_storeblock = ns(KeyBlock_block(key_block));
+          uint32_t keyblock_version = ns(StoreBlock_version(keyblock_storeblock));
+
+
+          //6. read version of KEY_BLOCK
+//          const phraser::KeyBlock* key_block = phraser::GetKeyBlock((void*)(db_block+3));
+
+          if (key_block == NULL) {
+            Serial.println("key_block is NULL");
+            return; // Handle the error appropriately
+          } else {
+            Serial.println("key_block is NOT NULL");
+          }
+    
+          //uint32_t keyblock_version = 0;
+//          uint32_t keyblock_version = key_block->block()->version();
+//          Serial.printf("keyblock_version %u", keyblock_version);
+
+          char text[1500];
+          sprintf(text, "Adler matched Block %d type %u v %u", key_block_decrypt_cursor, db_block[0], keyblock_version);
+          initTextAreaDialog(text, strlen(text), DLG_OK);
+          unseal_phase = -1;
+
+
+          /*//7. if latest version of KeyBlock found (so far), update `max_key_blocks`
+          if (keyblock_version > latest_found_keyblock_version) {
+            latest_found_keyblock_version = keyblock_version;
+            max_key_blocks = key_block->block_count();
+          }*/
+        }
       }
+
+      Serial.printf("Bucket %d", key_block_decrypt_cursor);
 
       key_block_decrypt_cursor++;
     }

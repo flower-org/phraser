@@ -65,3 +65,6 @@ void inPlaceDecryptBlock4096(uint8_t* key, uint8_t* iv, uint8_t* block4096);
 uint8_t* xorByteArrays(uint8_t* array1, uint8_t* array2, size_t length);
 void uInt32ToBytes(uint32_t value, uint8_t* bytes);
 uint32_t bytesToUInt32(uint8_t* bytes);
+void reverseInPlace(uint8_t* array, size_t length);
+uint16_t bytesToUInt16(uint8_t* bytes);
+void uInt16ToBytes(uint16_t value, uint8_t* bytes);
