@@ -56,7 +56,7 @@ void playWithWords() {
 
 // ---------- Common ---------- 
 
-const int PBKDF_INTERATIONS_COUNT = 10000;
+const int PBKDF_INTERATIONS_COUNT = 10239;
 
 
 //SHA256 of string "PhraserPasswordManager"
