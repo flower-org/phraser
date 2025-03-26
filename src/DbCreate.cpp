@@ -6,9 +6,13 @@
 #include "SerialUtils.h"
 #include "ScreenKeyboard.h"
 #include "BlockCache.h"
+#include "DefaultDbInitializer.h"
 #include <sha256.h>
+#include "pbkdf2-sha256.h"
 
 const uint16_t BANK_BLOCK_COUNT = 128;
+const uint16_t AES256_KEY_LENGTH = 32;
+const uint16_t AES256_IV_LENGTH = 16;
 
 // ---------- New DB ---------- 
 
@@ -27,14 +31,17 @@ void bankScreenInit() {
 
 char* new_password = NULL;
 char* random_str = NULL;
+uint8_t* new_key_block_key = NULL;
 
 int create_new_db_phase = 0;
-int bank = -1;
+int bank_ui_selection_index = -1;
 int current_bank = 0;
 int current_bank_cursor = 0;
 int db_block_count = BANK_BLOCK_COUNT;
 int init_block_count = 0;
 int init_pbkdf2_iterations = 0;
+
+bool cr_ui_draw_cycle = false;
 
 void createNewDbInit() {
   if (new_password != NULL) {
@@ -45,16 +52,21 @@ void createNewDbInit() {
     free(random_str);
     random_str = NULL;
   }
-  
+  if (new_key_block_key != NULL) {
+    free(new_key_block_key);
+    new_key_block_key = NULL;
+  }
+
   //create_new_db_phase = 52;
   create_new_db_phase = 0;
 
-  bank = -1;
+  bank_ui_selection_index = -1;
   current_bank = 0;
   current_bank_cursor = 0;
   db_block_count = BANK_BLOCK_COUNT;
   init_block_count = 0;
   init_pbkdf2_iterations = 0;
+  cr_ui_draw_cycle = false;
 
   char* text = "Create DB?\nExisting data\nwill be lost!";
   initTextAreaDialog(text, strlen(text), DLG_YES_NO);
@@ -74,8 +86,8 @@ void createNewDbLoop(Thumby* thumby) {
     // Phase 1. Choose Bank
     int chosenItem = listLoop(thumby);
     if (chosenItem >= 0 && chosenItem <= 3) {
-      bank = chosenItem;
-      current_bank = bank == 0 ? 1 : bank;
+      bank_ui_selection_index = chosenItem;
+      current_bank = bank_ui_selection_index == 0 ? 1 : bank_ui_selection_index;
       current_bank_cursor = 0;
       // Superficial randomization at first pass
       randomSeed(analogRead(0));
@@ -100,7 +112,7 @@ void createNewDbLoop(Thumby* thumby) {
 
     if (current_bank_cursor >= db_block_count) {
       boolean randomization_done = false;
-      if (bank == 0) {
+      if (bank_ui_selection_index == 0) {
         if (current_bank < 3) {
           current_bank++;
           current_bank_cursor = 0;
@@ -116,10 +128,13 @@ void createNewDbLoop(Thumby* thumby) {
           create_new_db_phase = 31;
           char* text = "Enter password";
           initTextAreaDialog(text, strlen(text), DLG_OK);
+          return;
         } else if (create_new_db_phase == 9) {
           create_new_db_phase = 10;
-          char* text = "Forming DB blocks";
+          char* text = "Calculating\nkey...";
           initTextAreaDialog(text, strlen(text), TEXT_AREA);
+          cr_ui_draw_cycle = false;
+          return;
         }
       }
     }
@@ -131,7 +146,7 @@ void createNewDbLoop(Thumby* thumby) {
     }
 
     //Save random data to block
-    writeDbBlockToFlash(bank, current_bank_cursor, buffer);
+    writeDbBlockToFlash(bank_ui_selection_index, current_bank_cursor, buffer);
     current_bank_cursor++;
   } else if (create_new_db_phase == 31) {
     // 3.1. Enter password
@@ -207,14 +222,14 @@ void createNewDbLoop(Thumby* thumby) {
         initTextAreaDialog(text, strlen(text), DLG_OK);
         create_new_db_phase = 61;
         issue_found = true;
-      } else if (bank == 2) {
+      } else if (bank_ui_selection_index == 2) {
         if (init_block_count > 256) {
           char* text = "Block count can't be > 256 for BANK2.";
           initTextAreaDialog(text, strlen(text), DLG_OK);
           create_new_db_phase = 61;
           issue_found = true;
         }
-      } else if (bank == 3) {
+      } else if (bank_ui_selection_index == 3) {
         if (init_block_count > 128) {
           char* text = "Block count can't be > 128 for BANK3.";
           initTextAreaDialog(text, strlen(text), DLG_OK);
@@ -305,50 +320,78 @@ void createNewDbLoop(Thumby* thumby) {
     uint8_t digest[32];
     struct tc_sha256_state_struct s;
 
-    (void)tc_sha256_init(&s);
+    tc_sha256_init(&s);
     tc_sha256_update(&s, (uint8_t*)new_password, strlen(new_password));
     tc_sha256_update(&s, (uint8_t*)random_str, strlen(random_str));
-    tc_sha256_update(&s, (uint8_t*)micros_str, strlen(random_str));
-    tc_sha256_update(&s, (uint8_t*)analog_str, strlen(random_str));
-
-    (void)tc_sha256_final(digest, &s);
+    tc_sha256_update(&s, (uint8_t*)micros_str, strlen(micros_str));
+    tc_sha256_update(&s, (uint8_t*)analog_str, strlen(analog_str));
+    tc_sha256_final(digest, &s);
     
-    uint8_t* xor16 = xorByteArrays(digest, digest+16, 16);
-    uint8_t* xor8 = xorByteArrays(xor16, xor16+8, 8);
-    uint8_t* xor4 = xorByteArrays(xor8, xor8+4, 4);
-  
-    uint32_t seed = bytesToUInt32(xor4);
-
-    free(xor16);
-    free(xor8);
-    free(xor4);
-
+    uint32_t seed = sha256ToUInt32(digest);
     randomSeed(seed);
 
-    current_bank = bank == 0 ? 1 : bank;
+    current_bank = bank_ui_selection_index == 0 ? 1 : bank_ui_selection_index;
     current_bank_cursor = 0;
 
     create_new_db_phase = 9;//Randomize blocks 2
   } else if (create_new_db_phase == 10) {
-    // 9. Form and fill DB blocks
+    // 10. Calculate key from password
     textAreaLoop(thumby);
+    if (!cr_ui_draw_cycle) { cr_ui_draw_cycle = true; return; }
+
+    new_key_block_key = (uint8_t*)malloc(AES256_KEY_LENGTH * sizeof(uint8_t));
+
+    PKCS5_PBKDF2_SHA256_HMAC((unsigned char*)new_password, strlen(new_password),
+        HARDCODED_SALT, HARDCODED_SALT_LEN, 
+        init_pbkdf2_iterations,
+        AES256_KEY_LENGTH, (unsigned char*)new_key_block_key);
+
+    char* text = "Forming DB blocks.";
+    initTextAreaDialog(text, strlen(text), TEXT_AREA);
+    cr_ui_draw_cycle = false;
+    create_new_db_phase = 11;
+  } else if (create_new_db_phase == 11) {
+    // 11. Form and fill DB blocks
+    textAreaLoop(thumby);
+    if (!cr_ui_draw_cycle) { cr_ui_draw_cycle = true; return; }
 
     int block_numbers[4];
     generateUniqueNumbers(init_block_count, 4, block_numbers);
 
-    char text[50];
-    sprintf(text, "%d; %d;\n%d; %d", block_numbers[0], block_numbers[1], block_numbers[2], block_numbers[3]);
+    uint8_t key_block[4096];
+    uint8_t symbol_sets_block[4096];
+    uint8_t folders_block[4096];
+    uint8_t phrase_templates_block[4096];
+
+    uint8_t new_aes_key[AES256_KEY_LENGTH];
+    uint8_t new_aes_iv_mask[AES256_IV_LENGTH];
+    initDefaultKeyBlock(key_block, new_key_block_key, HARDCODED_IV_MASK, new_aes_key, new_aes_iv_mask);
+
+    initDefaultSymbolSetsBlock(symbol_sets_block, new_aes_key, new_aes_iv_mask);
+    initDefaultFoldersBlock(folders_block, new_aes_key, new_aes_iv_mask);
+    initDefaultPhraseTemplatesBlock(phrase_templates_block, new_aes_key, new_aes_iv_mask);
+
+    Serial.printf("Saving key_block to %d\r\n", block_numbers[0]);
+    writeDbBlockToFlash(current_bank, block_numbers[0], key_block);
+    Serial.printf("Saving symbol_sets_block to %d\r\n", block_numbers[1]);
+    writeDbBlockToFlash(current_bank, block_numbers[1], symbol_sets_block);
+    Serial.printf("Saving folders_block to %d\r\n", block_numbers[2]);
+    writeDbBlockToFlash(current_bank, block_numbers[2], folders_block);
+    Serial.printf("Saving phrase_templates_block to %d\r\n", block_numbers[3]);
+    writeDbBlockToFlash(current_bank, block_numbers[3], phrase_templates_block);
+
+    char* text = "Database successfully initialized.";
     initTextAreaDialog(text, strlen(text), DLG_OK);
 
-    create_new_db_phase = 11;
-  } else if (create_new_db_phase == 11) {
-    // 11. Done
+    create_new_db_phase = 12;
+  } else if (create_new_db_phase == 12) {
+    // 12. Done
     DialogResult result = textAreaLoop(thumby);
     if (result == DLG_RES_OK) {
-      create_new_db_phase = 11;
+      create_new_db_phase = 13;
     }
-  } else if (create_new_db_phase == 11) {
-    // 10. Final
+  } else if (create_new_db_phase == 13) {
+    // 13. Final
     drawTurnOffMessage(thumby);
   }
 }

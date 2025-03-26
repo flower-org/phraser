@@ -72,3 +72,4 @@ void uInt16ToBytes(uint16_t value, uint8_t* bytes);
 uint8_t* copyBuffer(uint8_t* buffer, uint16_t length);
 char* copyString(char* str, uint16_t length);
 void generateUniqueNumbers(int N, int count, int* result);
+uint32_t sha256ToUInt32(uint8_t* sha256_digest);

@@ -457,3 +457,17 @@ void generateUniqueNumbers(int N, int count, int* result) {
       }
   }
 }
+
+uint32_t sha256ToUInt32(uint8_t* sha256_digest) {
+  uint8_t* xor16 = xorByteArrays(sha256_digest, sha256_digest+16, 16);
+  uint8_t* xor8 = xorByteArrays(xor16, xor16+8, 8);
+  uint8_t* xor4 = xorByteArrays(xor8, xor8+4, 4);
+
+  uint32_t seed = bytesToUInt32(xor4);
+
+  free(xor16);
+  free(xor8);
+  free(xor4);
+
+  return seed;
+}
