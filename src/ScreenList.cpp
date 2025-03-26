@@ -134,13 +134,21 @@ void printLineText(Thumby* thumby, int lineIndex, char* str) {
   printAt(thumby, text_offset, line + text_offset_y, str);
 }
 
-void freeList(ListItem** items, int count) {
+void freeItemList(ListItem** items, int count) {
   for (int i = 0; i < count; i++) {
       free(items[i]->name);
       free(items[i]->double_name);
       free(items[i]);
   }
   free(items);
+}
+
+ListItem** duplicateItemList(ListItem** items, int count) {
+  ListItem** dup_items = (ListItem**)malloc(count * sizeof(ListItem*));
+  for (int i = 0; i < count; i++) {
+    dup_items[i] = createListItem(items[i]->name, items[i]->icon);
+  }
+  return dup_items;
 }
 
 ListItem** getLoopItems() {
@@ -191,7 +199,7 @@ void drawItem(Thumby* thumby, ListItem* item, int line, bool is_selected, bool n
 bool list_down_pressed = false;
 bool list_up_pressed = false;
 bool list_a_pressed = false;
-ListItem* listLoop(Thumby* thumby) {
+int listLoop(Thumby* thumby) {
   ListItem* previously_selected = list_items[item_cursor + selection_pos];
 
   // Up 
@@ -238,7 +246,8 @@ ListItem* listLoop(Thumby* thumby) {
     list_down_pressed = false;
   }
 
-  ListItem* newly_selected = list_items[item_cursor + selection_pos];
+  int newly_selected_position = item_cursor + selection_pos;
+  ListItem* newly_selected = list_items[newly_selected_position];
 
   // A (select item)
   if (thumby->isPressed(BUTTON_A)) {
@@ -246,7 +255,7 @@ ListItem* listLoop(Thumby* thumby) {
   } else {
     if (list_a_pressed) {
       list_a_pressed = false;
-      return newly_selected;
+      return newly_selected_position;
     }
   }
 
@@ -277,7 +286,7 @@ ListItem* listLoop(Thumby* thumby) {
     }
   }
 
-  return NULL;
+  return -1;
 }
 
 char* createDoubleName(char* name, int name_length) {
@@ -291,7 +300,7 @@ char* createDoubleName(char* name, int name_length) {
 ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon) {
   ListItem* listItem = (ListItem*)malloc(sizeof(ListItem));
 
-  listItem->name = strdup(name);
+  listItem->name = copyString(name, name_length);
   listItem->double_name = createDoubleName(name, name_length);
   listItem->name_length = name_length;
   listItem->too_wide_need_scroll = (name_length > max_letters_to_show);
@@ -309,7 +318,7 @@ ListItem* createListItem(const char* name, phraser_Icon_enum_t icon) {
 
 void initList(ListItem** new_items, int new_item_count) {
   if (list_items != NULL) {
-    freeList(list_items, list_item_count);
+    freeItemList(list_items, list_item_count);
   }
 
   //Reset list view state 
@@ -318,7 +327,7 @@ void initList(ListItem** new_items, int new_item_count) {
   item_cursor = 0;
   selection_pos = 0;
   
-  //Initialize new list items
-  list_items = new_items;
+  //Initialize new list items (copy the items)
+  list_items = duplicateItemList(new_items, new_item_count);
   list_item_count = new_item_count;
 }

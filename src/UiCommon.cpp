@@ -2,10 +2,9 @@
 
 Mode currentMode = UNDEFINED;
 
-ListItem** startup_screen_items = NULL;
-const int startup_screen_item_count = 6;
 void startupScreenInit() {
-  startup_screen_items = (ListItem**)malloc(startup_screen_item_count * sizeof(ListItem*));
+  const int startup_screen_item_count = 6;
+  ListItem** startup_screen_items = (ListItem**)malloc(startup_screen_item_count * sizeof(ListItem*));
 
   startup_screen_items[0] = createListItem("Unseal", phraser_Icon_Lock);
   startup_screen_items[1] = createListItem("Backup DB", phraser_Icon_Download);
@@ -15,6 +14,7 @@ void startupScreenInit() {
   startup_screen_items[5] = createListItem("Create New DB", phraser_Icon_Settings);
 
   initList(startup_screen_items, startup_screen_item_count);
+  freeItemList(startup_screen_items, startup_screen_item_count);
 }
 
 void switchToStartupScreen() {
