@@ -90,7 +90,7 @@ void createNewDbLoop(Thumby* thumby) {
       current_bank = bank_ui_selection_index == 0 ? 1 : bank_ui_selection_index;
       current_bank_cursor = 0;
       // Superficial randomization at first pass
-      randomSeed(analogRead(0));
+      randomSeed(micros());
 
       create_new_db_phase = 2;
     } else if (chosenItem == 4) {
@@ -311,11 +311,8 @@ void createNewDbLoop(Thumby* thumby) {
     textAreaLoop(thumby);
 
     uint32_t micros_int = micros();
-    uint32_t analog = analogRead(0);
     char micros_str[50];
     itoa(micros_int, micros_str, 10);
-    char analog_str[20];
-    itoa(analog, analog_str, 10);
 
     uint8_t digest[32];
     struct tc_sha256_state_struct s;
@@ -324,7 +321,6 @@ void createNewDbLoop(Thumby* thumby) {
     tc_sha256_update(&s, (uint8_t*)new_password, strlen(new_password));
     tc_sha256_update(&s, (uint8_t*)random_str, strlen(random_str));
     tc_sha256_update(&s, (uint8_t*)micros_str, strlen(micros_str));
-    tc_sha256_update(&s, (uint8_t*)analog_str, strlen(analog_str));
     tc_sha256_final(digest, &s);
     
     uint32_t seed = sha256ToUInt32(digest);
@@ -333,7 +329,6 @@ void createNewDbLoop(Thumby* thumby) {
 /*    Serial.printf("new_password %s\r\n", new_password);
     Serial.printf("random_str %s\r\n", random_str);
     Serial.printf("micros_str %s\r\n", micros_str);
-    Serial.printf("analog_str %s\r\n", analog_str);
     Serial.printf("seed %d\r\n", seed);*/
 
     current_bank = bank_ui_selection_index == 0 ? 1 : bank_ui_selection_index;
