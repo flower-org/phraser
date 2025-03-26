@@ -330,6 +330,12 @@ void createNewDbLoop(Thumby* thumby) {
     uint32_t seed = sha256ToUInt32(digest);
     randomSeed(seed);
 
+/*    Serial.printf("new_password %s\r\n", new_password);
+    Serial.printf("random_str %s\r\n", random_str);
+    Serial.printf("micros_str %s\r\n", micros_str);
+    Serial.printf("analog_str %s\r\n", analog_str);
+    Serial.printf("seed %d\r\n", seed);*/
+
     current_bank = bank_ui_selection_index == 0 ? 1 : bank_ui_selection_index;
     current_bank_cursor = 0;
 
@@ -371,13 +377,13 @@ void createNewDbLoop(Thumby* thumby) {
     initDefaultFoldersBlock(folders_block, new_aes_key, new_aes_iv_mask);
     initDefaultPhraseTemplatesBlock(phrase_templates_block, new_aes_key, new_aes_iv_mask);
 
-    Serial.printf("Saving key_block to %d\r\n", block_numbers[0]);
+    //Serial.printf("Saving key_block to %d\r\n", block_numbers[0]);
     writeDbBlockToFlash(current_bank, block_numbers[0], key_block);
-    Serial.printf("Saving symbol_sets_block to %d\r\n", block_numbers[1]);
+    //Serial.printf("Saving symbol_sets_block to %d\r\n", block_numbers[1]);
     writeDbBlockToFlash(current_bank, block_numbers[1], symbol_sets_block);
-    Serial.printf("Saving folders_block to %d\r\n", block_numbers[2]);
+    //Serial.printf("Saving folders_block to %d\r\n", block_numbers[2]);
     writeDbBlockToFlash(current_bank, block_numbers[2], folders_block);
-    Serial.printf("Saving phrase_templates_block to %d\r\n", block_numbers[3]);
+    //Serial.printf("Saving phrase_templates_block to %d\r\n", block_numbers[3]);
     writeDbBlockToFlash(current_bank, block_numbers[3], phrase_templates_block);
 
     char* text = "Database successfully initialized.";
