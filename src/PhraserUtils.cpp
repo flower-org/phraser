@@ -408,3 +408,16 @@ void reverseInPlace(uint8_t* array, size_t length) {
       array[end] = temp;
   }
 }
+
+uint8_t* copyBuffer(uint8_t* buffer, uint16_t length) {
+  uint8_t* localBuffer = (uint8_t*)malloc(length * sizeof(uint8_t));
+  memcpy(localBuffer, buffer, length);
+  return localBuffer;
+}
+
+char* copyString(char* str, uint16_t length) {
+  char* localStr = (char*)malloc((length + 1) * sizeof(char));
+  strncpy(localStr, str, length);
+  localStr[length] = '\0'; // Null-terminate the string
+  return localStr;
+}

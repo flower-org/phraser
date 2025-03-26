@@ -68,3 +68,5 @@ uint32_t bytesToUInt32(uint8_t* bytes);
 void reverseInPlace(uint8_t* array, size_t length);
 uint16_t bytesToUInt16(uint8_t* bytes);
 void uInt16ToBytes(uint16_t value, uint8_t* bytes);
+uint8_t* copyBuffer(uint8_t* buffer, uint16_t length);
+char* copyString(char* str, uint16_t length);
