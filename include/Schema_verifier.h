@@ -24,42 +24,42 @@ static int phraser_KeyBlock_verify_table(flatcc_table_verifier_descriptor_t *td)
 
 static inline int phraser_StoreBlock_verify_as_root(const void *buf, size_t bufsiz)
 {
-    return flatcc_verify_struct_as_root(buf, bufsiz, phraser_StoreBlock_identifier, 16, 8);
+    return flatcc_verify_struct_as_root(buf, bufsiz, phraser_StoreBlock_identifier, 12, 4);
 }
 
 static inline int phraser_StoreBlock_verify_as_root_with_size(const void *buf, size_t bufsiz)
 {
-    return flatcc_verify_struct_as_root_with_size(buf, bufsiz, phraser_StoreBlock_identifier, 16, 8);
+    return flatcc_verify_struct_as_root_with_size(buf, bufsiz, phraser_StoreBlock_identifier, 12, 4);
 }
 
 static inline int phraser_StoreBlock_verify_as_typed_root(const void *buf, size_t bufsiz)
 {
-    return flatcc_verify_struct_as_typed_root(buf, bufsiz, phraser_StoreBlock_type_hash, 16, 8);
+    return flatcc_verify_struct_as_typed_root(buf, bufsiz, phraser_StoreBlock_type_hash, 12, 4);
 }
 
 static inline int phraser_StoreBlock_verify_as_typed_root_with_size(const void *buf, size_t bufsiz)
 {
-    return flatcc_verify_struct_as_typed_root_with_size(buf, bufsiz, phraser_StoreBlock_type_hash, 16, 8);
+    return flatcc_verify_struct_as_typed_root_with_size(buf, bufsiz, phraser_StoreBlock_type_hash, 12, 4);
 }
 
 static inline int phraser_StoreBlock_verify_as_root_with_type_hash(const void *buf, size_t bufsiz, flatbuffers_thash_t thash)
 {
-    return flatcc_verify_struct_as_typed_root(buf, bufsiz, thash, 16, 8);
+    return flatcc_verify_struct_as_typed_root(buf, bufsiz, thash, 12, 4);
 }
 
 static inline int phraser_StoreBlock_verify_as_root_with_type_hash_and_size(const void *buf, size_t bufsiz, flatbuffers_thash_t thash)
 {
-    return flatcc_verify_struct_as_typed_root_with_size(buf, bufsiz, thash, 16, 8);
+    return flatcc_verify_struct_as_typed_root_with_size(buf, bufsiz, thash, 12, 4);
 }
 
 static inline int phraser_StoreBlock_verify_as_root_with_identifier(const void *buf, size_t bufsiz, const char *fid)
 {
-    return flatcc_verify_struct_as_root(buf, bufsiz, fid, 16, 8);
+    return flatcc_verify_struct_as_root(buf, bufsiz, fid, 12, 4);
 }
 
 static inline int phraser_StoreBlock_verify_as_root_with_identifier_and_size(const void *buf, size_t bufsiz, const char *fid)
 {
-    return flatcc_verify_struct_as_root_with_size(buf, bufsiz, fid, 16, 8);
+    return flatcc_verify_struct_as_root_with_size(buf, bufsiz, fid, 12, 4);
 }
 
 static int phraser_Folder_verify_table(flatcc_table_verifier_descriptor_t *td)
@@ -114,7 +114,7 @@ static inline int phraser_Folder_verify_as_root_with_type_hash_and_size(const vo
 static int phraser_FoldersBlock_verify_table(flatcc_table_verifier_descriptor_t *td)
 {
     int ret;
-    if ((ret = flatcc_verify_field(td, 0, 16, 8) /* block */)) return ret;
+    if ((ret = flatcc_verify_field(td, 0, 12, 4) /* block */)) return ret;
     if ((ret = flatcc_verify_table_vector_field(td, 1, 0, &phraser_Folder_verify_table) /* folders */)) return ret;
     return flatcc_verify_ok;
 }
@@ -211,7 +211,7 @@ static inline int phraser_SymbolSet_verify_as_root_with_type_hash_and_size(const
 static int phraser_SymbolSetsBlock_verify_table(flatcc_table_verifier_descriptor_t *td)
 {
     int ret;
-    if ((ret = flatcc_verify_field(td, 0, 16, 8) /* block */)) return ret;
+    if ((ret = flatcc_verify_field(td, 0, 12, 4) /* block */)) return ret;
     if ((ret = flatcc_verify_table_vector_field(td, 1, 0, &phraser_SymbolSet_verify_table) /* symbol_sets */)) return ret;
     return flatcc_verify_ok;
 }
@@ -409,7 +409,7 @@ static inline int phraser_PhraseTemplate_verify_as_root_with_type_hash_and_size(
 static int phraser_PhraseTemplatesBlock_verify_table(flatcc_table_verifier_descriptor_t *td)
 {
     int ret;
-    if ((ret = flatcc_verify_field(td, 0, 16, 8) /* block */)) return ret;
+    if ((ret = flatcc_verify_field(td, 0, 12, 4) /* block */)) return ret;
     if ((ret = flatcc_verify_table_vector_field(td, 1, 0, &phraser_PhraseTemplate_verify_table) /* phrase_templates */)) return ret;
     if ((ret = flatcc_verify_table_vector_field(td, 2, 0, &phraser_WordTemplate_verify_table) /* word_templates */)) return ret;
     return flatcc_verify_ok;
@@ -558,7 +558,7 @@ static inline int phraser_PhraseHistory_verify_as_root_with_type_hash_and_size(c
 static int phraser_PhraseBlock_verify_table(flatcc_table_verifier_descriptor_t *td)
 {
     int ret;
-    if ((ret = flatcc_verify_field(td, 0, 16, 8) /* block */)) return ret;
+    if ((ret = flatcc_verify_field(td, 0, 12, 4) /* block */)) return ret;
     if ((ret = flatcc_verify_field(td, 1, 2, 2) /* phrase_template_id */)) return ret;
     if ((ret = flatcc_verify_field(td, 2, 2, 2) /* folder_id */)) return ret;
     if ((ret = flatcc_verify_field(td, 3, 1, 1) /* is_tombstone */)) return ret;
@@ -610,7 +610,7 @@ static inline int phraser_PhraseBlock_verify_as_root_with_type_hash_and_size(con
 static int phraser_KeyBlock_verify_table(flatcc_table_verifier_descriptor_t *td)
 {
     int ret;
-    if ((ret = flatcc_verify_field(td, 0, 16, 8) /* block */)) return ret;
+    if ((ret = flatcc_verify_field(td, 0, 12, 4) /* block */)) return ret;
     if ((ret = flatcc_verify_vector_field(td, 1, 0, 1, 1, INT64_C(4294967295)) /* key */)) return ret;
     if ((ret = flatcc_verify_vector_field(td, 2, 0, 1, 1, INT64_C(4294967295)) /* db_name */)) return ret;
     if ((ret = flatcc_verify_vector_field(td, 3, 0, 1, 1, INT64_C(4294967295)) /* iv */)) return ret;

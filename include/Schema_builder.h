@@ -24,27 +24,27 @@ __flatbuffers_build_scalar(flatbuffers_, phraser_BlockType, phraser_BlockType_en
 #define __phraser_Icon_call_args , v0
 __flatbuffers_build_scalar(flatbuffers_, phraser_Icon, phraser_Icon_enum_t)
 
-#define __phraser_StoreBlock_formal_args , uint16_t v0, uint32_t v1, uint64_t v2
+#define __phraser_StoreBlock_formal_args , uint16_t v0, uint32_t v1, uint32_t v2
 #define __phraser_StoreBlock_call_args , v0, v1, v2
-static inline phraser_StoreBlock_t *phraser_StoreBlock_assign(phraser_StoreBlock_t *p, uint16_t v0, uint32_t v1, uint64_t v2)
+static inline phraser_StoreBlock_t *phraser_StoreBlock_assign(phraser_StoreBlock_t *p, uint16_t v0, uint32_t v1, uint32_t v2)
 { p->block_id = v0; p->version = v1; p->entropy = v2;
   return p; }
 static inline phraser_StoreBlock_t *phraser_StoreBlock_copy(phraser_StoreBlock_t *p, const phraser_StoreBlock_t *p2)
 { p->block_id = p2->block_id; p->version = p2->version; p->entropy = p2->entropy;
   return p; }
-static inline phraser_StoreBlock_t *phraser_StoreBlock_assign_to_pe(phraser_StoreBlock_t *p, uint16_t v0, uint32_t v1, uint64_t v2)
-{ flatbuffers_uint16_assign_to_pe(&p->block_id, v0); flatbuffers_uint32_assign_to_pe(&p->version, v1); flatbuffers_uint64_assign_to_pe(&p->entropy, v2);
+static inline phraser_StoreBlock_t *phraser_StoreBlock_assign_to_pe(phraser_StoreBlock_t *p, uint16_t v0, uint32_t v1, uint32_t v2)
+{ flatbuffers_uint16_assign_to_pe(&p->block_id, v0); flatbuffers_uint32_assign_to_pe(&p->version, v1); flatbuffers_uint32_assign_to_pe(&p->entropy, v2);
   return p; }
 static inline phraser_StoreBlock_t *phraser_StoreBlock_copy_to_pe(phraser_StoreBlock_t *p, const phraser_StoreBlock_t *p2)
-{ flatbuffers_uint16_copy_to_pe(&p->block_id, &p2->block_id); flatbuffers_uint32_copy_to_pe(&p->version, &p2->version); flatbuffers_uint64_copy_to_pe(&p->entropy, &p2->entropy);
+{ flatbuffers_uint16_copy_to_pe(&p->block_id, &p2->block_id); flatbuffers_uint32_copy_to_pe(&p->version, &p2->version); flatbuffers_uint32_copy_to_pe(&p->entropy, &p2->entropy);
   return p; }
-static inline phraser_StoreBlock_t *phraser_StoreBlock_assign_from_pe(phraser_StoreBlock_t *p, uint16_t v0, uint32_t v1, uint64_t v2)
-{ flatbuffers_uint16_assign_from_pe(&p->block_id, v0); flatbuffers_uint32_assign_from_pe(&p->version, v1); flatbuffers_uint64_assign_from_pe(&p->entropy, v2);
+static inline phraser_StoreBlock_t *phraser_StoreBlock_assign_from_pe(phraser_StoreBlock_t *p, uint16_t v0, uint32_t v1, uint32_t v2)
+{ flatbuffers_uint16_assign_from_pe(&p->block_id, v0); flatbuffers_uint32_assign_from_pe(&p->version, v1); flatbuffers_uint32_assign_from_pe(&p->entropy, v2);
   return p; }
 static inline phraser_StoreBlock_t *phraser_StoreBlock_copy_from_pe(phraser_StoreBlock_t *p, const phraser_StoreBlock_t *p2)
-{ flatbuffers_uint16_copy_from_pe(&p->block_id, &p2->block_id); flatbuffers_uint32_copy_from_pe(&p->version, &p2->version); flatbuffers_uint64_copy_from_pe(&p->entropy, &p2->entropy);
+{ flatbuffers_uint16_copy_from_pe(&p->block_id, &p2->block_id); flatbuffers_uint32_copy_from_pe(&p->version, &p2->version); flatbuffers_uint32_copy_from_pe(&p->entropy, &p2->entropy);
   return p; }
-__flatbuffers_build_struct(flatbuffers_, phraser_StoreBlock, 16, 8, phraser_StoreBlock_file_identifier, phraser_StoreBlock_type_identifier)
+__flatbuffers_build_struct(flatbuffers_, phraser_StoreBlock, 12, 4, phraser_StoreBlock_file_identifier, phraser_StoreBlock_type_identifier)
 __flatbuffers_define_fixed_array_primitives(flatbuffers_, phraser_StoreBlock, phraser_StoreBlock_t)
 
 static const flatbuffers_voffset_t __phraser_Folder_required[] = { 0 };
@@ -204,7 +204,7 @@ static phraser_Folder_ref_t phraser_Folder_clone(flatbuffers_builder_t *B, phras
     __flatbuffers_memoize_end(B, t, phraser_Folder_end(B));
 }
 
-__flatbuffers_build_struct_field(0, flatbuffers_, phraser_FoldersBlock_block, phraser_StoreBlock, 16, 8, phraser_FoldersBlock)
+__flatbuffers_build_struct_field(0, flatbuffers_, phraser_FoldersBlock_block, phraser_StoreBlock, 12, 4, phraser_FoldersBlock)
 __flatbuffers_build_table_vector_field(1, flatbuffers_, phraser_FoldersBlock_folders, phraser_Folder, phraser_FoldersBlock)
 
 static inline phraser_FoldersBlock_ref_t phraser_FoldersBlock_create(flatbuffers_builder_t *B __phraser_FoldersBlock_formal_args)
@@ -255,7 +255,7 @@ static phraser_SymbolSet_ref_t phraser_SymbolSet_clone(flatbuffers_builder_t *B,
     __flatbuffers_memoize_end(B, t, phraser_SymbolSet_end(B));
 }
 
-__flatbuffers_build_struct_field(0, flatbuffers_, phraser_SymbolSetsBlock_block, phraser_StoreBlock, 16, 8, phraser_SymbolSetsBlock)
+__flatbuffers_build_struct_field(0, flatbuffers_, phraser_SymbolSetsBlock_block, phraser_StoreBlock, 12, 4, phraser_SymbolSetsBlock)
 __flatbuffers_build_table_vector_field(1, flatbuffers_, phraser_SymbolSetsBlock_symbol_sets, phraser_SymbolSet, phraser_SymbolSetsBlock)
 
 static inline phraser_SymbolSetsBlock_ref_t phraser_SymbolSetsBlock_create(flatbuffers_builder_t *B __phraser_SymbolSetsBlock_formal_args)
@@ -369,7 +369,7 @@ static phraser_PhraseTemplate_ref_t phraser_PhraseTemplate_clone(flatbuffers_bui
     __flatbuffers_memoize_end(B, t, phraser_PhraseTemplate_end(B));
 }
 
-__flatbuffers_build_struct_field(0, flatbuffers_, phraser_PhraseTemplatesBlock_block, phraser_StoreBlock, 16, 8, phraser_PhraseTemplatesBlock)
+__flatbuffers_build_struct_field(0, flatbuffers_, phraser_PhraseTemplatesBlock_block, phraser_StoreBlock, 12, 4, phraser_PhraseTemplatesBlock)
 __flatbuffers_build_table_vector_field(1, flatbuffers_, phraser_PhraseTemplatesBlock_phrase_templates, phraser_PhraseTemplate, phraser_PhraseTemplatesBlock)
 __flatbuffers_build_table_vector_field(2, flatbuffers_, phraser_PhraseTemplatesBlock_word_templates, phraser_WordTemplate, phraser_PhraseTemplatesBlock)
 
@@ -456,7 +456,7 @@ static phraser_PhraseHistory_ref_t phraser_PhraseHistory_clone(flatbuffers_build
     __flatbuffers_memoize_end(B, t, phraser_PhraseHistory_end(B));
 }
 
-__flatbuffers_build_struct_field(0, flatbuffers_, phraser_PhraseBlock_block, phraser_StoreBlock, 16, 8, phraser_PhraseBlock)
+__flatbuffers_build_struct_field(0, flatbuffers_, phraser_PhraseBlock_block, phraser_StoreBlock, 12, 4, phraser_PhraseBlock)
 __flatbuffers_build_scalar_field(1, flatbuffers_, phraser_PhraseBlock_phrase_template_id, flatbuffers_uint16, uint16_t, 2, 2, UINT16_C(0), phraser_PhraseBlock)
 __flatbuffers_build_scalar_field(2, flatbuffers_, phraser_PhraseBlock_folder_id, flatbuffers_uint16, uint16_t, 2, 2, UINT16_C(0), phraser_PhraseBlock)
 __flatbuffers_build_scalar_field(3, flatbuffers_, phraser_PhraseBlock_is_tombstone, flatbuffers_bool, flatbuffers_bool_t, 1, 1, UINT8_C(0), phraser_PhraseBlock)
@@ -492,7 +492,7 @@ static phraser_PhraseBlock_ref_t phraser_PhraseBlock_clone(flatbuffers_builder_t
     __flatbuffers_memoize_end(B, t, phraser_PhraseBlock_end(B));
 }
 
-__flatbuffers_build_struct_field(0, flatbuffers_, phraser_KeyBlock_block, phraser_StoreBlock, 16, 8, phraser_KeyBlock)
+__flatbuffers_build_struct_field(0, flatbuffers_, phraser_KeyBlock_block, phraser_StoreBlock, 12, 4, phraser_KeyBlock)
 __flatbuffers_build_vector_field(1, flatbuffers_, phraser_KeyBlock_key, flatbuffers_int8, int8_t, phraser_KeyBlock)
 __flatbuffers_build_vector_field(2, flatbuffers_, phraser_KeyBlock_db_name, flatbuffers_int8, int8_t, phraser_KeyBlock)
 __flatbuffers_build_vector_field(3, flatbuffers_, phraser_KeyBlock_iv, flatbuffers_int8, int8_t, phraser_KeyBlock)

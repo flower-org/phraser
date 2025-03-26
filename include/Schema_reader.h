@@ -370,24 +370,24 @@ static inline int phraser_Icon_is_known_value(phraser_Icon_enum_t value)
 
 
 struct phraser_StoreBlock {
-    alignas(8) uint16_t block_id;
+    alignas(4) uint16_t block_id;
     alignas(4) uint32_t version;
-    alignas(8) uint64_t entropy;
+    alignas(4) uint32_t entropy;
 };
-static_assert(sizeof(phraser_StoreBlock_t) == 16, "struct size mismatch");
+static_assert(sizeof(phraser_StoreBlock_t) == 12, "struct size mismatch");
 
 static inline const phraser_StoreBlock_t *phraser_StoreBlock__const_ptr_add(const phraser_StoreBlock_t *p, size_t i) { return p + i; }
 static inline phraser_StoreBlock_t *phraser_StoreBlock__ptr_add(phraser_StoreBlock_t *p, size_t i) { return p + i; }
 static inline phraser_StoreBlock_struct_t phraser_StoreBlock_vec_at(phraser_StoreBlock_vec_t vec, size_t i)
 __flatbuffers_struct_vec_at(vec, i)
-static inline size_t phraser_StoreBlock__size(void) { return 16; }
+static inline size_t phraser_StoreBlock__size(void) { return 12; }
 static inline size_t phraser_StoreBlock_vec_len(phraser_StoreBlock_vec_t vec)
 __flatbuffers_vec_len(vec)
 __flatbuffers_struct_as_root(phraser_StoreBlock)
 
 __flatbuffers_define_struct_scalar_field(phraser_StoreBlock, block_id, flatbuffers_uint16, uint16_t)
 __flatbuffers_define_struct_scalar_field(phraser_StoreBlock, version, flatbuffers_uint32, uint32_t)
-__flatbuffers_define_struct_scalar_field(phraser_StoreBlock, entropy, flatbuffers_uint64, uint64_t)
+__flatbuffers_define_struct_scalar_field(phraser_StoreBlock, entropy, flatbuffers_uint32, uint32_t)
 
 
 struct phraser_Folder_table { uint8_t unused__; };
