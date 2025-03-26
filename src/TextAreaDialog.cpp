@@ -74,9 +74,9 @@ void clearList(CList* list) {
 bool text_area_a_pressed = false;
 bool text_area_down_pressed = false;
 bool text_area_up_pressed = false;
-int text_area_selection_pos;
 bool text_area_left_pressed = false;
 bool text_area_right_pressed = false;
+int text_area_selection_pos = 0;
 DialogResult text_area_result;
 
 void initTextAreaDialog(char* text, int text_length, TextAreaType type) {
@@ -88,6 +88,7 @@ void initTextAreaDialog(char* text, int text_length, TextAreaType type) {
   clearList(&text_area_lines);
   addLinesToList(text, text_length, &text_area_lines);
   text_area_type = type;
+  text_area_selection_pos = 0;
 
   if (type == DLG_OK) {
     text_area_result = DLG_RES_OK;

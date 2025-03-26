@@ -209,7 +209,7 @@ void unsealLoop(Thumby* thumby) {
   } else if (unseal_phase == -1) {
     // PHASE -1. Error
     DialogResult result = textAreaLoop(thumby);
-    if (result == DLG_OK) {
+    if (result == DLG_RES_OK) {
       unseal_phase = -2;
     }
   } else if (unseal_phase == -2) {

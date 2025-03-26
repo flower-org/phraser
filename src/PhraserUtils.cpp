@@ -1,5 +1,7 @@
 #include "PhraserUtils.h"
 
+const uint16_t BANK_BLOCK_COUNT = 128;
+
 void drawRect(Thumby* thumby, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) {
   thumby->drawLine(x0, y0, x0, y1, color);
   thumby->drawLine(x0, y0, x1, y0, color);
@@ -338,11 +340,18 @@ char* bytesToHexString(const unsigned char* bytes, size_t length) {
   return hexString;
 }
 
+//TODO: make private
 void readDbBlockFromFlash(uint16_t block_number, void* to_address) {
   uint32_t read_address = XIP_BASE + DB_OFFSET + (block_number * FLASH_SECTOR_SIZE);
   memcpy(to_address, (void* )read_address, FLASH_SECTOR_SIZE);
 }
 
+void writeDbBlockToFlash(uint16_t bank_number, uint16_t block_number, uint8_t* block) {
+  uint16_t raw_block_number = (bank_number-1)*BANK_BLOCK_COUNT + block_number;
+
+}
+
+//TODO: make private
 void writeDbBlockToFlash(uint16_t block_number, uint8_t* block) {
   uint32_t write_addr = DB_OFFSET + (block_number * FLASH_SECTOR_SIZE);
 
@@ -420,4 +429,31 @@ char* copyString(char* str, uint16_t length) {
   strncpy(localStr, str, length);
   localStr[length] = '\0'; // Null-terminate the string
   return localStr;
+}
+
+void generateUniqueNumbers(int N, int count, int* result) {
+  if (count > N) {
+      printf("Count cannot be greater than N.\n");
+      return;
+  }
+
+  int i = 0;
+  while (i < count) {
+      int num = random(N);
+      bool unique = true;
+
+      // Check if the number is already in the array
+      for (int j = 0; j < i; j++) {
+          if (result[j] == num) {
+              unique = false;
+              break;
+          }
+      }
+
+      // If the number is unique, add it to the array
+      if (unique) {
+        result[i] = num;
+          i++;
+      }
+  }
 }

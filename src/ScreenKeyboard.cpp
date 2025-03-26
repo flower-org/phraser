@@ -74,11 +74,21 @@ void initOnScreenKeyboard(bool emulated_keyboard, bool password_mode, bool integ
 }
 
 void initOnScreenKeyboard(char* init_text, int init_text_length, bool emulated_keyboard, bool password_mode, bool integer_mode) {
-  initTextField(init_text, init_text_length, password_mode);
+  initOnScreenKeyboard(init_text, init_text_length, emulated_keyboard, password_mode, integer_mode, 0, 0); 
+}
+
+void initOnScreenKeyboard(char* init_text, int init_text_length, bool emulated_keyboard, bool password_mode, bool integer_mode, 
+  int16_t selectedXPrm, int16_t selectedYPrm) {
+    if (init_text != NULL) {
+    initTextField(init_text, init_text_length, password_mode);
+  } else {
+    initTextField(password_mode);
+  }
+  
+  selectedX = selectedXPrm;
+  selectedY = selectedYPrm;
   
   int_mode = integer_mode;
-  selectedX = 0;
-  selectedY = 0;
   selectedCharset = integer_mode ? 2 : 0;
   u_pressed = false; d_pressed = false; l_pressed = false; r_pressed = false; b_pressed = false; a_pressed = false;
   is_emulated_keyboard = emulated_keyboard;
