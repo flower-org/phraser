@@ -359,6 +359,24 @@ void createNewDbLoop(Thumby* thumby) {
     int block_numbers[4];
     generateUniqueNumbers(init_block_count, 4, block_numbers);
 
+    // Force Key block to stay within 1st 128 blocks
+    if (block_numbers[0] >= 128) {
+      int swap = -1;
+      for (int i = 1; i < 4; i++) {
+        if (block_numbers[i] < 128) {
+          swap = i;
+          break;
+        }
+      }
+      if (swap > 0) {
+        int tmp = block_numbers[0];
+        block_numbers[0] = block_numbers[swap];
+        block_numbers[swap] = tmp;
+      } else {
+        block_numbers[0] = random(128);
+      }
+    }
+
     uint8_t key_block[4096];
     uint8_t symbol_sets_block[4096];
     uint8_t folders_block[4096];
