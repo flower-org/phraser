@@ -37,8 +37,7 @@ int create_new_db_phase = 0;
 int bank_ui_selection_index = -1;
 int current_bank = 0;
 int current_bank_cursor = 0;
-int db_block_count = BANK_BLOCK_COUNT;
-int init_block_count = 0;
+int init_block_count = BANK_BLOCK_COUNT;
 int init_pbkdf2_iterations = 0;
 
 bool cr_ui_draw_cycle = false;
@@ -63,8 +62,7 @@ void createNewDbInit() {
   bank_ui_selection_index = -1;
   current_bank = 0;
   current_bank_cursor = 0;
-  db_block_count = BANK_BLOCK_COUNT;
-  init_block_count = 0;
+  init_block_count = BANK_BLOCK_COUNT;
   init_pbkdf2_iterations = 0;
   cr_ui_draw_cycle = false;
 
@@ -110,7 +108,7 @@ void createNewDbLoop(Thumby* thumby) {
 
     textAreaLoop(thumby);
 
-    if (current_bank_cursor >= db_block_count) {
+    if (current_bank_cursor >= init_block_count) {
       boolean randomization_done = false;
       if (bank_ui_selection_index == 0) {
         if (current_bank < 3) {
@@ -384,7 +382,7 @@ void createNewDbLoop(Thumby* thumby) {
 
     uint8_t new_aes_key[AES256_KEY_LENGTH];
     uint8_t new_aes_iv_mask[AES256_IV_LENGTH];
-    initDefaultKeyBlock(key_block, new_key_block_key, HARDCODED_IV_MASK, new_aes_key, new_aes_iv_mask);
+    initDefaultKeyBlock(key_block, new_key_block_key, HARDCODED_IV_MASK, new_aes_key, new_aes_iv_mask, init_block_count);
 
     initDefaultSymbolSetsBlock(symbol_sets_block, new_aes_key, new_aes_iv_mask);
     initDefaultFoldersBlock(folders_block, new_aes_key, new_aes_iv_mask);
