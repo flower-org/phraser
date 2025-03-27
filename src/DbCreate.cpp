@@ -146,7 +146,7 @@ void createNewDbLoop(Thumby* thumby) {
     }
 
     //Save random data to block
-    writeDbBlockToFlash(bank_ui_selection_index, current_bank_cursor, buffer);
+    writeDbBlockToFlashBank(current_bank, current_bank_cursor, buffer);
     current_bank_cursor++;
   } else if (create_new_db_phase == 31) {
     // 3.1. Enter password
@@ -373,13 +373,13 @@ void createNewDbLoop(Thumby* thumby) {
     initDefaultPhraseTemplatesBlock(phrase_templates_block, new_aes_key, new_aes_iv_mask);
 
     //Serial.printf("Saving key_block to %d\r\n", block_numbers[0]);
-    writeDbBlockToFlash(current_bank, block_numbers[0], key_block);
+    writeDbBlockToFlashBank(current_bank, block_numbers[0], key_block);
     //Serial.printf("Saving symbol_sets_block to %d\r\n", block_numbers[1]);
-    writeDbBlockToFlash(current_bank, block_numbers[1], symbol_sets_block);
+    writeDbBlockToFlashBank(current_bank, block_numbers[1], symbol_sets_block);
     //Serial.printf("Saving folders_block to %d\r\n", block_numbers[2]);
-    writeDbBlockToFlash(current_bank, block_numbers[2], folders_block);
+    writeDbBlockToFlashBank(current_bank, block_numbers[2], folders_block);
     //Serial.printf("Saving phrase_templates_block to %d\r\n", block_numbers[3]);
-    writeDbBlockToFlash(current_bank, block_numbers[3], phrase_templates_block);
+    writeDbBlockToFlashBank(current_bank, block_numbers[3], phrase_templates_block);
 
     char* text = "Database successfully initialized.";
     initTextAreaDialog(text, strlen(text), DLG_OK);

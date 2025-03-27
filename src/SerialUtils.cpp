@@ -20,15 +20,20 @@ void sendBye() {
   Serial.write(BYE);
 }
 
+void sendByteSerial(uint8_t value) {
+  Serial.write(value);
+}
+
 void sendUInt32Serial(uint32_t value) {
   uint8_t bytes[4];
   uInt32ToBytes(value, bytes);
   Serial.write(bytes, 4);
 }
 
-void sendBlockSerial(uint32_t block_number) {
+void sendBlockSerial(uint8_t backup_bank, uint32_t block_number) {
   Serial.write(magic_number, 4);
   Serial.write(BACKUP_BLOCK);
+  sendByteSerial(backup_bank);
   sendUInt32Serial(block_number);
 
   uint32_t db_block_size = FLASH_SECTOR_SIZE;
@@ -36,17 +41,27 @@ void sendBlockSerial(uint32_t block_number) {
 
   sendUInt32Serial(db_block_size);
 
-  readDbBlockFromFlash(block_number, (void*)dbBlock);
+  readDbBlockFromFlashBank(backup_bank, block_number, (void*)dbBlock);
   uint32_t adler32Checksum = adler32(dbBlock, db_block_size);
 
   Serial.write(dbBlock, db_block_size);
   sendUInt32Serial(adler32Checksum);
 }
 
-void sendRestoreBlockReceivedSerial(uint32_t block_number) {
+void sendRestoreBlockReceivedSerial(uint8_t bank, uint32_t block_number) {
   Serial.write(magic_number, 4);
   Serial.write(RESTORE_BLOCK_RECEIVED);
+  sendByteSerial(bank);
   sendUInt32Serial(block_number);
+}
+
+boolean canReadByteSerial() {
+  return Serial.available() >= 1;
+}
+
+uint8_t readByteSerial() {
+  uint8_t b = Serial.read();
+  return b;
 }
 
 boolean canReadUInt32Serial() {

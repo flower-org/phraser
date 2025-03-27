@@ -340,20 +340,18 @@ char* bytesToHexString(const unsigned char* bytes, size_t length) {
   return hexString;
 }
 
-//TODO: make private
 void readDbBlockFromFlash(uint16_t block_number, void* to_address) {
-  uint32_t read_address = XIP_BASE + DB_OFFSET + (block_number * FLASH_SECTOR_SIZE);
+  uint32_t read_address = XIP_BASE + DB_OFFSET + block_number * FLASH_SECTOR_SIZE;
   memcpy(to_address, (void* )read_address, FLASH_SECTOR_SIZE);
 }
 
-void writeDbBlockToFlash(uint16_t bank_number, uint16_t block_number, uint8_t* block) {
+void readDbBlockFromFlashBank(uint8_t bank_number, uint16_t block_number, void* to_address) {
   uint16_t raw_block_number = (bank_number-1)*BANK_BLOCK_COUNT + block_number;
-
+  readDbBlockFromFlash(raw_block_number, to_address);
 }
 
-//TODO: make private
 void writeDbBlockToFlash(uint16_t block_number, uint8_t* block) {
-  uint32_t write_addr = DB_OFFSET + (block_number * FLASH_SECTOR_SIZE);
+  uint32_t write_addr = DB_OFFSET + block_number * FLASH_SECTOR_SIZE;
 
   //Disable interrupts for safe write Flash operation
   uint32_t ints = save_and_disable_interrupts();
@@ -363,6 +361,11 @@ void writeDbBlockToFlash(uint16_t block_number, uint8_t* block) {
   flash_range_program(write_addr, block, FLASH_SECTOR_SIZE);
   //Restore interrupts
   restore_interrupts(ints);
+}
+
+void writeDbBlockToFlashBank(uint8_t bank_number, uint16_t block_number, uint8_t* block) {
+  uint16_t raw_block_number = (bank_number-1)*BANK_BLOCK_COUNT + block_number;
+  writeDbBlockToFlash(raw_block_number, block);
 }
 
 void inPlaceDecryptBlock4096(uint8_t* key, uint8_t* iv, uint8_t* block4096) {

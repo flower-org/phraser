@@ -6,6 +6,7 @@
 #include "SerialUtils.h"
 
 uint32_t backup_block_ctr;
+uint8_t backup_bank;
 uint32_t backup_block_count;
 bool waiting_for_block_ack;
 int backup_phase;
@@ -13,6 +14,7 @@ int backup_phase;
 void backupInit() {
   backup_phase = 0;
   backup_block_ctr = 0;
+  backup_bank = 0;// Will be acquired via protocol from the station
   backup_block_count = 0;// Will be acquired via protocol from the station
   waiting_for_block_ack = false;
   char* text = "Backup DB?";
@@ -71,18 +73,34 @@ void backupLoop(Thumby* thumby) {
         backup_phase = -1;
       } else {
         if (op == START_BACKUP_CONFIRMATION) {
-          backup_phase = 3;
           // block count to backup acquired from START_BACKUP_CONFIRMATION - DB is encrypted!
+          while (!canReadByteSerial()) {}
+          backup_bank = readByteSerial();
           while (!canReadUInt32Serial()) {}
           backup_block_count = readUInt32Serial();
 
-          char* text = "START_BACKUP_CONFIRMATION received from the station.";
-          initTextAreaDialog(text, strlen(text), TEXT_AREA);
+          if (backup_bank != 1 && backup_bank != 2 && backup_bank != 3) {
+            char text[50];
+            sprintf(text, "Unknown Bank# %d", backup_bank);
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+            backup_phase = -1;
+          } else if ((backup_bank == 1 && backup_block_count > 384) 
+            || (backup_bank == 2 && backup_block_count > 256) 
+            || (backup_bank == 3 && backup_block_count > 128)) {
+            char text[50];
+            sprintf(text, "Too many blocks: Bank# %d; block count: %d", backup_bank, backup_block_count);
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+            backup_phase = -1;
+          } else {
+            char* text = "START_BACKUP_CONFIRMATION received from the station.";
+            initTextAreaDialog(text, strlen(text), TEXT_AREA);
+            backup_phase = 3;
+          }
         } else {
           char* text = "Protocol error - Unexpected operation.";
           initTextAreaDialog(text, strlen(text), DLG_OK);
           backup_phase = -1;
-          }
+        }
       }
     }
   } else if (backup_phase == 3) {
@@ -95,7 +113,7 @@ void backupLoop(Thumby* thumby) {
       char* text = "BYE sent to the station.";
       initTextAreaDialog(text, strlen(text), TEXT_AREA);
     } else if (!waiting_for_block_ack) {
-      sendBlockSerial(backup_block_ctr);
+      sendBlockSerial(backup_bank, backup_block_ctr);
       waiting_for_block_ack = true;
 
       char text[50];
@@ -111,10 +129,18 @@ void backupLoop(Thumby* thumby) {
           backup_phase = -1;
         } else {
           if (op == BACKUP_BLOCK_RECEIVED) {
-            while (!canReadUInt32Serial()) {}
+            // get bank number to verify
+            while (!canReadByteSerial()) {}
+            uint32_t check_bank = readByteSerial();
             // get block number to verify
+            while (!canReadUInt32Serial()) {}
             uint32_t check_block_number = readUInt32Serial();
-            if (check_block_number != backup_block_ctr) {
+
+            if (check_bank != backup_bank) {
+              char* text = "Protocol error - Block bank.";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+              backup_phase = -1;
+            } else if (check_block_number != backup_block_ctr) {
               char* text = "Protocol error - Block order.";
               initTextAreaDialog(text, strlen(text), DLG_OK);
               backup_phase = -1;
@@ -133,7 +159,7 @@ void backupLoop(Thumby* thumby) {
   } else if (backup_phase == 4) {
     // BYE was sent, wait for BYE from the station
     textAreaLoop(thumby);
-    
+
     if (canReadOperationSerial()) {
       uint8_t op = readOperationSerial();
       if (op == DATA_CORRECTNESS_ERROR) {
@@ -144,13 +170,14 @@ void backupLoop(Thumby* thumby) {
         if (op == BYE) {
           backup_phase = 5;
 
-          char* text = "DB Backup successfully finished.";
+          char text[100];
+          sprintf(text, "DB Backup successfully finished.\nBank# %d; block count: %d", backup_bank, backup_block_count);
           initTextAreaDialog(text, strlen(text), DLG_OK);
         } else {
           char* text = "Protocol error - Unexpected operation.";
           initTextAreaDialog(text, strlen(text), DLG_OK);
           backup_phase = -1;
-          }
+        }
       }
     }
   } else if (backup_phase == 5) {
