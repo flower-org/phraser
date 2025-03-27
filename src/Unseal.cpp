@@ -126,6 +126,21 @@ void unsealLoop(Thumby* thumby) {
     initTextAreaDialog(text, strlen(text), TEXT_AREA);
     ui_draw_cycle = true;
     unseal_phase = 4;
+  } else if (unseal_phase == 555) {
+    DialogResult result = textAreaLoop(thumby);
+    if (result == DLG_RES_NO) {
+      //Unseal failed
+      char* text = "Failed to find KeyBlock.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      unseal_phase = -1;
+    } else if (result == DLG_RES_YES) {
+      if (unseal_bank == 1) {
+        max_key_blocks = 384;
+      } else if (unseal_bank == 2) {
+        max_key_blocks = 256;
+      }
+      unseal_phase = 4;
+    }
   } else if (unseal_phase == 4) {
     // PHASE 4. Try to decrypt KeyBlock (go up to 384 blocks)
     textAreaLoop(thumby);
@@ -133,10 +148,16 @@ void unsealLoop(Thumby* thumby) {
 
     if (key_block_decrypt_cursor >= max_key_blocks) {
       if (key_block_buffer == NULL) {
-        //Unseal failed
-        char* text = "Failed to find KeyBlock.";
-        initTextAreaDialog(text, strlen(text), DLG_OK);
-        unseal_phase = -1;
+        if (max_key_blocks == 128 && (unseal_bank == 1 || unseal_bank == 2)) {
+          char* text = "Not found.\nSearch extended range?";
+          initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+          unseal_phase = 555;
+        } else {
+          //Unseal failed
+          char* text = "Failed to find KeyBlock.";
+          initTextAreaDialog(text, strlen(text), DLG_OK);
+          unseal_phase = -1;
+        }
       } else {
         char* text = "Decrypting DB...";
         initTextAreaDialog(text, strlen(text), TEXT_AREA);
