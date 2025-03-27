@@ -374,6 +374,12 @@ void inPlaceDecryptBlock4096(uint8_t* key, uint8_t* iv, uint8_t* block4096) {
   AES_CBC_decrypt_buffer(&ctx, block4096, FLASH_SECTOR_SIZE-16);//last 16 is IV
 }
 
+void inPlaceEncryptBlock4096(uint8_t* key, uint8_t* iv, uint8_t* block4096) {
+  struct AES_ctx ctx;
+  AES_init_ctx_iv(&ctx, key, iv);
+  AES_CBC_encrypt_buffer(&ctx, block4096, FLASH_SECTOR_SIZE-16);//last 16 is IV
+}
+
 uint8_t* xorByteArrays(uint8_t* array1, uint8_t* array2, size_t length) {
   uint8_t* result = (uint8_t*)malloc(length * sizeof(uint8_t));
   for (size_t i = 0; i < length; i++) {

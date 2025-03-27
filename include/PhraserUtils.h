@@ -61,6 +61,7 @@ void readDbBlockFromFlashBank(uint8_t bank_number, uint16_t block_number, void* 
 void writeDbBlockToFlashBank(uint8_t bank_number, uint16_t block_number, uint8_t* block);
 
 void inPlaceDecryptBlock4096(uint8_t* key, uint8_t* iv, uint8_t* block4096);
+void inPlaceEncryptBlock4096(uint8_t* key, uint8_t* iv, uint8_t* block4096);
 
 uint8_t* xorByteArrays(uint8_t* array1, uint8_t* array2, size_t length);
 void uInt32ToBytes(uint32_t value, uint8_t* bytes);

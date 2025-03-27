@@ -397,7 +397,8 @@ void createNewDbLoop(Thumby* thumby) {
     //Serial.printf("Saving phrase_templates_block to %d\r\n", block_numbers[3]);
     writeDbBlockToFlashBank(current_bank, block_numbers[3], phrase_templates_block);
 
-    char* text = "Database successfully initialized.";
+    char text[100];
+    sprintf(text, "Database successfully initialized.\nBank# %d; block count: %d", current_bank, init_block_count);
     initTextAreaDialog(text, strlen(text), DLG_OK);
 
     create_new_db_phase = 12;
