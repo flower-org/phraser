@@ -317,6 +317,10 @@ ListItem* createListItem(const char* name, phraser_Icon_enum_t icon) {
 }
 
 void initList(ListItem** new_items, int new_item_count) {
+  initList(new_items, new_item_count, 0);
+}
+
+void initList(ListItem** new_items, int new_item_count, int selection) {
   if (list_items != NULL) {
     freeItemList(list_items, list_item_count);
   }
@@ -325,7 +329,7 @@ void initList(ListItem** new_items, int new_item_count) {
   list_down_pressed = false;
   list_up_pressed = false;
   item_cursor = 0;
-  selection_pos = 0;
+  selection_pos = selection;
   
   //Initialize new list items (copy the items)
   list_items = duplicateItemList(new_items, new_item_count);

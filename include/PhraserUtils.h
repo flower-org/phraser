@@ -58,9 +58,7 @@ void drawSpace(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, byte isSe
 char* bytesToHexString(const unsigned char* bytes, size_t length);
 
 void readDbBlockFromFlashBank(uint8_t bank_number, uint16_t block_number, void* to_address);
-void readDbBlockFromFlash(uint16_t block_number, void* to_address);
 void writeDbBlockToFlashBank(uint8_t bank_number, uint16_t block_number, uint8_t* block);
-//void writeDbBlockToFlash(uint16_t block_number, uint8_t* block);
 
 void inPlaceDecryptBlock4096(uint8_t* key, uint8_t* iv, uint8_t* block4096);
 

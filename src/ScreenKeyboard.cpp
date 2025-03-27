@@ -1,6 +1,7 @@
 #include "ScreenKeyboard.h"
 
 const char* KB_B_PRESSED = "B";
+const char* KB_A_PRESSED = "A";
 
 void drawEnter(Thumby* thumby, int16_t x0, int16_t y0, uint16_t color, char isSelected) {
   if (isSelected) {
@@ -55,6 +56,7 @@ char selectedCharset = 0;
 bool u_pressed = false, d_pressed = false, l_pressed = false, r_pressed = false, b_pressed = false, a_pressed = false;
 bool is_emulated_keyboard;
 bool special_activated = false;
+bool special2_activated = false;
 bool int_mode = false;
 
 void initOnScreenKeyboard(bool emulated_keyboard, bool password_mode) {
@@ -71,6 +73,7 @@ void initOnScreenKeyboard(bool emulated_keyboard, bool password_mode, bool integ
   u_pressed = false; d_pressed = false; l_pressed = false; r_pressed = false; b_pressed = false; a_pressed = false;
   is_emulated_keyboard = emulated_keyboard;
   special_activated = false;
+  special2_activated = false;
 }
 
 void initOnScreenKeyboard(char* init_text, int init_text_length, bool emulated_keyboard, bool password_mode, bool integer_mode) {
@@ -93,17 +96,26 @@ void initOnScreenKeyboard(char* init_text, int init_text_length, bool emulated_k
   u_pressed = false; d_pressed = false; l_pressed = false; r_pressed = false; b_pressed = false; a_pressed = false;
   is_emulated_keyboard = emulated_keyboard;
   special_activated = false;
+  special2_activated = false;
 }
 
 char* specialKeyboardLoop(Thumby* thumby) {
   char* originalResult = keyboardLoop(thumby);
   if (u_pressed && a_pressed && b_pressed) {
     special_activated = true;
+  } else if (d_pressed && a_pressed && b_pressed) {
+    special2_activated = true;
   }
+
   if (special_activated) {
     if (!u_pressed && !a_pressed && !b_pressed) {
       special_activated = false;
       return (char*)KB_B_PRESSED;
+    }
+  } else if (special2_activated) {
+    if (!d_pressed && !a_pressed && !b_pressed) {
+      special2_activated = false;
+      return (char*)KB_A_PRESSED;
     }
   }
   return originalResult;

@@ -18,6 +18,7 @@ struct ListItem {
 };
 
 int listLoop(Thumby* thumby);
+void initList(ListItem** new_items, int new_item_count, int selection);
 void initList(ListItem** new_items, int new_item_count);
 
 ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon);

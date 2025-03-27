@@ -6,6 +6,7 @@
 #include "TextAreaDialog.h"
 #include "Adler.h"
 #include "BlockCache.h"
+#include "ScreenList.h"
 
 #include "pbkdf2-sha256.h"
 #include "Schema_reader.h"
@@ -18,8 +19,10 @@ int unseal_phase = 0;
 bool unseal_password_mode = false;
 bool ui_draw_cycle = false;
 int key_block_decrypt_cursor = 0;
-int max_key_blocks = 384;
+uint8_t unseal_bank = 1;
+int max_key_blocks = 128;
 uint32_t latest_found_keyblock_version = 0;
+int pbkdf2_iterations_count = PBKDF_INTERATIONS_COUNT;
 
 void unsealInit(bool password_mode) {
   // Init duplex UART for Thumby to PC comms
@@ -31,46 +34,76 @@ void unsealInit(bool password_mode) {
   setLoginData(NULL, 0);
 
   debug_hex_key = NULL;
-  max_key_blocks = 384;
+  unseal_bank = 1;
+  max_key_blocks = 128;
   latest_found_keyblock_version = 0;
+  pbkdf2_iterations_count = PBKDF_INTERATIONS_COUNT;
   initOnScreenKeyboard(false, password_mode);
 }
 
-int pbkdf2_iterations_count = PBKDF_INTERATIONS_COUNT;
 void unsealLoop(Thumby* thumby) {
   if (unseal_phase == 0) {
     // PHASE 0. Password Keyboard
-    if (key_block_key == NULL) {
-      char* new_password = specialKeyboardLoop(thumby);
-      if (new_password == KB_B_PRESSED) {
-        unseal_phase = 1;
-        char* text = "Set custom #\nof PBKDF2 iterations?";
-        initTextAreaDialog(text, strlen(text), DLG_YES_NO);
-      } else if (new_password != NULL) {
-        password = new_password;
-        ui_draw_cycle = true;
-        unseal_phase = 3;
-        char* text = "Calculating\nkey...";
-        initTextAreaDialog(text, strlen(text), TEXT_AREA);
-      }
+    char* new_password = specialKeyboardLoop(thumby);
+    if (new_password == KB_B_PRESSED) {
+      unseal_phase = 1;
+      char* text = "Set custom #\nof PBKDF2 iterations?";
+      initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    } else if (new_password == KB_A_PRESSED) {
+      unseal_phase = 111;
+      char* text = "Select bank?";
+      initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    } else if (new_password != NULL) {
+      password = new_password;
+      ui_draw_cycle = true;
+      unseal_phase = 3;
+      char* text = "Calculating\nkey...";
+      initTextAreaDialog(text, strlen(text), TEXT_AREA);
+    }
+  } else if (unseal_phase == 111) {
+    // PHASE 111. init banks
+    int count = 4;
+    ListItem** bank_items = (ListItem**)malloc(count * sizeof(ListItem*));
+    bank_items[0] = createListItem("BANK 1", phraser_Icon_Ledger);
+    bank_items[1] = createListItem("BANK 2", phraser_Icon_Ledger);
+    bank_items[2] = createListItem("BANK 3", phraser_Icon_Ledger);
+    bank_items[3] = createListItem("Cancel", phraser_Icon_X);
+
+    initList(bank_items, count, unseal_bank-1);
+    freeItemList(bank_items, count);
+
+    unseal_phase = 222;
+  } else if (unseal_phase == 222) {
+    // PHASE 222. banks list
+    int chosenItem = listLoop(thumby);
+    if (chosenItem >= 0 && chosenItem <= 2) {
+      unseal_bank = chosenItem + 1;
+      initOnScreenKeyboard(false, unseal_password_mode);
+      unseal_phase = 0;
+    } else if (chosenItem == 3) {
+      // Cancel
+      initOnScreenKeyboard(false, unseal_password_mode);
+      unseal_phase = 0;
     }
   } else if (unseal_phase == 1) {
-    // PHASE 1. Dialog - custom # of PBKDF iteratins
+    // PHASE 1. Dialog - custom # of PBKDF iterations
     DialogResult result = textAreaLoop(thumby);
     if (result == DLG_RES_NO) {
+      initOnScreenKeyboard(false, unseal_password_mode);
       unseal_phase = 0;
     } else if (result == DLG_RES_YES) {
-      unseal_phase = 2;
       char buffer[20]; 
       itoa(pbkdf2_iterations_count, buffer, 10);
       initOnScreenKeyboard(buffer, strlen(buffer), false, false, true);
+      unseal_phase = 2;
     }
   } else if (unseal_phase == 2) {
     // PHASE 2. Keyboard - numbers only - PBKDF iterations
     char* new_iterations = keyboardLoop(thumby);
     if (new_iterations != NULL) {
       pbkdf2_iterations_count = atoi(new_iterations);
-      unsealInit(unseal_password_mode);
+      initOnScreenKeyboard(false, unseal_password_mode);
+      unseal_phase = 0;
     }
   } else if (unseal_phase == 3) {
     // PHASE 3. Calculate PBKDF2
@@ -120,7 +153,7 @@ void unsealLoop(Thumby* thumby) {
       //1. Read block at key_block_decrypt_cursor
       uint32_t db_block_size = FLASH_SECTOR_SIZE;
       uint8_t db_block[db_block_size];
-      readDbBlockFromFlash(key_block_decrypt_cursor, (void*)db_block);
+      readDbBlockFromFlashBank(unseal_bank, key_block_decrypt_cursor, (void*)db_block);
     
       //2. Decrypt using aes256_key_block_key and HARDCODED_IV_MASK
       uint8_t* iv = xorByteArrays(HARDCODED_IV_MASK, db_block+(db_block_size - IV_MASK_LEN), IV_MASK_LEN);
@@ -181,7 +214,7 @@ void unsealLoop(Thumby* thumby) {
       //1. Read block at key_block_decrypt_cursor
       uint32_t db_block_size = FLASH_SECTOR_SIZE;
       uint8_t db_block[db_block_size];
-      readDbBlockFromFlash(key_block_decrypt_cursor, (void*)db_block);
+      readDbBlockFromFlashBank(unseal_bank, key_block_decrypt_cursor, (void*)db_block);
     
       //2. Decrypt using aes256_key_block_key and HARDCODED_IV_MASK
       uint8_t* iv = xorByteArrays(main_iv_mask, db_block+(db_block_size - IV_MASK_LEN), IV_MASK_LEN);

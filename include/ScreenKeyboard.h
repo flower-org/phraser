@@ -7,6 +7,7 @@
 #include "TextField.h"
 
 extern const char* KB_B_PRESSED;
+extern const char* KB_A_PRESSED;
 
 void initOnScreenKeyboard(bool emulated_keyboard, bool password_mode);
 void initOnScreenKeyboard(bool emulated_keyboard, bool password_mode, bool integer_mode);
