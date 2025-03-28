@@ -11,7 +11,8 @@ typedef enum {
   TEST_KEYBOARD,
   UNSEAL_SHOW_PASS,
   CREATE_NEW_DB,
-  DB_RUNTIME
+  DB_RUNTIME,
+  TEST
 } Mode;
 
 extern Mode currentMode;

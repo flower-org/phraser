@@ -114,7 +114,6 @@
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
     "string": "cpp",
-    "new": "cpp",
-    "int_set.h": "c"
+    "new": "cpp"
   }
 }
