@@ -115,6 +115,7 @@ void createNewDbLoop(Thumby* thumby) {
           current_bank++;
           current_bank_cursor = 0;
         } else {
+          current_bank = 1;
           randomization_done = true;
         }
       } else {
