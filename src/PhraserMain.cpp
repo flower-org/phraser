@@ -7,7 +7,6 @@
 #include "ScreenList.h"
 #include "SpecialSymbolDrawer.h"
 #include "TextField.h"
-#include "Registry.h"
 #include "TextAreaDialog.h"
 #include "UiCommon.h"
 #include "DbBackup.h"

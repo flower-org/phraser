@@ -1,7 +1,6 @@
 #include "DbBackup.h"
 #include "TextAreaDialog.h"
 #include "UiCommon.h"
-#include "BlockStore.h"
 #include "PhraserUtils.h"
 #include "SerialUtils.h"
 

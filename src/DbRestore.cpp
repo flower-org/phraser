@@ -1,9 +1,9 @@
 #include "DbRestore.h"
 #include "TextAreaDialog.h"
 #include "UiCommon.h"
-#include "BlockStore.h"
 #include "PhraserUtils.h"
 #include "SerialUtils.h"
+#include "Adler.h"
 
 uint32_t restore_block_ctr;
 uint8_t restore_bank;
