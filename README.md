@@ -23,10 +23,10 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
 - **Modify Password Entries**: Update existing password entries or metadata in DB backup files from the desktop application.
 - **DB Maintenance**: Compact, resize, etc.
 
-### Prerequisites
+## Prerequisites
 
 - [Thumby](https://thumby.us/) device
 - Micro-USB cable for connection  
 
-### Acknowledgements
+## Acknowledgements
 - Special thanks to [Kirill Emelyanov](https://github.com/emelyanovkr) for the PlatformIO setup assistance.
