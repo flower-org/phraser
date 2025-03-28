@@ -1,21 +1,3 @@
-1. List control
-    - scrolling text
-    - use to implement a menu
-        - Unseal, Download DB, Upload DB, Unseal (show password)
-
-2. Interactions over Serial port
-    - Download DB and Upload DB
-    - Practical test - Upload, then Download
-        - compare files
-
-2. OnScreenKeyboard enhancements
-    - password entry mode
-    - use to Unseal / Unseal (show passworD)
-
-3. Test PBKDF2
-
----
-
 Cleanup:
 
 1. Get rid of StructBuf
@@ -27,6 +9,13 @@ Cleanup:
     - Or removed altogether, investigate which is preferable
 
 3. PhraserUtils - name too generic? move icons/symbols to SpecialSymbolUtil?
+
+
+Misc:
+
+Add README.md?
+Add special thanks
+
 
 ---
 
