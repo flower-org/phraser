@@ -1,5 +1,8 @@
 # Phraser - USB Hardware Password Manager
 
+![phraser.jpg](phraser.jpg)
+
+
 Phraser is a compact and secure USB hardware password manager designed to keep your passwords safe and easily accessible. Built on the Thumby platform, which is based on the RP2040 microcontroller, Phraser combines portability with robust security features.
 
 ## Features

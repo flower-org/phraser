@@ -10,13 +10,6 @@ Cleanup:
 
 3. PhraserUtils - name too generic? move icons/symbols to SpecialSymbolUtil?
 
-
-Misc:
-
-Add README.md?
-Add special thanks
-
-
 ---
 
 Fundamental:
