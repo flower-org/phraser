@@ -57,7 +57,7 @@ void unsealLoop(Thumby* thumby) {
       password = new_password;
       ui_draw_cycle = true;
       unseal_phase = 3;
-      char* text = "Calculating\nkey...";
+      char* text = "Calculating\nPBKDF2 key...";
       initTextAreaDialog(text, strlen(text), TEXT_AREA);
     }
   } else if (unseal_phase == 111) {

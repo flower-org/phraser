@@ -130,7 +130,7 @@ void createNewDbLoop(Thumby* thumby) {
           return;
         } else if (create_new_db_phase == 9) {
           create_new_db_phase = 10;
-          char* text = "Calculating\nkey...";
+          char* text = "Calculating\nPBKDF2 key...";
           initTextAreaDialog(text, strlen(text), TEXT_AREA);
           cr_ui_draw_cycle = false;
           return;

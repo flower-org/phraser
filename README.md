@@ -8,10 +8,11 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
 
 ## Features
 
-- **Secure Storage**: Store your passwords securely with encryption.
+- **Secure Storage**: Stores your passwords securely with AES-256 encryption.
 - **Compact Design**: Keychain form factor for portability (props to [Thumby](https://thumby.us/) team).
+- **Emulates USB Keyboard**: Helps you to fill in pass- and other -words by emulating a USB keyboard.
 - **Open Source**: Fully open-source firmware, Apache 2.
-- **Flash-friendly DB design**: facilitates uniform flash sector wear and bit rot protection ([more info](https://github.com/flower-org/PhraserManager/blob/main/1.%20Phraser%20DB%20-%20Optimizing%20Flash%20Wear%20and%20Bit%20Rot.md)).
+- **Flash-friendly DB design**: Facilitates uniform flash sector wear and bit rot protection ([more info](https://github.com/flower-org/PhraserManager/blob/main/1.%20Phraser%20DB%20-%20Optimizing%20Flash%20Wear%20and%20Bit%20Rot.md)).
 - **Up to 3 Password Banks**: Up to 3 independent password databases, each with it's own password.
 
 ## Phraser Manager
