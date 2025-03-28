@@ -24,8 +24,8 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
 
 ### Prerequisites
 
-- Thumby device
-- USB cable for connection  
+- [Thumby](https://thumby.us/) device
+- Micro-USB cable for connection  
 
 ### Acknowledgements
 - Special thanks to [Kirill Emelyanov](https://github.com/emelyanovkr) for the PlatformIO setup assistance.
