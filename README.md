@@ -1,3 +1,4 @@
+# WIP! First release coming soon.
 # Phraser - USB Hardware Password Manager
 
 ![phraser.jpg](phraser.jpg)
