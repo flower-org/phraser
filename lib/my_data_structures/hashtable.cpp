@@ -11,7 +11,8 @@
  #include "hashtable.h"
  
  #define HASHTABLE_INITIAL_CAPACITY 4
- 
+ uint32_t HASHTABLE_NULL_KEY = -1;
+
  /**
 	* Compute the hash value for the given string.
 	* Implements the djb k=33 hash function.
@@ -30,11 +31,12 @@ int key_cmp(uint32_t key1, uint32_t key2) {
 	*/
  unsigned int hashtable_find_slot(hashtable* t, uint32_t key)
  {
-	 int index = hashtable_hash(key) % t->capacity;
-	 while (t->body[index].key != NULL && key_cmp(t->body[index].key, key) != 0) {
-		 index = (index + 1) % t->capacity;
-	 }
-	 return index;
+	int index = hashtable_hash(key) % t->capacity;
+	//This won't infinite loop, because we pre-emptively resize on "set" on 80% capacity reached.
+	while (t->body[index].key != HASHTABLE_NULL_KEY && key_cmp(t->body[index].key, key) != 0) {
+		index = (index + 1) % t->capacity;
+	}
+	return index;
  }
  
  /**
@@ -43,7 +45,7 @@ int key_cmp(uint32_t key1, uint32_t key2) {
  void* hashtable_get(hashtable* t, uint32_t key)
  {
 	 int index = hashtable_find_slot(t, key);
-	 if (t->body[index].key != NULL) {
+	 if (t->body[index].key != HASHTABLE_NULL_KEY) {
 		 return t->body[index].value;
 	 } else {
 		 return NULL;
@@ -56,17 +58,17 @@ int key_cmp(uint32_t key1, uint32_t key2) {
  void hashtable_set(hashtable* t, uint32_t key, void* value)
  {
 	 int index = hashtable_find_slot(t, key);
-	 if (t->body[index].key != NULL) {
+	 if (t->body[index].key != HASHTABLE_NULL_KEY) {
 		 /* Entry exists; update it. */
 		 t->body[index].value = value;
 	 } else {
 		 t->size++;
-		 /* Create a new  entry */
 		 if ((float)t->size / t->capacity > 0.8) {
-			 /* Resize the hash table */
+			 /* Resize the hash table if we reached 80% capacity */
 			 hashtable_resize(t, t->capacity * 2);
 			 index = hashtable_find_slot(t, key);
 		 }
+		 /* Create a new  entry */
 		 t->body[index].key = key;
 		 t->body[index].value = value;
 	 }
@@ -78,8 +80,8 @@ int key_cmp(uint32_t key1, uint32_t key2) {
  void hashtable_remove(hashtable* t, uint32_t key)
  {
 	 int index = hashtable_find_slot(t, key);
-	 if (t->body[index].key != NULL) {
-		 t->body[index].key = NULL;
+	 if (t->body[index].key != HASHTABLE_NULL_KEY) {
+		 t->body[index].key = HASHTABLE_NULL_KEY;
 		 t->body[index].value = NULL;
 		 t->size--;
 	 }
@@ -103,7 +105,11 @@ int key_cmp(uint32_t key1, uint32_t key2) {
  hashtable_entry* hashtable_body_allocate(unsigned int capacity)
  {
 	 // calloc fills the allocated memory with zeroes
-	 return (hashtable_entry*)calloc(capacity, sizeof(hashtable_entry));
+	 hashtable_entry* entries = (hashtable_entry*)calloc(capacity, sizeof(hashtable_entry));
+	 for (int i = 0; i < capacity; i++) {
+		entries[i].key = HASHTABLE_NULL_KEY;
+	 }
+	 return entries;
  }
  
  /**
@@ -119,7 +125,7 @@ int key_cmp(uint32_t key1, uint32_t key2) {
  
 	 // Copy all the old values into the newly allocated body
 	 for (int i = 0; i < old_capacity; i++) {
-		 if (old_body[i].key != NULL) {
+		 if (old_body[i].key != HASHTABLE_NULL_KEY) {
 			 hashtable_set(t, old_body[i].key, old_body[i].value);
 		 }
 	 }

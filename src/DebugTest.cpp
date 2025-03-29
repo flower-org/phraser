@@ -62,12 +62,21 @@ void rbtreeTest() {
 }
 
 void hashtableTest() {
-  int value1 = 456;
   hashtable* mytable = hashtable_create();
+
+  int value1 = 456;
   hashtable_set(mytable, 15, &value1);
-  hashtable_remove(mytable, 27);
+
+  hashtable_remove(mytable, 27);// returns NULL
+
+  int value2 = 789;
+  hashtable_set(mytable, 0, &value2);
+
   int* result = (int*)hashtable_get(mytable, 15);
   Serial.printf("%d's value is: %d\n", 15, *result);
+
+  int* result2 = (int*)hashtable_get(mytable, 0);
+  Serial.printf("%d's value is: %d\n", 0, *result2);
 }
 
 void debugTest() {
