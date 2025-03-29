@@ -74,6 +74,10 @@ void rbtreeTest() {
   tree_destroy(&root);
 }
 
+void perKvp(uint32_t key, void* value) {
+  Serial.printf("ITER: %d's value is: %d\n", key, *(int*)value);
+}
+
 void hashtableTest() {
   hashtable* mytable = hashtable_create();
 
@@ -90,6 +94,8 @@ void hashtableTest() {
 
   int* result2 = (int*)hashtable_get(mytable, 0);
   Serial.printf("%d's value is: %d\n", 0, *result2);
+
+  iterate_entries(mytable, perKvp);
 }
 
 void debugTest() {

@@ -39,6 +39,14 @@ int key_cmp(uint32_t key1, uint32_t key2) {
 	return index;
  }
  
+ void iterate_entries(hashtable *t, void (*func)(uint32_t key, void* value)) {
+		for (int i = 0; i < t->capacity; i++) {
+			if (t->body[i].key != HASHTABLE_NULL_KEY) {
+				func(t->body[i].key, t->body[i].value);
+			}
+		}	
+ }
+
  /**
 	* Return the item associated with the given key, or NULL if not found.
 	*/
@@ -55,12 +63,14 @@ int key_cmp(uint32_t key1, uint32_t key2) {
  /**
 	* Assign a value to the given key in the table.
 	*/
- void hashtable_set(hashtable* t, uint32_t key, void* value)
+ void* hashtable_set(hashtable* t, uint32_t key, void* value)
  {
 	 int index = hashtable_find_slot(t, key);
 	 if (t->body[index].key != HASHTABLE_NULL_KEY) {
 		 /* Entry exists; update it. */
+		 void* old_val = t->body[index].value;
 		 t->body[index].value = value;
+		 return old_val;
 	 } else {
 		 t->size++;
 		 if ((float)t->size / t->capacity > 0.8) {
@@ -71,20 +81,25 @@ int key_cmp(uint32_t key1, uint32_t key2) {
 		 /* Create a new  entry */
 		 t->body[index].key = key;
 		 t->body[index].value = value;
+		 return NULL;
 	 }
  }
  
  /**
 	* Remove a key from the table
 	*/
- void hashtable_remove(hashtable* t, uint32_t key)
+ void* hashtable_remove(hashtable* t, uint32_t key)
  {
 	 int index = hashtable_find_slot(t, key);
 	 if (t->body[index].key != HASHTABLE_NULL_KEY) {
 		 t->body[index].key = HASHTABLE_NULL_KEY;
+		 void* old_val = t->body[index].value;
 		 t->body[index].value = NULL;
 		 t->size--;
-	 }
+		 return old_val;
+		} else {
+			return NULL;
+		}
  }
  
  /**

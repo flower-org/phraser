@@ -218,7 +218,9 @@ void initDefaultPhraseTemplatesBlock(uint8_t* buffer, const uint8_t* aes_key, co
   wordTemplate(&builder, 6, getWordPermissions(true, true, true, true), phraser_Icon_Login, 8, 24, "generated login", generated_login_symbol_sets, 2);
   uint16_t bios_password_symbol_sets[] = {1,2,6};
   wordTemplate(&builder, 7, getWordPermissions(true, true, true, true), phraser_Icon_Settings, 8, 10, "bios password", bios_password_symbol_sets, 3);
-  wordTemplate(&builder, 7, getWordPermissions(false, true, true, true), phraser_Icon_Email, 5, 255, "email", {}, 0);
+  wordTemplate(&builder, 8, getWordPermissions(false, true, true, true), phraser_Icon_Email, 5, 255, "email", {}, 0);
+  wordTemplate(&builder, 9, getWordPermissions(false, true, true, true), phraser_Icon_Key, 1, 4000, "key", {}, 0);
+  wordTemplate(&builder, 10, getWordPermissions(false, true, true, true), phraser_Icon_Asterisk, 1, 4000, "private key", {}, 0);
   phraser_PhraseTemplatesBlock_word_templates_end(&builder);
 
   phraser_PhraseTemplatesBlock_phrase_templates_start(&builder);
@@ -234,9 +236,15 @@ void initDefaultPhraseTemplatesBlock(uint8_t* buffer, const uint8_t* aes_key, co
   uint16_t generated_login_pass_word_template_ids[] {6, 2};
   uint8_t generated_login_pass_word_template_ordinals[] {1, 1};
   phraseTemplate(&builder, 4, "Generated Login/Pass", generated_login_pass_word_template_ids, generated_login_pass_word_template_ordinals, 2);
-  uint16_t login_email_pass_word_template_ids[] {1, 7, 2};
+  uint16_t login_email_pass_word_template_ids[] {1, 8, 2};
   uint8_t login_email_pass_word_template_ordinals[] {1, 1, 1};
   phraseTemplate(&builder, 5, "Login/Email/Pass", login_email_pass_word_template_ids, login_email_pass_word_template_ordinals, 3);
+  uint16_t key_word_template_ids[] {9};
+  uint8_t key_word_template_ordinals[] {1};
+  phraseTemplate(&builder, 6, "Key", key_word_template_ids, key_word_template_ordinals, 1);
+  uint16_t key_pair_word_template_ids[] {9, 10};
+  uint8_t key_pair_word_template_ordinals[] {1, 1};
+  phraseTemplate(&builder, 7, "Key Pair", key_pair_word_template_ids, key_pair_word_template_ordinals, 2);
   phraser_PhraseTemplatesBlock_phrase_templates_end(&builder);
 
   uint32_t entropy = random_uint32();

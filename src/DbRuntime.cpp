@@ -2,15 +2,22 @@
 
 #include "DbRuntime.h"
 
-//#include "c-rbtree.h"
-#include "c-list.h"
+#include "rbtree.h"
+#include "hashtable.h"
 
 uint16_t lastBlockId;
 uint32_t lastBlockVersion;
 uint32_t lastBlockNumber;
 
-/*
-TreeMap<Integer, Integer> occupiedBlockNumbers;
-Map<Integer, BlockNumberAndVersion> blockNumberAndVersionByBlockId;
-Map<Integer, Integr> blockIdByBlockNumber;
-*/
+node_t* occupiedBlockNumbers;
+hashtable* blockNumberAndVersionByBlockId;
+hashtable* blockIdByBlockNumber;
+
+void init() {
+  // will be initialized by first tree_insert
+  occupiedBlockNumbers = NULL;
+  blockNumberAndVersionByBlockId = hashtable_create();
+  blockIdByBlockNumber = hashtable_create();
+
+
+}
