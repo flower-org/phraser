@@ -39,10 +39,10 @@ int key_cmp(uint32_t key1, uint32_t key2) {
 	return index;
  }
  
- void iterate_entries(hashtable *t, void (*func)(uint32_t key, void* value)) {
+ void hashtable_iterate_entries(hashtable *t, void (*func)(hashtable *t, uint32_t key, void* value)) {
 		for (int i = 0; i < t->capacity; i++) {
 			if (t->body[i].key != HASHTABLE_NULL_KEY) {
-				func(t->body[i].key, t->body[i].value);
+				func(t, t->body[i].key, t->body[i].value);
 			}
 		}	
  }

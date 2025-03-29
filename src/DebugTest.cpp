@@ -74,28 +74,40 @@ void rbtreeTest() {
   tree_destroy(&root);
 }
 
-void perKvp(uint32_t key, void* value) {
-  Serial.printf("ITER: %d's value is: %d\n", key, *(int*)value);
+void perKvp(hashtable *t, uint32_t key, void* value) {
+  uint32_t val = (uint32_t)value;
+  if (val == 16) {
+    Serial.printf("ITER: %d's value is: %d, REMOVING\n", key, val);
+    hashtable_remove(t, val);
+  } else {
+    Serial.printf("ITER: %d's value is: %d\n", key, val);
+  }
 }
 
 void hashtableTest() {
   hashtable* mytable = hashtable_create();
 
-  int value1 = 456;
-  hashtable_set(mytable, 15, &value1);
+  hashtable_set(mytable, 15, (void*)456);
+  hashtable_set(mytable, 16, (void*)16);
+  hashtable_set(mytable, 17, (void*)17);
+  hashtable_set(mytable, 18, (void*)18);
+  hashtable_set(mytable, 19, (void*)19);
 
   hashtable_remove(mytable, 27);// returns NULL
 
-  int value2 = 789;
-  hashtable_set(mytable, 0, &value2);
+  hashtable_set(mytable, 0, (void*)789);
 
-  int* result = (int*)hashtable_get(mytable, 15);
-  Serial.printf("%d's value is: %d\n", 15, *result);
+  int result = (int)hashtable_get(mytable, 15);
+  Serial.printf("%d's value is: %d\n", 15, result);
 
-  int* result2 = (int*)hashtable_get(mytable, 0);
-  Serial.printf("%d's value is: %d\n", 0, *result2);
+  int result2 = (int)hashtable_get(mytable, 0);
+  Serial.printf("%d's value is: %d\n", 0, result2);
 
-  iterate_entries(mytable, perKvp);
+  hashtable_iterate_entries(mytable, perKvp);
+
+  Serial.printf("======================\n");
+
+  hashtable_iterate_entries(mytable, perKvp);
 }
 
 void debugTest() {

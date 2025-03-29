@@ -53,4 +53,4 @@ final Map<Integer, Set<Integer>> phrasesByFolder;*/
 
 void setLoginData(uint8_t* key, uint32_t key_length);
 
-uint8_t* registerBlock(uint8_t* block, uint16_t block_number);
+void registerBlock(uint8_t* block, uint16_t block_number);

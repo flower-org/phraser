@@ -2,7 +2,6 @@
 
 #include <Thumby.h>
 
-/* This file was automatically generated.  Do not edit! */
 typedef struct hashtable hashtable;
 void hashtable_destroy(hashtable *t);
 typedef struct hashtable_entry hashtable_entry;
@@ -14,7 +13,7 @@ void* hashtable_set(hashtable *t,uint32_t key,void *value);
 void *hashtable_get(hashtable *t,uint32_t key);
 unsigned int hashtable_find_slot(hashtable *t,uint32_t key);
 unsigned long hashtable_hash(uint32_t str);
-void iterate_entries(hashtable *t, void (*func)(uint32_t key, void* value));
+void hashtable_iterate_entries(hashtable *t, void (*func)(hashtable *t, uint32_t key, void* value));
 
 struct hashtable {
 	unsigned int size;
