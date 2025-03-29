@@ -13,7 +13,7 @@
 #include "DbRestore.h"
 #include "Unseal.h"
 #include "DbCreate.h"
-#include "rbtree.h"
+#include "DebugTest.h"
 
 // ---------- Common ---------- 
 
@@ -71,7 +71,6 @@ void initDevTestScreen() {
   initTextAreaDialog(text, strlen(text), DLG_OK);
 }
 
-static void per_node(data_t val) { Serial.printf("%u ", val); }
 void testLoop() {
   if (test_phase == 0) {
     DialogResult result = textAreaLoop(thumby);
@@ -79,41 +78,9 @@ void testLoop() {
       test_phase = 1;
     }
   } else if (test_phase == 1) {
-    node_t *root = NULL;
-
-    Serial.printf("START!\r\n");
-
-    int testKeys[] = {10, 20, 30, 15, 25, 5, 35, 40};
-    for (int i : testKeys) {
-      tree_insert(&root, i);
-    }
-
-    traverse_inorder(root, per_node);
-    Serial.printf("\r\nHOP!\r\n");
-
-    tree_delete(&root, 5);
-    traverse_inorder(root, per_node);
-
-    tree_delete(&root, 20);
-
-    Serial.printf("\r\nHOPHOP!\r\n");
-
-    traverse_inorder(root, per_node);
-    Serial.println();
-
-    node_t* low = tree_minimum(root);
-    Serial.printf("\rlow %u\r\n", low->_data);
-    node_t* high = tree_maximum(root);
-    Serial.printf("high %u\r\n", high->_data);
-
-    node_t* higher = tree_higherKey(root, 25);
-    Serial.printf("\rhigher %u\r\n", higher->_data);
-    node_t* lower = tree_lowerKey(root, 25);
-    Serial.printf("\rlower %u\r\n", lower->_data);
-
-    tree_destroy(&root);
-
     test_phase = 2;
+
+    debugTest();
   } else if (test_phase == 2) {
     Serial.printf("END!\r\n");
     char* text = "Done.";
