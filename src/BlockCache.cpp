@@ -232,22 +232,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block, uint16_t block_number) {
   return BLOCK_NOT_UPDATED;
 }
 
-void processTombstonedBlocks(hashtable *t, uint32_t key, void* value) {
-  BlockNumberAndVersionAndCount* blockInfo = (BlockNumberAndVersionAndCount*)value;
-  if (blockInfo->isTombstoned) {
-    if (blockInfo->copyCount == 1) {
-      void* removed_value = hashtable_remove(t, key);
-      free(removed_value);//should be the same as parameter value;
-    } else {
-      hashtable_set(tombstonedBlockIds, key, (void*)key);
-    }
-  }
-}
-
-void formOccupiedBlockNumbers(hashtable *t, uint32_t key, void* value) {
-}
-
-void init() {
+void startBlockCacheInit() {
   // will be initialized by first tree_insert
   occupiedBlockNumbers = NULL;
   blockIdByBlockNumber = hashtable_create();
@@ -255,7 +240,7 @@ void init() {
   tombstonedBlockIds = hashtable_create();
 }
 
-void registerBlock(uint8_t* block, uint16_t block_number) {
+void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
   // 1. Update caches
   BlockIdAndVersion blockAndVersion = BLOCK_NOT_UPDATED;
   switch (block[0]) {
@@ -278,7 +263,7 @@ void registerBlock(uint8_t* block, uint16_t block_number) {
 
   // 2. Update DB structures
   if (blockAndVersion.blockId > 0) {
-    // 1. Update holders of last values / counters
+    // 2.1. Update holders of last values / counters
     if (blockAndVersion.blockId > lastBlockId) {
       lastBlockId = blockAndVersion.blockId;
     }
@@ -288,10 +273,10 @@ void registerBlock(uint8_t* block, uint16_t block_number) {
       lastEntropy = blockAndVersion.entropy;
     }
 
-    // 2. Add BlockNumber to BlockId mapping
+    // 2.2. Add BlockNumber to BlockId mapping
     hashtable_set(blockIdByBlockNumber, block_number, (void*)blockAndVersion.blockId);
 
-    // 3. Update BlockId to BlockNumberAndVersionAndCount mapping
+    // 2.3. Update BlockId to BlockNumberAndVersionAndCount mapping
     BlockNumberAndVersionAndCount* blockInfo = 
             (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, blockAndVersion.blockId);
     if (blockInfo == NULL) {
@@ -311,11 +296,29 @@ void registerBlock(uint8_t* block, uint16_t block_number) {
       }
       blockInfo->copyCount++;
     }
-
-    // 3. Invalidate all Tombstoned blocks with a single copy. Also, form tombstoneBlockIds.
-    hashtable_iterate_entries(blockInfos, processTombstonedBlocks);
-
-    // 4. Use blockInfos to form occupiedBlockNumbers
-    hashtable_iterate_entries(blockInfos, formOccupiedBlockNumbers);
   }
+}
+
+void processTombstonedBlocks(hashtable *t, uint32_t key, void* value) {
+  BlockNumberAndVersionAndCount* blockInfo = (BlockNumberAndVersionAndCount*)value;
+  if (blockInfo->isTombstoned) {
+    if (blockInfo->copyCount == 1) {
+      void* removed_value = hashtable_remove(t, key);
+      free(removed_value);//should be the same as parameter value;
+    } else {
+      hashtable_set(tombstonedBlockIds, key, (void*)key);
+    }
+  }
+}
+
+void formOccupiedBlockNumbers(hashtable *t, uint32_t key, void* value) {
+  tree_insert(&occupiedBlockNumbers, key);
+}
+
+void finalizeBlockCacheInit() {
+  // 3. Invalidate all Tombstoned blocks with a single copy, add those with multiple copies to `tombstoneBlockIds`.
+  hashtable_iterate_entries(blockInfos, processTombstonedBlocks);
+
+  // 4. Use blockInfos to add all actual block numbers to `occupiedBlockNumbers`
+  hashtable_iterate_entries(blockInfos, formOccupiedBlockNumbers);
 }

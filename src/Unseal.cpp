@@ -139,6 +139,7 @@ void unsealLoop(Thumby* thumby) {
       } else if (unseal_bank == 2) {
         max_key_blocks = 256;
       }
+      startBlockCacheInit();
       unseal_phase = 4;
     }
   } else if (unseal_phase == 4) {
@@ -210,7 +211,7 @@ void unsealLoop(Thumby* thumby) {
             uint32_t block_count = phraser_KeyBlock_block_count(key_block);
             max_key_blocks = block_count;
 
-            registerBlock(db_block, key_block_decrypt_cursor);
+            registerBlockInBlockCache(db_block, key_block_decrypt_cursor);
           }
         }
       }
@@ -251,13 +252,15 @@ void unsealLoop(Thumby* thumby) {
         reverseInPlace(db_block, length_without_adler);
 
         //5. validate KEY_BLOCK block type (1st byte in a buffer is BlockType)
-        registerBlock(db_block, key_block_decrypt_cursor);
+        registerBlockInBlockCache(db_block, key_block_decrypt_cursor);
       }
 
       key_block_decrypt_cursor++;
     }
   } else if (unseal_phase == 6) {
     // PHASE 6. Database decrypted, run main operation
+    finalizeBlockCacheInit();
+
     textAreaLoop(thumby);
     //TODO: implement
   } else if (unseal_phase == -1) {
