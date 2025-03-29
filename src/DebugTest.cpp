@@ -5,6 +5,17 @@
 
 static void perNode(data_t val) { Serial.printf("%u ", val); }
 
+void outputTree(node_t *root) {
+  traverse_inorder(root, perNode);
+  Serial.printf("\r\n");
+  traverse_inorder_backwards(root, perNode);
+  Serial.printf("\r\n");
+  traverse_right_excl(root, 15, perNode);
+  Serial.printf("\r\n");
+  traverse_left_excl(root, 15, perNode);
+  Serial.printf("\r\n");
+}
+
 void rbtreeTest() {
   node_t *root = NULL;
 
@@ -15,18 +26,20 @@ void rbtreeTest() {
     tree_insert(&root, i);
   }
 
-  traverse_inorder(root, perNode);
+  outputTree(root);
   Serial.printf("\r\nHOP!\r\n");
 
   tree_delete(&root, 5);
-  traverse_inorder(root, perNode);
+
+  outputTree(root);
+
+  Serial.printf("\r\nHOP2!\r\n");
 
   tree_delete(&root, 20);
 
   Serial.printf("\r\nHOPHOP!\r\n");
 
-  traverse_inorder(root, perNode);
-  Serial.println();
+  outputTree(root);
 
   node_t* low = tree_minimum(root);
   Serial.printf("\rlow %u\r\n", low->_data);

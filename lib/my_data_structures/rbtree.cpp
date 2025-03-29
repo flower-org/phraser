@@ -459,7 +459,6 @@ void tree_delete_rec(node_t *n) {
   }
 }
 
-
 //
 // Traverse arbitrary binary tree in inorder fashion
 //
@@ -470,6 +469,37 @@ void traverse_inorder(node_t *node, void (*func)(data_t data)) {
   traverse_inorder(node->left, func);
   func(get_data(node));
   traverse_inorder(node->right, func);
+}
+
+void traverse_inorder_backwards(node_t *node, void (*func)(data_t data)) {
+  assert(func);
+
+  if (node == NULL) { return; }
+  traverse_inorder_backwards(node->right, func);
+  func(get_data(node));
+  traverse_inorder_backwards(node->left, func);
+}
+
+void traverse_right_excl(node_t *node, data_t key, void (*func)(data_t data)) {
+  assert(func);
+
+  if (node == NULL) { return; }
+  if (node->_data > key) { 
+    traverse_right_excl(node->left, key, func);
+    func(get_data(node));
+  }
+  traverse_right_excl(node->right, key, func);
+}
+
+void traverse_left_excl(node_t *node, data_t key, void (*func)(data_t data)) {
+  assert(func);
+
+  if (node == NULL) { return; }
+  if (node->_data < key) {
+    traverse_left_excl(node->right, key, func);
+    func(get_data(node));
+  }
+  traverse_left_excl(node->left, key, func);
 }
 
 node_t* tree_minimum(node_t *root) {
