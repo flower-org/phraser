@@ -10,44 +10,28 @@
  #include <string.h>
  #include "hashtable.h"
  
- /*
-	* Interface section used for `makeheaders`.
-	*/
- #if INTERFACE
- struct hashtable_entry {
-	 char* key;
-	 void* value;
- };
- 
- struct hashtable {
-	 unsigned int size;
-	 unsigned int capacity;
-	 hashtable_entry* body;
- };
- #endif
- 
  #define HASHTABLE_INITIAL_CAPACITY 4
  
  /**
 	* Compute the hash value for the given string.
 	* Implements the djb k=33 hash function.
 	*/
- unsigned long hashtable_hash(char* str)
+ unsigned long hashtable_hash(uint32_t key)
  {
-	 unsigned long hash = 5381;
-	 int c;
-	 while ((c = *str++))
-		 hash = ((hash << 5) + hash) + c;  /* hash * 33 + c */
-	 return hash;
+	 return key;
  }
  
+int key_cmp(uint32_t key1, uint32_t key2) {
+	return key1-key2;
+}
+
  /**
 	* Find an available slot for the given key, using linear probing.
 	*/
- unsigned int hashtable_find_slot(hashtable* t, char* key)
+ unsigned int hashtable_find_slot(hashtable* t, uint32_t key)
  {
 	 int index = hashtable_hash(key) % t->capacity;
-	 while (t->body[index].key != NULL && strcmp(t->body[index].key, key) != 0) {
+	 while (t->body[index].key != NULL && key_cmp(t->body[index].key, key) != 0) {
 		 index = (index + 1) % t->capacity;
 	 }
 	 return index;
@@ -56,7 +40,7 @@
  /**
 	* Return the item associated with the given key, or NULL if not found.
 	*/
- void* hashtable_get(hashtable* t, char* key)
+ void* hashtable_get(hashtable* t, uint32_t key)
  {
 	 int index = hashtable_find_slot(t, key);
 	 if (t->body[index].key != NULL) {
@@ -69,7 +53,7 @@
  /**
 	* Assign a value to the given key in the table.
 	*/
- void hashtable_set(hashtable* t, char* key, void* value)
+ void hashtable_set(hashtable* t, uint32_t key, void* value)
  {
 	 int index = hashtable_find_slot(t, key);
 	 if (t->body[index].key != NULL) {
@@ -91,7 +75,7 @@
  /**
 	* Remove a key from the table
 	*/
- void hashtable_remove(hashtable* t, char* key)
+ void hashtable_remove(hashtable* t, uint32_t key)
  {
 	 int index = hashtable_find_slot(t, key);
 	 if (t->body[index].key != NULL) {

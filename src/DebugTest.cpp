@@ -64,10 +64,10 @@ void rbtreeTest() {
 void hashtableTest() {
   int value1 = 456;
   hashtable* mytable = hashtable_create();
-  hashtable_set(mytable, (char*)"foo", &value1);
-  hashtable_remove(mytable, (char*)"boo");
-  int* result = (int*)hashtable_get(mytable, (char*)"foo");
-  Serial.printf("%s's value is: %d\n", "foo", *result);
+  hashtable_set(mytable, 15, &value1);
+  hashtable_remove(mytable, 27);
+  int* result = (int*)hashtable_get(mytable, 15);
+  Serial.printf("%d's value is: %d\n", 15, *result);
 }
 
 void debugTest() {
