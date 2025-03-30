@@ -2,6 +2,7 @@
 
 #include "rbtree.h"
 #include "hashtable.h"
+#include "arraylist.h"
 
 //SHA256 of string "PhraserPasswordManager"
 uint8_t HARDCODED_SALT[] = {
@@ -45,6 +46,12 @@ struct SymbolSet {
   char* symbolSet;
 };
 
+struct Folder {
+  uint32_t folderId;
+  uint32_t parentFolderId;
+  char* folderName;
+};
+
 // DB data structures 
 uint16_t lastBlockId;
 uint32_t lastBlockVersion;
@@ -80,13 +87,15 @@ uint8_t* symbol_sets_block_buffer = NULL;
 
 uint16_t symbol_sets_block_id = 0;
 uint32_t symbol_sets_block_version = 0;
-hashtable* symbol_sets = NULL;
+hashtable* symbol_sets = NULL;//uint32_t, SymbolSet
 
 // - FoldersBlock cache
-uint16_t folders_block_id = 0;
 uint8_t* folders_block_buffer = NULL;
-//final Map<Integer, Folder> folders;
-//final Map<Integer, Set<Integer>> subFoldersByFolder;
+
+uint16_t folders_block_id = 0;
+uint32_t folders_block_version = 0;
+hashtable* folders;//uint32_t, Folder
+hashtable* sub_folders_by_folder;//uint32_t, List<uint32_t>
 
 // - PhraseTemplatesBlock cache
 uint16_t phrase_templates_block_id = 0;
@@ -258,22 +267,109 @@ BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
   }
 }
 
+void removeAllFolders(hashtable *t, uint32_t key, void* value) {
+  Folder* removed_folder = (Folder*)hashtable_remove(t, key);
+  if (removed_folder != NULL) {
+    free(removed_folder->folderName);
+    free(removed_folder);
+  }
+}
+
+void removeAllSubFoldersByfolder(hashtable *t, uint32_t key, void* value) {
+  arraylist* removed_sub_folder_list = (arraylist*)hashtable_remove(t, key);
+  if (removed_sub_folder_list != NULL) {
+    arraylist_destroy(removed_sub_folder_list);
+  }
+}
+
 BlockIdAndVersion setFoldersBlock(uint8_t* block) {
-  // TODO: implement
-  phraser_FoldersBlock_table_t folders_block;
-  if (!(folders_block = phraser_FoldersBlock_as_root(block + DATA_OFFSET))) {
+  if (folders_block_buffer != NULL) { free(folders_block_buffer); }
+  if (folders != NULL) { hashtable_iterate_entries(folders, removeAllFolders); }
+  if (sub_folders_by_folder != NULL) { hashtable_iterate_entries(sub_folders_by_folder, removeAllSubFoldersByfolder); }
+  
+  if (block != NULL) {
+    folders_block_buffer = copyBuffer(block, 4096);
+
+    phraser_FoldersBlock_table_t folders_block;
+    if (!(folders_block = phraser_FoldersBlock_as_root(block + DATA_OFFSET))) {
+      return BLOCK_NOT_UPDATED;
+    }
+  
+    phraser_StoreBlock_struct_t storeblock = phraser_FoldersBlock_block(folders_block);
+    uint32_t new_folders_block_version = phraser_StoreBlock_version(storeblock);
+    Serial.printf("new_folders_block_version %d\r\n", new_folders_block_version);
+    if (new_folders_block_version >= folders_block_id) {
+      folders_block_version = new_folders_block_version;
+      folders_block_id = phraser_StoreBlock_block_id(storeblock);
+      Serial.printf("folders_block_id %d\r\n", folders_block_id);
+    
+      uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
+      Serial.printf("entropy %d\r\n", entropy);
+
+      phraser_SymbolSet_vec_t folders_vec = phraser_FoldersBlock_folders(folders_block);
+      size_t folders_vec_length = flatbuffers_vec_len(folders_vec);
+      Serial.printf("folders_vec_length %d\r\n", folders_vec_length);
+
+      if (folders == NULL) {
+        folders = hashtable_create();
+      }
+      if (sub_folders_by_folder == NULL) {
+        sub_folders_by_folder = hashtable_create();
+      }
+
+      for (size_t i = 0; i < folders_vec_length; i++) {
+        phraser_Folder_table_t folder_fb = phraser_Folder_vec_at(folders_vec, i);
+
+        uint16_t folder_id = phraser_Folder_folder_id(folder_fb);
+        uint16_t parent_folder_id = phraser_Folder_parent_folder_id(folder_fb);
+
+        flatbuffers_string_t folder_name_str = phraser_Folder_folder_name(folder_fb);
+        size_t folder_name_length = flatbuffers_string_len(folder_name_str);
+
+        Folder* folder = (Folder*)malloc(sizeof(Folder));
+        folder->folderId = folder_id;
+        folder->parentFolderId = parent_folder_id;
+        folder->folderName = copyString((char*)folder_name_str, folder_name_length);
+
+        hashtable_set(folders, folder_id, folder);
+
+        Serial.printf("folder_id %d\r\n", folder_id);
+        Serial.printf("parent_id %d\r\n", parent_folder_id);
+        Serial.printf("folderName %s\r\n", folder->folderName);
+
+        arraylist* subfolder_list_of_parent_folder = (arraylist*)hashtable_get(sub_folders_by_folder, parent_folder_id);
+        if (subfolder_list_of_parent_folder == NULL) {
+          subfolder_list_of_parent_folder = arraylist_create();
+          hashtable_set(sub_folders_by_folder, parent_folder_id, subfolder_list_of_parent_folder);
+        }
+        arraylist_add(subfolder_list_of_parent_folder, (void*)folder_id);
+        
+        Serial.printf("subfolders of parent_id %d: ", parent_folder_id);
+        for (int j = 0; j < subfolder_list_of_parent_folder->size; j++) {
+          uint32_t child_folder_id = (uint32_t)arraylist_get(subfolder_list_of_parent_folder, j);
+          Serial.printf("%d, ", child_folder_id);
+        }
+        Serial.printf("\r\n");
+      }
+
+      return { folders_block_id, folders_block_version, entropy, false };
+    } else {
+      return BLOCK_NOT_UPDATED;
+    }
+  } else {
+    if (folders != NULL){ 
+      hashtable_destroy(folders);
+    }
+    if (sub_folders_by_folder != NULL){ 
+      hashtable_destroy(sub_folders_by_folder);
+    }
+    folders_block_id = 0;
+    folders_block_version = 0;
+    folders = NULL;
+    sub_folders_by_folder = NULL;
+    folders_block_buffer = NULL;
     return BLOCK_NOT_UPDATED;
   }
-
-  phraser_StoreBlock_struct_t storeblock = phraser_FoldersBlock_block(folders_block);
-  folders_block_id = phraser_StoreBlock_block_id(storeblock);
-  Serial.printf("folders_block_id %d\r\n", folders_block_id);
-
-  //TODO: add to blockId maps
-  uint32_t folders_block_version = phraser_StoreBlock_version(storeblock);
-  Serial.printf("folders_block_version %d\r\n", folders_block_version);
-
-  return BLOCK_NOT_UPDATED;
 }
 
 BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
