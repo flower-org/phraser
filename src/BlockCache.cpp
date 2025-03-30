@@ -4,6 +4,8 @@
 #include "hashtable.h"
 #include "arraylist.h"
 
+//TODO: comment out debug Serial output in this file
+
 //SHA256 of string "PhraserPasswordManager"
 uint8_t HARDCODED_SALT[] = {
   0xE9, 0x8A, 0xD5, 0x84, 0x33, 0xB6, 0xE9, 0xE3,
@@ -52,7 +54,24 @@ struct Folder {
   char* folderName;
 };
 
-// DB data structures 
+struct PhraseTemplate {
+  uint32_t phraseTemplateId;
+  char* phraseTemplateName;
+  arraylist* wordTemplateIds;
+  arraylist* wordTemplateOrdinals;
+};
+
+struct WordTemplate {
+  uint32_t wordTemplateId;
+  uint8_t permissions;
+  phraser_Icon_enum_t icon;
+  uint32_t minLength;
+  uint32_t maxLength;
+  char* wordTemplateName;
+  arraylist* symbolSetIds;
+};
+
+// DB data structures
 uint16_t lastBlockId;
 uint32_t lastBlockVersion;
 uint32_t lastBlockNumber;
@@ -98,10 +117,12 @@ hashtable* folders;//uint32_t, Folder
 hashtable* sub_folders_by_folder;//uint32_t, List<uint32_t>
 
 // - PhraseTemplatesBlock cache
-uint16_t phrase_templates_block_id = 0;
 uint8_t* phrase_templates_block_buffer = NULL;
-//final Map<Integer, PhraseTemplate> phraseTemplates;
-//final Map<Integer, WordTemplate> wordTemplates;
+
+uint16_t phrase_templates_block_id = 0;
+uint16_t phrase_templates_block_version = 0;
+hashtable* phrase_templates;//uint32_t, PhraseTemplate
+hashtable* word_templates;//uint32_t, WordTemplate
 
 // - Phrase Blocks (minimal info) cache
 //final Map<Integer, PhraseFolderAndName> phrases;
@@ -212,7 +233,7 @@ BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
 
     uint32_t new_symbol_sets_block_version = phraser_StoreBlock_version(storeblock);
     Serial.printf("new_symbol_sets_block_version %d\r\n", new_symbol_sets_block_version);
-    if (new_symbol_sets_block_version >= symbol_sets_block_version) {
+    if (new_symbol_sets_block_version > symbol_sets_block_version) {
       symbol_sets_block_version = new_symbol_sets_block_version;
       symbol_sets_block_id = phraser_StoreBlock_block_id(storeblock);
       Serial.printf("symbol_sets_block_id %d\r\n", symbol_sets_block_id);
@@ -298,7 +319,7 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
     phraser_StoreBlock_struct_t storeblock = phraser_FoldersBlock_block(folders_block);
     uint32_t new_folders_block_version = phraser_StoreBlock_version(storeblock);
     Serial.printf("new_folders_block_version %d\r\n", new_folders_block_version);
-    if (new_folders_block_version >= folders_block_id) {
+    if (new_folders_block_version > folders_block_id) {
       folders_block_version = new_folders_block_version;
       folders_block_id = phraser_StoreBlock_block_id(storeblock);
       Serial.printf("folders_block_id %d\r\n", folders_block_id);
@@ -372,22 +393,160 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
   }
 }
 
+void removeWordTemplates(hashtable *t, uint32_t key, void* value) {
+  WordTemplate* removed_word_template = (WordTemplate*)hashtable_remove(t, key);
+  if (removed_word_template != NULL) {
+    arraylist_destroy(removed_word_template->symbolSetIds);
+    free(removed_word_template->wordTemplateName);
+    free(removed_word_template);
+  }
+}
+
+void removePhraseTemplates(hashtable *t, uint32_t key, void* value) {
+  PhraseTemplate* removed_phrase_template = (PhraseTemplate*)hashtable_remove(t, key);
+  if (removed_phrase_template != NULL) {
+    free(removed_phrase_template->phraseTemplateName);
+    arraylist_destroy(removed_phrase_template->wordTemplateIds);
+    arraylist_destroy(removed_phrase_template->wordTemplateOrdinals);
+    free(removed_phrase_template);
+  }
+}
+
 BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
-  // TODO: implement
-  phraser_PhraseTemplatesBlock_table_t phrase_templates_block;
-  if (!(phrase_templates_block = phraser_PhraseTemplatesBlock_as_root(block + DATA_OFFSET))) {
+  if (phrase_templates_block_buffer != NULL) { free(phrase_templates_block_buffer); }
+  if (word_templates != NULL) { hashtable_iterate_entries(word_templates, removeWordTemplates); }
+  if (phrase_templates != NULL) { hashtable_iterate_entries(phrase_templates, removePhraseTemplates); }
+
+  if (block != NULL) {
+    phrase_templates_block_buffer = copyBuffer(block, 4096);
+
+    phraser_PhraseTemplatesBlock_table_t phrase_templates_block;
+    if (!(phrase_templates_block = phraser_PhraseTemplatesBlock_as_root(block + DATA_OFFSET))) {
+      return BLOCK_NOT_UPDATED;
+    }
+
+    phraser_StoreBlock_struct_t storeblock = phraser_PhraseTemplatesBlock_block(phrase_templates_block);
+    uint32_t new_phrase_templates_block_version = phraser_StoreBlock_version(storeblock);
+    Serial.printf("new_phrase_templates_block_version %d\r\n", new_phrase_templates_block_version);
+    if (new_phrase_templates_block_version > phrase_templates_block_version) {
+      phrase_templates_block_version = new_phrase_templates_block_version;
+      phrase_templates_block_id = phraser_StoreBlock_block_id(storeblock);
+      Serial.printf("phrase_templates_block_id %d\r\n", phrase_templates_block_id);
+    
+      uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
+      Serial.printf("entropy %d\r\n", entropy);
+
+      phraser_PhraseTemplate_vec_t phrase_templates_vec = phraser_PhraseTemplatesBlock_phrase_templates(phrase_templates_block);
+      size_t phrase_templates_vec_length = flatbuffers_vec_len(phrase_templates_vec);
+      Serial.printf("phrase_templates_vec_length %d\r\n", phrase_templates_vec_length);
+
+      phraser_WordTemplate_vec_t word_templates_vec = phraser_PhraseTemplatesBlock_word_templates(phrase_templates_block);
+      size_t word_templates_vec_length = flatbuffers_vec_len(word_templates_vec);
+      Serial.printf("word_templates_vec_length %d\r\n", word_templates_vec_length);
+
+      if (word_templates == NULL) {
+        word_templates = hashtable_create();
+      }
+      if (phrase_templates == NULL) {
+        phrase_templates = hashtable_create();
+      }
+
+      Serial.printf("phrase_templates of phrase_templates_block_id %d\r\n", phrase_templates_block_id);
+      for (int i = 0; i < phrase_templates_vec_length; i++) {
+        phraser_PhraseTemplate_table_t phrase_template_fb = phraser_PhraseTemplate_vec_at(phrase_templates_vec, i);
+
+        uint16_t phrase_template_id = phraser_PhraseTemplate_phrase_template_id(phrase_template_fb);
+
+        flatbuffers_string_t phrase_template_name_str = phraser_PhraseTemplate_phrase_template_name(phrase_template_fb);
+        size_t phrase_template_name_length = flatbuffers_string_len(phrase_template_name_str);
+
+        phraser_WordTemplateRef_vec_t word_template_refs_vec = phraser_PhraseTemplate_word_template_refs(phrase_template_fb);
+        size_t word_template_refs_length = flatbuffers_vec_len(word_template_refs_vec);
+
+        PhraseTemplate* phrase_template = (PhraseTemplate*)malloc(sizeof(PhraseTemplate));
+        phrase_template->phraseTemplateId = phrase_template_id;
+        phrase_template->phraseTemplateName = copyString((char*)phrase_template_name_str, phrase_template_name_length);
+
+        hashtable_set(phrase_templates, phrase_template_id, phrase_template);
+        phrase_template->wordTemplateIds = arraylist_create();
+        phrase_template->wordTemplateOrdinals = arraylist_create();
+
+        Serial.printf("=============================================%d\r\n");
+        Serial.printf("phrase_template_id %d\r\n", phrase_template_id);
+        Serial.printf("phraseTemplateName %s\r\n", phrase_template->phraseTemplateName);
+
+        Serial.printf("word template refs of phrase_template_id %d: \r\n", phrase_template_id);
+        for (int j = 0; j < word_template_refs_length; j++) {
+          phraser_WordTemplateRef_table_t word_template_ref_fb = phraser_WordTemplateRef_vec_at(word_template_refs_vec, j);
+
+          uint16_t word_ref_template_id = phraser_WordTemplateRef_word_template_id(word_template_ref_fb);
+          uint16_t word_ref_template_ordinal = phraser_WordTemplateRef_word_template_ordinal(word_template_ref_fb);
+
+          Serial.printf("%d/%d, ", word_ref_template_id, word_ref_template_ordinal);
+
+          arraylist_add(phrase_template->wordTemplateIds, (void*)word_ref_template_id);
+          arraylist_add(phrase_template->wordTemplateOrdinals, (void*)word_ref_template_ordinal);
+        }
+        Serial.printf("\r\n");
+      }
+
+      Serial.printf("word_templates of phrase_templates_block_id %d\r\n", phrase_templates_block_id);
+      for (int i = 0; i < word_templates_vec_length; i++) {
+        phraser_WordTemplate_table_t word_template_fb = phraser_WordTemplate_vec_at(word_templates_vec, i);
+
+        uint16_t word_template_id = phraser_WordTemplate_word_template_id(word_template_fb);
+        int8_t permissions = phraser_WordTemplate_permissions(word_template_fb);
+        phraser_Icon_enum_t icon = phraser_WordTemplate_icon(word_template_fb);
+        uint16_t min_length = phraser_WordTemplate_min_length(word_template_fb);
+        uint16_t max_length = phraser_WordTemplate_max_length(word_template_fb);
+
+        flatbuffers_string_t word_template_name_str = phraser_WordTemplate_word_template_name(word_template_fb);
+        size_t word_template_name_length = flatbuffers_string_len(word_template_name_str);
+
+        flatbuffers_uint16_vec_t symbol_set_ids_vec = phraser_WordTemplate_symbol_set_ids(word_template_fb);
+        size_t symbol_set_ids_length = flatbuffers_vec_len(symbol_set_ids_vec);
+
+        Serial.printf("=============================================%d\r\n");
+        Serial.printf("word_template_id %d\r\n", word_template_id);
+        Serial.printf("permissions %d\r\n", permissions);
+        Serial.printf("icon %d\r\n", icon);
+        Serial.printf("min_length %d\r\n", min_length);
+        Serial.printf("max_length %d\r\n", max_length);
+
+        WordTemplate* word_template = (WordTemplate*)malloc(sizeof(WordTemplate));
+        word_template->wordTemplateId = word_template_id;
+        word_template->permissions = permissions;
+        word_template->icon = icon;
+        word_template->minLength = min_length;
+        word_template->maxLength = max_length;
+        word_template->wordTemplateName = copyString((char*)word_template_name_str, word_template_name_length);
+        Serial.printf("wordTemplateName %s\r\n", word_template->wordTemplateName);
+
+        Serial.printf("symbolset ids of word template %d: \r\n", word_template_id);
+        word_template->symbolSetIds = arraylist_create();
+        for (int j = 0; j < symbol_set_ids_length; j++) {
+          uint16_t symbol_set_id = flatbuffers_uint16_vec_at(symbol_set_ids_vec, j);
+          arraylist_add(word_template->symbolSetIds, (void*)symbol_set_id);
+          Serial.printf("symbol_set_id %d\r\n", symbol_set_id);
+        }
+      }
+
+      return { phrase_templates_block_id, folders_block_version, entropy, false };
+    } else {
+      return BLOCK_NOT_UPDATED;
+    }
+  } else {
+    if (word_templates != NULL) {
+      hashtable_destroy(word_templates);
+    }
+    if (phrase_templates != NULL) {
+      hashtable_destroy(phrase_templates);
+    }
+    phrase_templates_block_buffer = NULL;
+    phrase_templates_block_id = 0;
+    phrase_templates_block_version = 0;
     return BLOCK_NOT_UPDATED;
   }
-
-  phraser_StoreBlock_struct_t storeblock = phraser_PhraseTemplatesBlock_block(phrase_templates_block);
-  phrase_templates_block_id = phraser_StoreBlock_block_id(storeblock);
-  Serial.printf("phrase_templates_block_id %d\r\n", phrase_templates_block_id);
-
-  //TODO: add to blockId maps
-  uint32_t phrase_templates_block_version = phraser_StoreBlock_version(storeblock);
-  Serial.printf("phrase_templates_block_version %d\r\n", phrase_templates_block_version);
-
-  return BLOCK_NOT_UPDATED;
 }
 
 BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
