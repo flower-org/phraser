@@ -39,6 +39,12 @@ struct BlockNumberAndVersionAndCount {
   bool isTombstoned;
 };
 
+struct SymbolSet {
+  uint32_t symbolSetId;
+  char* symbolSetName;
+  char* symbolSet;
+};
+
 // DB data structures 
 uint16_t lastBlockId;
 uint32_t lastBlockVersion;
@@ -55,9 +61,10 @@ uint8_t* key_block_key = NULL;
 uint32_t key_block_key_length = 0;
 
 // - KeyBlock cache
+uint8_t* key_block_buffer = NULL;
+
 uint16_t key_block_id = 0;
 uint32_t key_block_version = 0;
-uint8_t* key_block_buffer = NULL;
 
 char* db_name = NULL;
 uint32_t db_name_length = 0;
@@ -69,16 +76,27 @@ uint8_t* main_iv_mask = NULL;
 uint32_t main_iv_mask_length = 0;
 
 // - SymbolSetsBlock cache
-uint16_t symbol_sets_block_id = 0;
 uint8_t* symbol_sets_block_buffer = NULL;
+
+uint16_t symbol_sets_block_id = 0;
+uint32_t symbol_sets_block_version = 0;
+hashtable* symbol_sets = NULL;
 
 // - FoldersBlock cache
 uint16_t folders_block_id = 0;
 uint8_t* folders_block_buffer = NULL;
+//final Map<Integer, Folder> folders;
+//final Map<Integer, Set<Integer>> subFoldersByFolder;
 
 // - PhraseTemplatesBlock cache
 uint16_t phrase_templates_block_id = 0;
 uint8_t* phrase_templates_block_buffer = NULL;
+//final Map<Integer, PhraseTemplate> phraseTemplates;
+//final Map<Integer, WordTemplate> wordTemplates;
+
+// - Phrase Blocks (minimal info) cache
+//final Map<Integer, PhraseFolderAndName> phrases;
+//final Map<Integer, Set<Integer>> phrasesByFolder;
 
 void setLoginData(uint8_t* key, uint32_t key_length) {
   if (key_block_key != NULL) {
@@ -94,7 +112,7 @@ void setLoginData(uint8_t* key, uint32_t key_length) {
   }
 }
 
-BlockIdAndVersion setKeyBlock(uint8_t* block, uint16_t block_number) {
+BlockIdAndVersion setKeyBlock(uint8_t* block) {
   if (key_block_buffer != NULL) { free(key_block_buffer); }
   if (main_key != NULL) { free(main_key); }
   if (main_iv_mask != NULL) { free(main_iv_mask); }
@@ -110,16 +128,15 @@ BlockIdAndVersion setKeyBlock(uint8_t* block, uint16_t block_number) {
 
     phraser_StoreBlock_struct_t storeblock = phraser_KeyBlock_block(key_block);
 
-    //TODO: add to blockId maps
     uint32_t new_key_block_version = phraser_StoreBlock_version(storeblock);
-    Serial.printf("key_block_version %d\r\n", key_block_version);
+    Serial.printf("new_key_block_version %d\r\n", new_key_block_version);
     if (new_key_block_version >= key_block_version) {
       key_block_version = new_key_block_version;
       key_block_id = phraser_StoreBlock_block_id(storeblock);
       Serial.printf("key_block_id %d\r\n", key_block_id);
     
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
-      Serial.printf("key_block_id %d\r\n", entropy);
+      Serial.printf("entropy %d\r\n", entropy);
 
       max_block_count = phraser_KeyBlock_block_count(key_block);
       Serial.printf("max_block_count %d\r\n", max_block_count);
@@ -139,6 +156,7 @@ BlockIdAndVersion setKeyBlock(uint8_t* block, uint16_t block_number) {
       main_iv_mask = copyBuffer((uint8_t*)aes256_iv_mask_vec, main_iv_mask_length);
       Serial.printf("aes256_iv_mask_length %d\r\n", main_iv_mask_length);
 
+      Serial.printf("ZXC. Before RETURN\r\n");
       return { key_block_id, key_block_version, entropy, false };
     } else {
       return BLOCK_NOT_UPDATED;
@@ -160,25 +178,87 @@ BlockIdAndVersion setKeyBlock(uint8_t* block, uint16_t block_number) {
   }
 }
 
-BlockIdAndVersion setSymbolSetsBlock(uint8_t* block, uint16_t block_number) {
-  // TODO: implement
-  phraser_SymbolSetsBlock_table_t symbol_sets_block;
-  if (!(symbol_sets_block = phraser_SymbolSetsBlock_as_root(block + DATA_OFFSET))) {
-    return BLOCK_NOT_UPDATED;
+void removeAllSymbolSets(hashtable *t, uint32_t key, void* value) {
+  SymbolSet* removed_symbol_set = (SymbolSet*)hashtable_remove(t, key);
+  if (removed_symbol_set != NULL) {
+    free(removed_symbol_set->symbolSet);
+    free(removed_symbol_set->symbolSetName);
+    free(removed_symbol_set);
   }
-
-  phraser_StoreBlock_struct_t storeblock = phraser_SymbolSetsBlock_block(symbol_sets_block);
-  symbol_sets_block_id = phraser_StoreBlock_block_id(storeblock);
-  Serial.printf("symbol_sets_block_id %d\r\n", symbol_sets_block_id);
-
-  //TODO: add to blockId maps
-  uint32_t symbol_sets_version = phraser_StoreBlock_version(storeblock);
-  Serial.printf("symbol_sets_version %d\r\n", symbol_sets_version);
-
-  return BLOCK_NOT_UPDATED;
 }
 
-BlockIdAndVersion setFoldersBlock(uint8_t* block, uint16_t block_number) {
+BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
+  if (symbol_sets_block_buffer != NULL) { free(symbol_sets_block_buffer); }
+  if (symbol_sets != NULL) { hashtable_iterate_entries(symbol_sets, removeAllSymbolSets); }
+
+  if (block != NULL) {
+    key_block_buffer = copyBuffer(block, 4096);
+
+    phraser_SymbolSetsBlock_table_t symbol_sets_block;
+    if (!(symbol_sets_block = phraser_SymbolSetsBlock_as_root(block + DATA_OFFSET))) {
+      return BLOCK_NOT_UPDATED;
+    }
+
+    phraser_StoreBlock_struct_t storeblock = phraser_SymbolSetsBlock_block(symbol_sets_block);
+
+    uint32_t new_symbol_sets_block_version = phraser_StoreBlock_version(storeblock);
+    Serial.printf("new_symbol_sets_block_version %d\r\n", new_symbol_sets_block_version);
+    if (new_symbol_sets_block_version >= symbol_sets_block_version) {
+      symbol_sets_block_version = new_symbol_sets_block_version;
+      symbol_sets_block_id = phraser_StoreBlock_block_id(storeblock);
+      Serial.printf("symbol_sets_block_id %d\r\n", symbol_sets_block_id);
+    
+      uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
+      Serial.printf("entropy %d\r\n", entropy);
+
+      phraser_SymbolSet_vec_t symbol_sets_vec = phraser_SymbolSetsBlock_symbol_sets(symbol_sets_block);
+      size_t symbol_sets_vec_length = flatbuffers_vec_len(symbol_sets_vec);
+      Serial.printf("symbol_sets_vec_length %d\r\n", symbol_sets_vec_length);
+
+      if (symbol_sets == NULL) {
+        symbol_sets = hashtable_create();
+      }
+
+      for (size_t i = 0; i < symbol_sets_vec_length; i++) {
+        phraser_SymbolSet_table_t symbol_set_fb = phraser_SymbolSet_vec_at(symbol_sets_vec, i);
+
+        uint16_t symbol_set_id = phraser_SymbolSet_set_id(symbol_set_fb);
+
+        flatbuffers_string_t symbol_set_name_str = phraser_SymbolSet_symbol_set_name(symbol_set_fb);
+        size_t symbol_set_name_str_length = flatbuffers_string_len(symbol_set_name_str);
+
+        flatbuffers_string_t symbol_set_str = phraser_SymbolSet_symbol_set(symbol_set_fb);
+        size_t symbol_set_str_length = flatbuffers_string_len(symbol_set_str);
+
+        SymbolSet* symbol_set = (SymbolSet*)malloc(sizeof(SymbolSet));
+        symbol_set->symbolSetId = symbol_set_id;
+        symbol_set->symbolSetName = copyString((char*)symbol_set_name_str, symbol_set_name_str_length);
+        symbol_set->symbolSet = copyString((char*)symbol_set_str, symbol_set_str_length);
+
+        hashtable_set(symbol_sets, symbol_set_id, symbol_set);
+
+        Serial.printf("symbol_set_id %d\r\n", symbol_set_id);
+        Serial.printf("symbolSetName %s\r\n", symbol_set->symbolSetName);
+        Serial.printf("symbolSet %s\r\n", symbol_set->symbolSet);
+      }
+
+      return { symbol_sets_block_id, symbol_sets_block_version, entropy, false };
+    } else {
+      return BLOCK_NOT_UPDATED;
+    }
+  } else {
+    if (symbol_sets != NULL){ 
+      hashtable_destroy(symbol_sets);
+    }
+    symbol_sets_block_id = 0;
+    symbol_sets_block_version = 0;
+    symbol_sets = NULL;
+    symbol_sets_block_buffer = NULL;
+    return BLOCK_NOT_UPDATED;
+  }
+}
+
+BlockIdAndVersion setFoldersBlock(uint8_t* block) {
   // TODO: implement
   phraser_FoldersBlock_table_t folders_block;
   if (!(folders_block = phraser_FoldersBlock_as_root(block + DATA_OFFSET))) {
@@ -196,7 +276,7 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block, uint16_t block_number) {
   return BLOCK_NOT_UPDATED;
 }
 
-BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block, uint16_t block_number) {
+BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
   // TODO: implement
   phraser_PhraseTemplatesBlock_table_t phrase_templates_block;
   if (!(phrase_templates_block = phraser_PhraseTemplatesBlock_as_root(block + DATA_OFFSET))) {
@@ -214,7 +294,7 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block, uint16_t block_number)
   return BLOCK_NOT_UPDATED;
 }
 
-BlockIdAndVersion registerPhraseBlock(uint8_t* block, uint16_t block_number) {
+BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
   // TODO: implement
   phraser_PhraseBlock_table_t phrase_block;
   if (!(phrase_block = phraser_PhraseBlock_as_root(block + DATA_OFFSET))) {
@@ -233,11 +313,13 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block, uint16_t block_number) {
 }
 
 void startBlockCacheInit() {
+  Serial.printf("startBlockCacheInit!\r\n");
   // will be initialized by first tree_insert
   occupiedBlockNumbers = NULL;
   blockIdByBlockNumber = hashtable_create();
   blockInfos = hashtable_create();
   tombstonedBlockIds = hashtable_create();
+  Serial.printf("startBlockCacheInit DONE\r\n");
 }
 
 void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
@@ -245,37 +327,49 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
   BlockIdAndVersion blockAndVersion = BLOCK_NOT_UPDATED;
   switch (block[0]) {
     case phraser_BlockType_KeyBlock: 
-      blockAndVersion = setKeyBlock(block, block_number); 
+      blockAndVersion = setKeyBlock(block); 
       break;
     case phraser_BlockType_SymbolSetsBlock: 
-      blockAndVersion = setSymbolSetsBlock(block, block_number); 
+      blockAndVersion = setSymbolSetsBlock(block); 
       break;
     case phraser_BlockType_FoldersBlock: 
-      blockAndVersion = setFoldersBlock(block, block_number); 
+      blockAndVersion = setFoldersBlock(block); 
       break;
     case phraser_BlockType_PhraseTemplatesBlock: 
-      blockAndVersion = setPhraseTemplatesBlock(block, block_number); 
+      blockAndVersion = setPhraseTemplatesBlock(block); 
       break;
     case phraser_BlockType_PhraseBlock: 
-      blockAndVersion = registerPhraseBlock(block, block_number); 
+      blockAndVersion = registerPhraseBlock(block); 
       break;
   }
 
   // 2. Update DB structures
+  Serial.printf("2. Update DB structures!\r\n");
+  Serial.printf("blockAndVersion.blockId %d\r\n", blockAndVersion.blockId);
   if (blockAndVersion.blockId > 0) {
+    Serial.printf("2.1. Update holders of last values / counters\r\n");
     // 2.1. Update holders of last values / counters
+    Serial.printf("lastBlockId %d\r\n", lastBlockId);
     if (blockAndVersion.blockId > lastBlockId) {
       lastBlockId = blockAndVersion.blockId;
     }
+    Serial.printf("blockAndVersion.blockVersion %d\r\n", blockAndVersion.blockVersion);
+    Serial.printf("lastBlockVersion %d\r\n", lastBlockVersion);
+    Serial.printf("lastBlockNumber %d\r\n", lastBlockNumber);
+    Serial.printf("block_number %d\r\n", block_number);
+    Serial.printf("lastEntropy %d\r\n", lastEntropy);
+    Serial.printf("blockAndVersion.entropy %d\r\n", blockAndVersion.entropy);
     if (blockAndVersion.blockVersion > lastBlockVersion) {
       lastBlockVersion = blockAndVersion.blockVersion;
       lastBlockNumber = block_number;
       lastEntropy = blockAndVersion.entropy;
     }
 
+    Serial.printf("2.2. Add BlockNumber to BlockId mapping\r\n");
     // 2.2. Add BlockNumber to BlockId mapping
     hashtable_set(blockIdByBlockNumber, block_number, (void*)blockAndVersion.blockId);
 
+    Serial.printf("2.3. Update BlockId to BlockNumberAndVersionAndCount mapping\r\n");
     // 2.3. Update BlockId to BlockNumberAndVersionAndCount mapping
     BlockNumberAndVersionAndCount* blockInfo = 
             (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, blockAndVersion.blockId);

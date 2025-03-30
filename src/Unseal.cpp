@@ -125,6 +125,7 @@ void unsealLoop(Thumby* thumby) {
     char* text = "Trying to find\nand decrypt\nKeyBlock...";
     initTextAreaDialog(text, strlen(text), TEXT_AREA);
     ui_draw_cycle = true;
+    startBlockCacheInit();
     unseal_phase = 4;
   } else if (unseal_phase == 555) {
     DialogResult result = textAreaLoop(thumby);
@@ -139,7 +140,6 @@ void unsealLoop(Thumby* thumby) {
       } else if (unseal_bank == 2) {
         max_key_blocks = 256;
       }
-      startBlockCacheInit();
       unseal_phase = 4;
     }
   } else if (unseal_phase == 4) {

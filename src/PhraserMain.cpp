@@ -98,8 +98,7 @@ void setup() {
   thumby->begin();
   switchToStartupScreen();
   playStartupSound(thumby);
-
-  initDevTestScreen();
+//  initDevTestScreen(); // Uncomment this to run dev tests
 }
 
 // Entry point - loop
