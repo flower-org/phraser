@@ -148,7 +148,7 @@ void unsealLoop(Thumby* thumby) {
     if (ui_draw_cycle) { ui_draw_cycle = false; return; }
 
     if (key_block_decrypt_cursor >= max_key_blocks) {
-      if (key_block_buffer == NULL) {
+      if (main_key == NULL) {//i.e. KeyBlock not loaded
         if (max_key_blocks == 128 && (unseal_bank == 1 || unseal_bank == 2)) {
           char* text = "Not found.\nSearch extended range?";
           initTextAreaDialog(text, strlen(text), DLG_YES_NO);
