@@ -52,7 +52,7 @@
  /** 
   * Return the number of items contained in the list.
   */
- extern inline unsigned int arraylist_size(arraylist*l) {
+ extern unsigned int arraylist_size(arraylist*l) {
    return l->size;
  }
  

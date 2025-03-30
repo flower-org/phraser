@@ -345,7 +345,7 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
         arraylist_add(subfolder_list_of_parent_folder, (void*)folder_id);
         
         Serial.printf("subfolders of parent_id %d: ", parent_folder_id);
-        for (int j = 0; j < subfolder_list_of_parent_folder->size; j++) {
+        for (int j = 0; j < arraylist_size(subfolder_list_of_parent_folder); j++) {
           uint32_t child_folder_id = (uint32_t)arraylist_get(subfolder_list_of_parent_folder, j);
           Serial.printf("%d, ", child_folder_id);
         }

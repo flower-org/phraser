@@ -1,17 +1,13 @@
 #include "TextAreaDialog.h"
-#include "c-list.h"
+
+#include "arraylist.h"
 
 TextAreaType text_area_type;
-CList text_area_lines = C_LIST_INIT(text_area_lines);
+arraylist* text_area_lines = arraylist_create();
 
 typedef struct TextLine TextLine;
 
-struct TextLine {
-  CList link;
-  char* line;
-};
-
-void addLinesToList(char* text, int text_length, CList* list) {
+void addLinesToList(char* text, int text_length, arraylist* list) {
   int currentLineLength = 0;
   int lineIndex = 0;
   char* currentLine = (char*)malloc((MAX_DISPLAY_CHARS_PER_LINE + 1) * sizeof(char)); // +1 for null terminator
@@ -22,9 +18,7 @@ void addLinesToList(char* text, int text_length, CList* list) {
       // End the current line and store it
       currentLine[currentLineLength] = '\0';
 
-      TextLine* tl = (TextLine*)malloc(sizeof(TextLine));
-      tl->line = strdup(currentLine);
-      c_list_link_tail(list, &tl->link);
+      arraylist_add(list, strdup(currentLine));
 
       currentLineLength = 0;
       currentLine[currentLineLength++] = *p;
@@ -35,9 +29,7 @@ void addLinesToList(char* text, int text_length, CList* list) {
           // End the current line and store it
           currentLine[currentLineLength] = '\0';
 
-          TextLine* tl = (TextLine*)malloc(sizeof(TextLine));
-          tl->line = strdup(currentLine);
-          c_list_link_tail(list, &tl->link);
+          arraylist_add(list, strdup(currentLine));
 
           currentLineLength = 0;
           currentLine[currentLineLength++] = *p;
@@ -49,9 +41,8 @@ void addLinesToList(char* text, int text_length, CList* list) {
   // Store any remaining text in the current line
   if (currentLineLength > 0) {
     currentLine[currentLineLength] = '\0';
-    TextLine* tl = (TextLine*)malloc(sizeof(TextLine));
-    tl->line = strdup(currentLine);
-    c_list_link_tail(list, &tl->link);
+
+    arraylist_add(list, strdup(currentLine));
   }
 
   //Serial.printf("Init List size %d\r\n", c_list_length(list));
@@ -59,15 +50,12 @@ void addLinesToList(char* text, int text_length, CList* list) {
   free(currentLine);
 }
 
-void clearList(CList* list) {
-  if (!c_list_is_empty(&text_area_lines)) {
-    CList *iter, *safe;
-    c_list_for_each_safe(iter, safe, list) {
-      TextLine *tl = c_list_entry(iter, TextLine, link);
-      c_list_unlink(&tl->link);
-      free(tl->line);
-      free(tl);
+void clearList(arraylist* list) {
+  if (arraylist_size(list) > 0) {
+    for (int i = 0; i < arraylist_size(list); i++) {
+      free(arraylist_get(list, i));
     }
+    arraylist_clear(list);
   }
 }
 
@@ -85,8 +73,8 @@ void initTextAreaDialog(char* text, int text_length, TextAreaType type) {
   text_area_up_pressed = false;
   text_area_left_pressed = false;
   text_area_right_pressed = false;
-  clearList(&text_area_lines);
-  addLinesToList(text, text_length, &text_area_lines);
+  clearList(text_area_lines);
+  addLinesToList(text, text_length, text_area_lines);
   text_area_type = type;
   text_area_selection_pos = 0;
 
@@ -102,7 +90,7 @@ void drawTextAreaBorder(Thumby* thumby) {
   drawRect(thumby, 0, 0, 70, y2, WHITE);
 
   int text_area_line_count = text_area_type == TEXT_AREA ? TEXT_AREA_LINES : DIALOG_LINES;
-  int lines_count = c_list_length(&text_area_lines);
+  int lines_count = arraylist_size(text_area_lines);
 
   int positions_count = 1 + lines_count - text_area_line_count;
   if (positions_count > 1) {
@@ -136,7 +124,7 @@ DialogResult textAreaLoop(Thumby* thumby) {
     text_area_down_pressed = true;
   } else {
     if (text_area_down_pressed) {
-      int lines_count = c_list_length(&text_area_lines);
+      int lines_count = arraylist_size(text_area_lines);
       int last_line = lines_count - text_area_line_count;
       if (text_area_selection_pos < last_line) {
         text_area_selection_pos++;
@@ -147,16 +135,13 @@ DialogResult textAreaLoop(Thumby* thumby) {
   
   drawTextAreaBorder(thumby);
 
-  int i = 0;
-  CList *iter;
-  c_list_for_each(iter, &text_area_lines) {
-    int position = i - text_area_selection_pos;
-    if (position >= 0 && position < text_area_line_count) {
-      TextLine *tl = c_list_entry(iter, TextLine, link);
-      printAt(thumby, 2, 1+8*position, tl->line);
+  int lines_count = arraylist_size(text_area_lines);
+  for (int i = 0; i < text_area_line_count; i++) {
+    int position = text_area_selection_pos + i;
+    if (position < lines_count) {
+      char *tl = (char*)arraylist_get(text_area_lines, position);
+      printAt(thumby, 2, 1+8*i, tl);
     }
-
-    i++;
   }
 
   if (text_area_type == DLG_OK) {
