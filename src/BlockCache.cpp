@@ -286,13 +286,11 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
       blockInfo->copyCount = 1;
       blockInfo->isTombstoned = blockAndVersion.isTombstoned;
       hashtable_set(blockInfos, blockAndVersion.blockId, blockInfo);
-  } else {
+    } else {
       if (blockInfo->blockVersion < blockAndVersion.blockVersion) {
         blockInfo->blockNumber = block_number;
         blockInfo->blockVersion = blockAndVersion.blockVersion;
-      }
-      if (blockAndVersion.isTombstoned) {
-        blockInfo->isTombstoned = true;
+        blockInfo->isTombstoned = blockAndVersion.isTombstoned;
       }
       blockInfo->copyCount++;
     }

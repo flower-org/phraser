@@ -13,18 +13,15 @@
  #define HASHTABLE_INITIAL_CAPACITY 4
  uint32_t HASHTABLE_NULL_KEY = -1;
 
- /**
-	* Compute the hash value for the given string.
-	* Implements the djb k=33 hash function.
-	*/
+ /** Mega hash function check it out */
  unsigned long hashtable_hash(uint32_t key)
  {
 	 return key;
  }
  
-int key_cmp(uint32_t key1, uint32_t key2) {
-	return key1-key2;
-}
+ int key_cmp(uint32_t key1, uint32_t key2) {
+ 	 return key1-key2;
+ }
 
  /**
 	* Find an available slot for the given key, using linear probing.

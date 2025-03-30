@@ -22,7 +22,7 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
 - **Backup Password Database**: Create backups of your password database to ensure your data is safe and recoverable.
 - **Restore Password Database**: Easily restore your password database from a backup file.
 - **Modify Password Entries**: Update existing password entries or metadata in DB backup files from the desktop application.
-- **DB Maintenance**: Compact, resize, etc.
+- **DB Maintenance**: Compact, resize, change AES key, change password etc.
 
 ## Prerequisites
 
