@@ -1,4 +1,5 @@
 #include "UiCommon.h"
+#include "MainDbUi.h"
 
 Mode currentMode = UNDEFINED;
 
@@ -22,11 +23,11 @@ void switchToStartupScreen() {
   startupScreenInit();
 }
 
-void dbRuntimeInit(char* password) {
-  //
+void mainDbUiInit() {
+  phraserDbUiInit();
 }
 
-void switchToDbRuntime() {
-  currentMode = DB_RUNTIME;
-//  dbRuntimeInit();
+void switchToMainDbUi() {
+  currentMode = MAIN_DB_UI;
+  mainDbUiInit();
 }
