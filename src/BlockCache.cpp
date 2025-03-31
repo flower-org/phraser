@@ -141,7 +141,7 @@ hashtable* word_templates;//uint32_t, WordTemplate
 
 // - Phrase Blocks (minimal info) cache
 hashtable* phrases;//uint32_t, PhraseFolderAndName
-hashtable* phrasesByFolder;//uint32_t, Tree<uint32_t>
+hashtable* phrasesByFolder;//uint32_t, arraylist<uint32_t>
 
 void setLoginData(uint8_t* key, uint32_t key_length) {
   if (key_block_key != NULL) {
@@ -520,20 +520,35 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
   }
 }
 
-void deleteFromTree(uint16_t folder_id, uint16_t phrase_block_id) {
-  node_t* folderPhrases = (node_t*)hashtable_get(phrasesByFolder, folder_id);
-  while (search(folderPhrases, phrase_block_id) != NULL) {
-    tree_delete(&folderPhrases, phrase_block_id);
+void deleteFromPhraseByFolderList(uint16_t folder_id, uint16_t phrase_block_id) {
+  arraylist* folderPhrases = (arraylist*)hashtable_get(phrasesByFolder, folder_id);
+  if (folderPhrases != NULL) {
+    int i = 0;
+    while (true) {
+      if (i >= arraylist_size(folderPhrases)) { break; }
+      if ((uint32_t)arraylist_get(folderPhrases, i) == phrase_block_id) {
+        arraylist_remove(folderPhrases, i);
+      } else {
+        i++;
+      }
+    }
   }
-  hashtable_set(phrasesByFolder, folder_id, folderPhrases);
 }
 
-void addToTree(uint16_t folder_id, uint16_t phrase_block_id) {
-  node_t* folderPhrases = (node_t*)hashtable_get(phrasesByFolder, folder_id);
-  if (search(folderPhrases, phrase_block_id) == NULL) {
-    tree_insert(&folderPhrases, phrase_block_id);
+void addToPhraseByFolderList(uint16_t folder_id, uint16_t phrase_block_id) {
+  arraylist* folderPhrases = (arraylist*)hashtable_get(phrasesByFolder, folder_id);
+  if (folderPhrases == NULL) {
+    folderPhrases = arraylist_create();
+    hashtable_set(phrasesByFolder, folder_id, folderPhrases);
+  } else {
+    for (int i = 0; i < arraylist_size(folderPhrases); i++) {
+      if ((uint32_t)arraylist_get(folderPhrases, i) == phrase_block_id) {
+        return;
+      }
+    }
   }
-  hashtable_set(phrasesByFolder, folder_id, folderPhrases);
+
+  arraylist_add(folderPhrases, (void*)phrase_block_id);
 }
 
 BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
@@ -575,7 +590,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
           free(removed_phrase_folder_and_name);
         }
 
-        deleteFromTree(folder_id, phrase_block_id);
+        deleteFromPhraseByFolderList(folder_id, phrase_block_id);
       } else {
         PhraseFolderAndName* phrase_folder_and_name = (PhraseFolderAndName*)hashtable_get(phrases, phrase_block_id);
         if (phrase_folder_and_name == NULL) {
@@ -588,12 +603,12 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
           hashtable_set(phrases, phrase_block_id, phrase_folder_and_name);
           Serial.printf("New phrase %s\r\n", phrase_folder_and_name->name);
 
-          addToTree(folder_id, phrase_block_id);
+          addToPhraseByFolderList(folder_id, phrase_block_id);
         } else if (!(blockInfo->isTombstoned)) {
           // Update `phrases` and `phrasesByFolder`
           if (phrase_folder_and_name->folderId == folder_id) {
-            deleteFromTree(phrase_folder_and_name->folderId, phrase_block_id);
-            addToTree(folder_id, phrase_block_id);
+            deleteFromPhraseByFolderList(phrase_folder_and_name->folderId, phrase_block_id);
+            addToPhraseByFolderList(folder_id, phrase_block_id);
           }
 
           phrase_folder_and_name->phraseBlockId = phrase_block_id;
