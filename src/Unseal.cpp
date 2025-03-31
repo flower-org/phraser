@@ -21,7 +21,6 @@ bool ui_draw_cycle = false;
 int key_block_decrypt_cursor = 0;
 uint8_t unseal_bank = 1;
 int max_key_blocks = 128;
-uint32_t latest_found_keyblock_version = 0;
 int pbkdf2_iterations_count = PBKDF_INTERATIONS_COUNT;
 
 void unsealInit(bool password_mode) {
@@ -36,7 +35,6 @@ void unsealInit(bool password_mode) {
   debug_hex_key = NULL;
   unseal_bank = 1;
   max_key_blocks = 128;
-  latest_found_keyblock_version = 0;
   pbkdf2_iterations_count = PBKDF_INTERATIONS_COUNT;
   initOnScreenKeyboard(false, password_mode);
 }
@@ -192,26 +190,10 @@ void unsealLoop(Thumby* thumby) {
 
         //5. validate KEY_BLOCK block type (1st byte in a buffer is BlockType)
         if (db_block[0] == phraser_BlockType_KeyBlock) {
-          //6. read version of KEY_BLOCK
-          //uint16_t size = bytesToUInt16(db_block+1);
-          phraser_KeyBlock_table_t key_block;
-          if (!(key_block = phraser_KeyBlock_as_root(db_block+3))) {
-            return;
-          }
-
-          phraser_StoreBlock_struct_t keyblock_storeblock;
-          keyblock_storeblock = phraser_KeyBlock_block(key_block);
-
-          uint32_t keyblock_version = phraser_StoreBlock_version(keyblock_storeblock);
-
-          //7. if latest version of KeyBlock found (so far), update `max_key_blocks`
-          if (keyblock_version > latest_found_keyblock_version) {
-            latest_found_keyblock_version = keyblock_version;
-
-            uint32_t block_count = phraser_KeyBlock_block_count(key_block);
-            max_key_blocks = block_count;
-
-            registerBlockInBlockCache(db_block, key_block_decrypt_cursor);
+          //6. update `max_key_blocks` if needed
+          registerBlockInBlockCache(db_block, key_block_decrypt_cursor);
+          if (max_block_count > 0) {
+            max_key_blocks = max_block_count;
           }
         }
       }

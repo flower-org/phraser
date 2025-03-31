@@ -167,10 +167,6 @@ uint32_t getBlockVersion(uint16_t block_id) {
 }
 
 BlockIdAndVersion setKeyBlock(uint8_t* block) {
-  if (main_key != NULL) { free(main_key); }
-  if (main_iv_mask != NULL) { free(main_iv_mask); }
-  if (db_name != NULL) { free(db_name); }
-  
   if (block != NULL) {
     phraser_KeyBlock_table_t key_block;
     if (!(key_block = phraser_KeyBlock_as_root(block + DATA_OFFSET))) {
@@ -185,6 +181,10 @@ BlockIdAndVersion setKeyBlock(uint8_t* block) {
     uint32_t new_key_block_version = phraser_StoreBlock_version(storeblock);
     Serial.printf("new_key_block_version %d; old_key_block_version %d \r\n", new_key_block_version, old_key_block_version);
     if (new_key_block_version >= old_key_block_version) {
+      if (main_key != NULL) { free(main_key); }
+      if (main_iv_mask != NULL) { free(main_iv_mask); }
+      if (db_name != NULL) { free(db_name); }
+    
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       Serial.printf("entropy %d\r\n", entropy);
 
@@ -212,16 +212,6 @@ BlockIdAndVersion setKeyBlock(uint8_t* block) {
       return BLOCK_NOT_UPDATED;
     }
   } else {
-    main_key = NULL;
-    main_iv_mask = NULL;
-    db_name = NULL;
-
-    key_block_id = 0;
-    max_block_count = 0;
-
-    main_key_length = 0;
-    main_iv_mask_length = 0;
-    db_name_length = 0;
     return BLOCK_NOT_UPDATED;
   }
 }
@@ -236,8 +226,6 @@ void removeAllSymbolSets(hashtable *t, uint32_t key, void* value) {
 }
 
 BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
-  if (symbol_sets != NULL) { hashtable_iterate_entries(symbol_sets, removeAllSymbolSets); }
-
   if (block != NULL) {
     phraser_SymbolSetsBlock_table_t symbol_sets_block;
     if (!(symbol_sets_block = phraser_SymbolSetsBlock_as_root(block + DATA_OFFSET))) {
@@ -252,6 +240,8 @@ BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
     uint32_t new_symbol_sets_block_version = phraser_StoreBlock_version(storeblock);
     Serial.printf("new_symbol_sets_block_version %d; old_symbol_sets_block_version %d\r\n", new_symbol_sets_block_version, old_symbol_sets_block_version);
     if (new_symbol_sets_block_version > old_symbol_sets_block_version) {
+      if (symbol_sets != NULL) { hashtable_iterate_entries(symbol_sets, removeAllSymbolSets); }
+
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       Serial.printf("entropy %d\r\n", entropy);
 
@@ -291,11 +281,6 @@ BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
       return BLOCK_NOT_UPDATED;
     }
   } else {
-    if (symbol_sets != NULL){ 
-      hashtable_destroy(symbol_sets);
-    }
-    symbol_sets_block_id = 0;
-    symbol_sets = NULL;
     return BLOCK_NOT_UPDATED;
   }
 }
@@ -316,9 +301,6 @@ void removeAllSubFoldersByfolder(hashtable *t, uint32_t key, void* value) {
 }
 
 BlockIdAndVersion setFoldersBlock(uint8_t* block) {
-  if (folders != NULL) { hashtable_iterate_entries(folders, removeAllFolders); }
-  if (sub_folders_by_folder != NULL) { hashtable_iterate_entries(sub_folders_by_folder, removeAllSubFoldersByfolder); }
-  
   if (block != NULL) {
     phraser_FoldersBlock_table_t folders_block;
     if (!(folders_block = phraser_FoldersBlock_as_root(block + DATA_OFFSET))) {
@@ -333,6 +315,9 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
     uint32_t new_folders_block_version = phraser_StoreBlock_version(storeblock);
     Serial.printf("new_folders_block_version %d; old_folders_block_version %d\r\n", new_folders_block_version, old_folders_block_version);
     if (new_folders_block_version > old_folders_block_version) {
+      if (folders != NULL) { hashtable_iterate_entries(folders, removeAllFolders); }
+      if (sub_folders_by_folder != NULL) { hashtable_iterate_entries(sub_folders_by_folder, removeAllSubFoldersByfolder); }
+      
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       Serial.printf("entropy %d\r\n", entropy);
 
@@ -387,15 +372,6 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
       return BLOCK_NOT_UPDATED;
     }
   } else {
-    if (folders != NULL){ 
-      hashtable_destroy(folders);
-    }
-    if (sub_folders_by_folder != NULL){ 
-      hashtable_destroy(sub_folders_by_folder);
-    }
-    folders_block_id = 0;
-    folders = NULL;
-    sub_folders_by_folder = NULL;
     return BLOCK_NOT_UPDATED;
   }
 }
@@ -420,9 +396,6 @@ void removePhraseTemplates(hashtable *t, uint32_t key, void* value) {
 }
 
 BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
-  if (word_templates != NULL) { hashtable_iterate_entries(word_templates, removeWordTemplates); }
-  if (phrase_templates != NULL) { hashtable_iterate_entries(phrase_templates, removePhraseTemplates); }
-
   if (block != NULL) {
     phraser_PhraseTemplatesBlock_table_t phrase_templates_block;
     if (!(phrase_templates_block = phraser_PhraseTemplatesBlock_as_root(block + DATA_OFFSET))) {
@@ -437,6 +410,9 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
     uint32_t new_phrase_templates_block_version = phraser_StoreBlock_version(storeblock);
     Serial.printf("new_phrase_templates_block_version %d; old_phrase_templates_block_version %d\r\n", new_phrase_templates_block_version, old_phrase_templates_block_version);
     if (new_phrase_templates_block_version > old_phrase_templates_block_version) {
+      if (word_templates != NULL) { hashtable_iterate_entries(word_templates, removeWordTemplates); }
+      if (phrase_templates != NULL) { hashtable_iterate_entries(phrase_templates, removePhraseTemplates); }
+    
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       Serial.printf("entropy %d\r\n", entropy);
 
@@ -540,23 +516,24 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
       return BLOCK_NOT_UPDATED;
     }
   } else {
-    if (word_templates != NULL) {
-      hashtable_destroy(word_templates);
-    }
-    if (phrase_templates != NULL) {
-      hashtable_destroy(phrase_templates);
-    }
-    phrase_templates_block_id = 0;
     return BLOCK_NOT_UPDATED;
   }
 }
 
-void removePhrases(hashtable *t, uint32_t key, void* value) {
-  // hashtable* phrases;//uint32_t, PhraseFolderAndName
+void deleteFromTree(uint16_t folder_id, uint16_t phrase_block_id) {
+  node_t* folderPhrases = (node_t*)hashtable_get(phrasesByFolder, folder_id);
+  while (search(folderPhrases, phrase_block_id) != NULL) {
+    tree_delete(&folderPhrases, phrase_block_id);
+  }
+  hashtable_set(phrasesByFolder, folder_id, folderPhrases);
 }
 
-void removePhrasesByFolder(hashtable *t, uint32_t key, void* value) {
-  // hashtable* phrasesByFolder;//uint32_t, Tree<uint32_t>
+void addToTree(uint16_t folder_id, uint16_t phrase_block_id) {
+  node_t* folderPhrases = (node_t*)hashtable_get(phrasesByFolder, folder_id);
+  if (search(folderPhrases, phrase_block_id) == NULL) {
+    tree_insert(&folderPhrases, phrase_block_id);
+  }
+  hashtable_set(phrasesByFolder, folder_id, folderPhrases);
 }
 
 BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
@@ -570,14 +547,64 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
     uint16_t phrase_block_id = phraser_StoreBlock_block_id(storeblock);
     Serial.printf("phrase_block_id %d\r\n", phrase_block_id);
 
-    uint32_t old_phrase_block_version = getBlockVersion(phrase_block_id);
+    uint32_t old_phrase_block_version = 0;
+    BlockNumberAndVersionAndCount* blockInfo = (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, phrase_block_id);
+    if (blockInfo != NULL) {
+      old_phrase_block_version = blockInfo->blockVersion;
+    }
+
     uint32_t new_phrase_block_version = phraser_StoreBlock_version(storeblock);
     Serial.printf("new_phrase_block_version %d, old_phrase_block_version %d \r\n", new_phrase_block_version, old_phrase_block_version);
     if (new_phrase_block_version > old_phrase_block_version) {
-      // TODO: implement
+      uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
+      Serial.printf("entropy %d\r\n", entropy);
 
+      uint16_t folder_id = phraser_PhraseBlock_folder_id(phrase_block);
+      Serial.printf("folder_id %d\r\n", folder_id);
+      flatbuffers_string_t phrase_name_str = phraser_PhraseBlock_phrase_name(phrase_block);
+      flatbuffers_bool_t is_tombstone = phraser_PhraseBlock_is_tombstone(phrase_block);
+      size_t phrase_name_length = flatbuffers_string_len(phrase_name_str);
 
-      return BLOCK_NOT_UPDATED;
+      if (is_tombstone) {
+        // Remove from `phrases` and `phrasesByFolder` is exists
+        PhraseFolderAndName* removed_phrase_folder_and_name = (PhraseFolderAndName*)hashtable_remove(phrases, phrase_block_id);
+        if (removed_phrase_folder_and_name != NULL) {
+          Serial.printf("Tombstoning phrase %s\r\n", removed_phrase_folder_and_name->name);
+
+          free(removed_phrase_folder_and_name->name);
+          free(removed_phrase_folder_and_name);
+        }
+
+        deleteFromTree(folder_id, phrase_block_id);
+      } else {
+        PhraseFolderAndName* phrase_folder_and_name = (PhraseFolderAndName*)hashtable_get(phrases, phrase_block_id);
+        if (phrase_folder_and_name == NULL) {
+          // New block or blockInfo->isTombstoned
+          // Add to `phrases` and `phrasesByFolder`
+          phrase_folder_and_name = (PhraseFolderAndName*)malloc(sizeof(PhraseFolderAndName));
+          phrase_folder_and_name->phraseBlockId = phrase_block_id;
+          phrase_folder_and_name->folderId = folder_id;
+          phrase_folder_and_name->name = copyString((char*)phrase_name_str, phrase_name_length);
+          hashtable_set(phrases, phrase_block_id, phrase_folder_and_name);
+          Serial.printf("New phrase %s\r\n", phrase_folder_and_name->name);
+
+          addToTree(folder_id, phrase_block_id);
+        } else if (!(blockInfo->isTombstoned)) {
+          // Update `phrases` and `phrasesByFolder`
+          if (phrase_folder_and_name->folderId == folder_id) {
+            deleteFromTree(phrase_folder_and_name->folderId, phrase_block_id);
+            addToTree(folder_id, phrase_block_id);
+          }
+
+          phrase_folder_and_name->phraseBlockId = phrase_block_id;
+          phrase_folder_and_name->folderId = folder_id;
+          free(phrase_folder_and_name->name);
+          phrase_folder_and_name->name = copyString((char*)phrase_name_str, phrase_name_length);
+          Serial.printf("Update phrase %s\r\n", phrase_folder_and_name->name);
+        }
+      }
+
+      return { phrase_block_id, new_phrase_block_version, entropy, (bool)is_tombstone };
     } else {
       return BLOCK_NOT_UPDATED;
     }
@@ -593,6 +620,10 @@ void startBlockCacheInit() {
   blockIdByBlockNumber = hashtable_create();
   blockInfos = hashtable_create();
   tombstonedBlockIds = hashtable_create();
+
+  phrases = hashtable_create();
+  phrasesByFolder = hashtable_create();
+
   Serial.printf("startBlockCacheInit DONE\r\n");
 }
 
