@@ -85,13 +85,28 @@ void createNewDbLoop(Thumby* thumby) {
       bank_ui_selection_index = chosenItem;
       current_bank = bank_ui_selection_index == 0 ? 1 : bank_ui_selection_index;
       current_bank_cursor = 0;
+
+      char* text = "Pre-wipe data?";
+      initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+
+      create_new_db_phase = 12;
+    } else if (chosenItem == 4) {
+      // Cancel
+      switchToStartupScreen();
+    }
+  } else if (create_new_db_phase == 12) {
+    // 1.2. Pre-Wipe confirmation
+    DialogResult result = textAreaLoop(thumby);
+    if (result == DLG_RES_YES) {
       // Superficial randomization at first pass
       randomSeed(micros());
 
       create_new_db_phase = 2;
-    } else if (chosenItem == 4) {
-      // Cancel
-      switchToStartupScreen();
+    } else if (result == DLG_RES_NO) {
+      char* text = "Enter password";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+
+      create_new_db_phase = 31;
     }
   } else if (create_new_db_phase == 2 || create_new_db_phase == 9) {
     // 2. Erase Banks
@@ -399,14 +414,14 @@ void createNewDbLoop(Thumby* thumby) {
     sprintf(text, "Database successfully initialized.\nBank# %d; block count: %d", current_bank, init_block_count);
     initTextAreaDialog(text, strlen(text), DLG_OK);
 
-    create_new_db_phase = 12;
-  } else if (create_new_db_phase == 12) {
+    create_new_db_phase = 120;
+  } else if (create_new_db_phase == 120) {
     // 12. Done
     DialogResult result = textAreaLoop(thumby);
     if (result == DLG_RES_OK) {
-      create_new_db_phase = 13;
+      create_new_db_phase = 130;
     }
-  } else if (create_new_db_phase == 13) {
+  } else if (create_new_db_phase == 130) {
     // 13. Final
     drawTurnOffMessage(thumby);
   }
