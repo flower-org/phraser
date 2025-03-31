@@ -208,6 +208,9 @@ void unsealLoop(Thumby* thumby) {
     if (key_block_decrypt_cursor >= max_key_blocks) {
       char* text = "DB decryption done";
       initTextAreaDialog(text, strlen(text), TEXT_AREA);
+
+      finalizeBlockCacheInit();
+
       unseal_phase = 6;
     } else {
       //0. output progress
@@ -241,7 +244,6 @@ void unsealLoop(Thumby* thumby) {
     }
   } else if (unseal_phase == 6) {
     // PHASE 6. Database decrypted, run main operation
-    finalizeBlockCacheInit();
 
     textAreaLoop(thumby);
     //TODO: implement
