@@ -40,7 +40,7 @@ void initList(ListItem** new_items, int new_item_count);
 
 ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon);
 ListItem* createListItem(const char* name, phraser_Icon_enum_t icon);
-ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon, int code);
-ListItem* createListItem(const char* name, phraser_Icon_enum_t icon, int code);
+ListItem* createListItemWithCode(char* name, int name_length, phraser_Icon_enum_t icon, int code);
+ListItem* createListItemWithCode(const char* name, phraser_Icon_enum_t icon, int code);
 
 void freeItemList(ListItem** items, int count);

@@ -185,22 +185,22 @@ void init_folder_menu(int chosen_item) {
   if (folder_browser_selection != NULL) {
     if (folder_browser_selection->folder != NULL) {
       sprintf(text, "Rename folder `%s`", folder_browser_selection->folder->folderName);
-      screen_items[menu_item_cursor++] = createListItem(text, phraser_Icon_Check, FOLDER_MENU_RENAME_FOLDER);
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Check, FOLDER_MENU_RENAME_FOLDER);
       sprintf(text, "Delete folder `%s`", folder_browser_selection->folder->folderName);
-      screen_items[menu_item_cursor++] = createListItem(text, phraser_Icon_X), FOLDER_MENU_DELETE_FOLDER;
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, FOLDER_MENU_DELETE_FOLDER);
     } 
   }
   if (folder_browser_selection != NULL) {
     if (folder_browser_selection->phrase != NULL) {
       sprintf(text, "Delete phrase `%s`", folder_browser_selection->phrase->name);
-      screen_items[menu_item_cursor++] = createListItem(text, phraser_Icon_X, FOLDER_MENU_DELETE_PHRASE);
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, FOLDER_MENU_DELETE_PHRASE);
       menu_items_count += 1;
     }
   }
   sprintf(text, "New folder under `%s`", folder_browser_folder->folderName);
-  screen_items[menu_item_cursor++] = createListItem(text, phraser_Icon_Plus, FOLDER_MENU_NEW_FOLDER);
+  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_FOLDER);
   sprintf(text, "New phrase under `%s`", folder_browser_folder->folderName);
-  screen_items[menu_item_cursor++] = createListItem(text, phraser_Icon_Plus, FOLDER_MENU_NEW_PHRASE);
+  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_PHRASE);
   initList(screen_items, menu_items_count);
   freeItemList(screen_items, menu_items_count);
 }

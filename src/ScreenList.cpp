@@ -329,7 +329,7 @@ char* createDoubleName(char* name, int name_length) {
   return double_name;
 }
 
-ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon, int code) {
+ListItem* createListItemWithCode(char* name, int name_length, phraser_Icon_enum_t icon, int code) {
   ListItem* listItem = (ListItem*)malloc(sizeof(ListItem));
 
   listItem->name = copyString(name, name_length);
@@ -337,7 +337,7 @@ ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon, 
   listItem->name_length = name_length;
   listItem->too_wide_need_scroll = (name_length > max_letters_to_show);
   listItem->nameCursor = 0;
-  listItem->last_move = 0;
+  listItem->last_move = millis() + 500;
   listItem->icon = icon;
   listItem->shift = 0;
   listItem->code = code;
@@ -345,12 +345,12 @@ ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon, 
   return listItem;
 }
 
-ListItem* createListItem(const char* name, phraser_Icon_enum_t icon, int code) {
-  return createListItem((char*)name, (int)strlen(name), icon, code);
+ListItem* createListItemWithCode(const char* name, phraser_Icon_enum_t icon, int code) {
+  return createListItemWithCode((char*)name, (int)strlen(name), icon, code);
 }
 
 ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon) {
-  return createListItem(name, name_length, icon, -1);
+  return createListItemWithCode(name, name_length, icon, -1);
 }
 
 ListItem* createListItem(const char* name, phraser_Icon_enum_t icon) {
