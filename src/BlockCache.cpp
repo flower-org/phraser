@@ -3,6 +3,7 @@
 #include "rbtree.h"
 #include "hashtable.h"
 #include "arraylist.h"
+#include "SerialUtils.h"
 
 //TODO: comment out debug Serial output in this file
 
@@ -175,38 +176,38 @@ BlockIdAndVersion setKeyBlock(uint8_t* block) {
 
     phraser_StoreBlock_struct_t storeblock = phraser_KeyBlock_block(key_block);
     key_block_id = phraser_StoreBlock_block_id(storeblock);
-    Serial.printf("key_block_id %d\r\n", key_block_id);
+    serialDebugPrintf("key_block_id %d\r\n", key_block_id);
 
     uint32_t old_key_block_version = getBlockVersion(key_block_id);
     uint32_t new_key_block_version = phraser_StoreBlock_version(storeblock);
-    Serial.printf("new_key_block_version %d; old_key_block_version %d \r\n", new_key_block_version, old_key_block_version);
+    serialDebugPrintf("new_key_block_version %d; old_key_block_version %d \r\n", new_key_block_version, old_key_block_version);
     if (new_key_block_version >= old_key_block_version) {
       if (main_key != NULL) { free(main_key); }
       if (main_iv_mask != NULL) { free(main_iv_mask); }
       if (db_name != NULL) { free(db_name); }
     
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
-      Serial.printf("entropy %d\r\n", entropy);
+      serialDebugPrintf("entropy %d\r\n", entropy);
 
       max_block_count = phraser_KeyBlock_block_count(key_block);
-      Serial.printf("max_block_count %d\r\n", max_block_count);
+      serialDebugPrintf("max_block_count %d\r\n", max_block_count);
 
       flatbuffers_int8_vec_t db_name_str = phraser_KeyBlock_db_name(key_block);
       db_name_length = flatbuffers_vec_len(db_name_str);
       db_name = copyString((char*)db_name_str, db_name_length);
-      Serial.printf("db_name %s\r\n", db_name);
+      serialDebugPrintf("db_name %s\r\n", db_name);
 
       flatbuffers_int8_vec_t main_key_vec = phraser_KeyBlock_key(key_block);
       main_key_length = flatbuffers_vec_len(main_key_vec);
       main_key = copyBuffer((uint8_t*)main_key_vec, main_key_length);
-      Serial.printf("main_key_length %d\r\n", main_key_length);
+      serialDebugPrintf("main_key_length %d\r\n", main_key_length);
 
       flatbuffers_int8_vec_t aes256_iv_mask_vec = phraser_KeyBlock_iv(key_block);
       main_iv_mask_length = flatbuffers_vec_len(aes256_iv_mask_vec);
       main_iv_mask = copyBuffer((uint8_t*)aes256_iv_mask_vec, main_iv_mask_length);
-      Serial.printf("aes256_iv_mask_length %d\r\n", main_iv_mask_length);
+      serialDebugPrintf("aes256_iv_mask_length %d\r\n", main_iv_mask_length);
 
-      Serial.printf("ZXC. Before RETURN\r\n");
+      serialDebugPrintf("ZXC. Before RETURN\r\n");
       return { key_block_id, new_key_block_version, entropy, false };
     } else {
       return BLOCK_NOT_UPDATED;
@@ -234,20 +235,20 @@ BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
 
     phraser_StoreBlock_struct_t storeblock = phraser_SymbolSetsBlock_block(symbol_sets_block);
     symbol_sets_block_id = phraser_StoreBlock_block_id(storeblock);
-    Serial.printf("symbol_sets_block_id %d\r\n", symbol_sets_block_id);
+    serialDebugPrintf("symbol_sets_block_id %d\r\n", symbol_sets_block_id);
 
     uint32_t old_symbol_sets_block_version = getBlockVersion(symbol_sets_block_id);
     uint32_t new_symbol_sets_block_version = phraser_StoreBlock_version(storeblock);
-    Serial.printf("new_symbol_sets_block_version %d; old_symbol_sets_block_version %d\r\n", new_symbol_sets_block_version, old_symbol_sets_block_version);
+    serialDebugPrintf("new_symbol_sets_block_version %d; old_symbol_sets_block_version %d\r\n", new_symbol_sets_block_version, old_symbol_sets_block_version);
     if (new_symbol_sets_block_version > old_symbol_sets_block_version) {
       if (symbol_sets != NULL) { hashtable_iterate_entries(symbol_sets, removeAllSymbolSets); }
 
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
-      Serial.printf("entropy %d\r\n", entropy);
+      serialDebugPrintf("entropy %d\r\n", entropy);
 
       phraser_SymbolSet_vec_t symbol_sets_vec = phraser_SymbolSetsBlock_symbol_sets(symbol_sets_block);
       size_t symbol_sets_vec_length = flatbuffers_vec_len(symbol_sets_vec);
-      Serial.printf("symbol_sets_vec_length %d\r\n", symbol_sets_vec_length);
+      serialDebugPrintf("symbol_sets_vec_length %d\r\n", symbol_sets_vec_length);
 
       if (symbol_sets == NULL) {
         symbol_sets = hashtable_create();
@@ -271,9 +272,9 @@ BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
 
         hashtable_set(symbol_sets, symbol_set_id, symbol_set);
 
-        Serial.printf("symbol_set_id %d\r\n", symbol_set_id);
-        Serial.printf("symbolSetName %s\r\n", symbol_set->symbolSetName);
-        Serial.printf("symbolSet %s\r\n", symbol_set->symbolSet);
+        serialDebugPrintf("symbol_set_id %d\r\n", symbol_set_id);
+        serialDebugPrintf("symbolSetName %s\r\n", symbol_set->symbolSetName);
+        serialDebugPrintf("symbolSet %s\r\n", symbol_set->symbolSet);
       }
 
       return { symbol_sets_block_id, new_symbol_sets_block_version, entropy, false };
@@ -309,21 +310,21 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
   
     phraser_StoreBlock_struct_t storeblock = phraser_FoldersBlock_block(folders_block);
     folders_block_id = phraser_StoreBlock_block_id(storeblock);
-    Serial.printf("folders_block_id %d\r\n", folders_block_id);
+    serialDebugPrintf("folders_block_id %d\r\n", folders_block_id);
 
     uint32_t old_folders_block_version = getBlockVersion(folders_block_id);
     uint32_t new_folders_block_version = phraser_StoreBlock_version(storeblock);
-    Serial.printf("new_folders_block_version %d; old_folders_block_version %d\r\n", new_folders_block_version, old_folders_block_version);
+    serialDebugPrintf("new_folders_block_version %d; old_folders_block_version %d\r\n", new_folders_block_version, old_folders_block_version);
     if (new_folders_block_version > old_folders_block_version) {
       if (folders != NULL) { hashtable_iterate_entries(folders, removeAllFolders); }
       if (sub_folders_by_folder != NULL) { hashtable_iterate_entries(sub_folders_by_folder, removeAllSubFoldersByfolder); }
       
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
-      Serial.printf("entropy %d\r\n", entropy);
+      serialDebugPrintf("entropy %d\r\n", entropy);
 
       phraser_SymbolSet_vec_t folders_vec = phraser_FoldersBlock_folders(folders_block);
       size_t folders_vec_length = flatbuffers_vec_len(folders_vec);
-      Serial.printf("folders_vec_length %d\r\n", folders_vec_length);
+      serialDebugPrintf("folders_vec_length %d\r\n", folders_vec_length);
 
       if (folders == NULL) {
         folders = hashtable_create();
@@ -348,9 +349,9 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
 
         hashtable_set(folders, folder_id, folder);
 
-        Serial.printf("folder_id %d\r\n", folder_id);
-        Serial.printf("parent_id %d\r\n", parent_folder_id);
-        Serial.printf("folderName %s\r\n", folder->folderName);
+        serialDebugPrintf("folder_id %d\r\n", folder_id);
+        serialDebugPrintf("parent_id %d\r\n", parent_folder_id);
+        serialDebugPrintf("folderName %s\r\n", folder->folderName);
 
         arraylist* subfolder_list_of_parent_folder = (arraylist*)hashtable_get(sub_folders_by_folder, parent_folder_id);
         if (subfolder_list_of_parent_folder == NULL) {
@@ -359,12 +360,12 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
         }
         arraylist_add(subfolder_list_of_parent_folder, (void*)folder_id);
         
-        Serial.printf("subfolders of parent_id %d: ", parent_folder_id);
+        serialDebugPrintf("subfolders of parent_id %d: ", parent_folder_id);
         for (int j = 0; j < arraylist_size(subfolder_list_of_parent_folder); j++) {
           uint32_t child_folder_id = (uint32_t)arraylist_get(subfolder_list_of_parent_folder, j);
-          Serial.printf("%d, ", child_folder_id);
+          serialDebugPrintf("%d, ", child_folder_id);
         }
-        Serial.printf("\r\n");
+        serialDebugPrintf("\r\n");
       }
 
       return { folders_block_id, new_folders_block_version, entropy, false };
@@ -404,25 +405,25 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
 
     phraser_StoreBlock_struct_t storeblock = phraser_PhraseTemplatesBlock_block(phrase_templates_block);
     phrase_templates_block_id = phraser_StoreBlock_block_id(storeblock);
-    Serial.printf("phrase_templates_block_id %d\r\n", phrase_templates_block_id);
+    serialDebugPrintf("phrase_templates_block_id %d\r\n", phrase_templates_block_id);
   
     uint32_t old_phrase_templates_block_version = getBlockVersion(phrase_templates_block_id);
     uint32_t new_phrase_templates_block_version = phraser_StoreBlock_version(storeblock);
-    Serial.printf("new_phrase_templates_block_version %d; old_phrase_templates_block_version %d\r\n", new_phrase_templates_block_version, old_phrase_templates_block_version);
+    serialDebugPrintf("new_phrase_templates_block_version %d; old_phrase_templates_block_version %d\r\n", new_phrase_templates_block_version, old_phrase_templates_block_version);
     if (new_phrase_templates_block_version > old_phrase_templates_block_version) {
       if (word_templates != NULL) { hashtable_iterate_entries(word_templates, removeWordTemplates); }
       if (phrase_templates != NULL) { hashtable_iterate_entries(phrase_templates, removePhraseTemplates); }
     
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
-      Serial.printf("entropy %d\r\n", entropy);
+      serialDebugPrintf("entropy %d\r\n", entropy);
 
       phraser_PhraseTemplate_vec_t phrase_templates_vec = phraser_PhraseTemplatesBlock_phrase_templates(phrase_templates_block);
       size_t phrase_templates_vec_length = flatbuffers_vec_len(phrase_templates_vec);
-      Serial.printf("phrase_templates_vec_length %d\r\n", phrase_templates_vec_length);
+      serialDebugPrintf("phrase_templates_vec_length %d\r\n", phrase_templates_vec_length);
 
       phraser_WordTemplate_vec_t word_templates_vec = phraser_PhraseTemplatesBlock_word_templates(phrase_templates_block);
       size_t word_templates_vec_length = flatbuffers_vec_len(word_templates_vec);
-      Serial.printf("word_templates_vec_length %d\r\n", word_templates_vec_length);
+      serialDebugPrintf("word_templates_vec_length %d\r\n", word_templates_vec_length);
 
       if (word_templates == NULL) {
         word_templates = hashtable_create();
@@ -431,7 +432,7 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
         phrase_templates = hashtable_create();
       }
 
-      Serial.printf("phrase_templates of phrase_templates_block_id %d\r\n", phrase_templates_block_id);
+      serialDebugPrintf("phrase_templates of phrase_templates_block_id %d\r\n", phrase_templates_block_id);
       for (int i = 0; i < phrase_templates_vec_length; i++) {
         phraser_PhraseTemplate_table_t phrase_template_fb = phraser_PhraseTemplate_vec_at(phrase_templates_vec, i);
 
@@ -451,26 +452,26 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
         phrase_template->wordTemplateIds = arraylist_create();
         phrase_template->wordTemplateOrdinals = arraylist_create();
 
-        Serial.printf("=============================================%d\r\n");
-        Serial.printf("phrase_template_id %d\r\n", phrase_template_id);
-        Serial.printf("phraseTemplateName %s\r\n", phrase_template->phraseTemplateName);
+        serialDebugPrintf("=============================================%d\r\n");
+        serialDebugPrintf("phrase_template_id %d\r\n", phrase_template_id);
+        serialDebugPrintf("phraseTemplateName %s\r\n", phrase_template->phraseTemplateName);
 
-        Serial.printf("word template refs of phrase_template_id %d: \r\n", phrase_template_id);
+        serialDebugPrintf("word template refs of phrase_template_id %d: \r\n", phrase_template_id);
         for (int j = 0; j < word_template_refs_length; j++) {
           phraser_WordTemplateRef_table_t word_template_ref_fb = phraser_WordTemplateRef_vec_at(word_template_refs_vec, j);
 
           uint16_t word_ref_template_id = phraser_WordTemplateRef_word_template_id(word_template_ref_fb);
           uint16_t word_ref_template_ordinal = phraser_WordTemplateRef_word_template_ordinal(word_template_ref_fb);
 
-          Serial.printf("%d/%d, ", word_ref_template_id, word_ref_template_ordinal);
+          serialDebugPrintf("%d/%d, ", word_ref_template_id, word_ref_template_ordinal);
 
           arraylist_add(phrase_template->wordTemplateIds, (void*)word_ref_template_id);
           arraylist_add(phrase_template->wordTemplateOrdinals, (void*)word_ref_template_ordinal);
         }
-        Serial.printf("\r\n");
+        serialDebugPrintf("\r\n");
       }
 
-      Serial.printf("word_templates of phrase_templates_block_id %d\r\n", phrase_templates_block_id);
+      serialDebugPrintf("word_templates of phrase_templates_block_id %d\r\n", phrase_templates_block_id);
       for (int i = 0; i < word_templates_vec_length; i++) {
         phraser_WordTemplate_table_t word_template_fb = phraser_WordTemplate_vec_at(word_templates_vec, i);
 
@@ -486,12 +487,12 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
         flatbuffers_uint16_vec_t symbol_set_ids_vec = phraser_WordTemplate_symbol_set_ids(word_template_fb);
         size_t symbol_set_ids_length = flatbuffers_vec_len(symbol_set_ids_vec);
 
-        Serial.printf("=============================================%d\r\n");
-        Serial.printf("word_template_id %d\r\n", word_template_id);
-        Serial.printf("permissions %d\r\n", permissions);
-        Serial.printf("icon %d\r\n", icon);
-        Serial.printf("min_length %d\r\n", min_length);
-        Serial.printf("max_length %d\r\n", max_length);
+        serialDebugPrintf("=============================================%d\r\n");
+        serialDebugPrintf("word_template_id %d\r\n", word_template_id);
+        serialDebugPrintf("permissions %d\r\n", permissions);
+        serialDebugPrintf("icon %d\r\n", icon);
+        serialDebugPrintf("min_length %d\r\n", min_length);
+        serialDebugPrintf("max_length %d\r\n", max_length);
 
         WordTemplate* word_template = (WordTemplate*)malloc(sizeof(WordTemplate));
         word_template->wordTemplateId = word_template_id;
@@ -500,14 +501,14 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
         word_template->minLength = min_length;
         word_template->maxLength = max_length;
         word_template->wordTemplateName = copyString((char*)word_template_name_str, word_template_name_length);
-        Serial.printf("wordTemplateName %s\r\n", word_template->wordTemplateName);
+        serialDebugPrintf("wordTemplateName %s\r\n", word_template->wordTemplateName);
 
-        Serial.printf("symbolset ids of word template %d: \r\n", word_template_id);
+        serialDebugPrintf("symbolset ids of word template %d: \r\n", word_template_id);
         word_template->symbolSetIds = arraylist_create();
         for (int j = 0; j < symbol_set_ids_length; j++) {
           uint16_t symbol_set_id = flatbuffers_uint16_vec_at(symbol_set_ids_vec, j);
           arraylist_add(word_template->symbolSetIds, (void*)symbol_set_id);
-          Serial.printf("symbol_set_id %d\r\n", symbol_set_id);
+          serialDebugPrintf("symbol_set_id %d\r\n", symbol_set_id);
         }
       }
 
@@ -560,7 +561,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
     
     phraser_StoreBlock_struct_t storeblock = phraser_PhraseBlock_block(phrase_block);
     uint16_t phrase_block_id = phraser_StoreBlock_block_id(storeblock);
-    Serial.printf("phrase_block_id %d\r\n", phrase_block_id);
+    serialDebugPrintf("phrase_block_id %d\r\n", phrase_block_id);
 
     uint32_t old_phrase_block_version = 0;
     BlockNumberAndVersionAndCount* blockInfo = (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, phrase_block_id);
@@ -569,13 +570,13 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
     }
 
     uint32_t new_phrase_block_version = phraser_StoreBlock_version(storeblock);
-    Serial.printf("new_phrase_block_version %d, old_phrase_block_version %d \r\n", new_phrase_block_version, old_phrase_block_version);
+    serialDebugPrintf("new_phrase_block_version %d, old_phrase_block_version %d \r\n", new_phrase_block_version, old_phrase_block_version);
     if (new_phrase_block_version > old_phrase_block_version) {
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
-      Serial.printf("entropy %d\r\n", entropy);
+      serialDebugPrintf("entropy %d\r\n", entropy);
 
       uint16_t folder_id = phraser_PhraseBlock_folder_id(phrase_block);
-      Serial.printf("folder_id %d\r\n", folder_id);
+      serialDebugPrintf("folder_id %d\r\n", folder_id);
       flatbuffers_string_t phrase_name_str = phraser_PhraseBlock_phrase_name(phrase_block);
       flatbuffers_bool_t is_tombstone = phraser_PhraseBlock_is_tombstone(phrase_block);
       size_t phrase_name_length = flatbuffers_string_len(phrase_name_str);
@@ -584,7 +585,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
         // Remove from `phrases` and `phrasesByFolder` is exists
         PhraseFolderAndName* removed_phrase_folder_and_name = (PhraseFolderAndName*)hashtable_remove(phrases, phrase_block_id);
         if (removed_phrase_folder_and_name != NULL) {
-          Serial.printf("Tombstoning phrase %s\r\n", removed_phrase_folder_and_name->name);
+          serialDebugPrintf("Tombstoning phrase %s\r\n", removed_phrase_folder_and_name->name);
 
           free(removed_phrase_folder_and_name->name);
           free(removed_phrase_folder_and_name);
@@ -601,7 +602,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
           phrase_folder_and_name->folderId = folder_id;
           phrase_folder_and_name->name = copyString((char*)phrase_name_str, phrase_name_length);
           hashtable_set(phrases, phrase_block_id, phrase_folder_and_name);
-          Serial.printf("New phrase %s\r\n", phrase_folder_and_name->name);
+          serialDebugPrintf("New phrase %s\r\n", phrase_folder_and_name->name);
 
           addToPhraseByFolderList(folder_id, phrase_block_id);
         } else if (!(blockInfo->isTombstoned)) {
@@ -615,7 +616,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
           phrase_folder_and_name->folderId = folder_id;
           free(phrase_folder_and_name->name);
           phrase_folder_and_name->name = copyString((char*)phrase_name_str, phrase_name_length);
-          Serial.printf("Update phrase %s\r\n", phrase_folder_and_name->name);
+          serialDebugPrintf("Update phrase %s\r\n", phrase_folder_and_name->name);
         }
       }
 
@@ -629,7 +630,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
 }
 
 void startBlockCacheInit() {
-  Serial.printf("startBlockCacheInit!\r\n");
+  serialDebugPrintf("startBlockCacheInit!\r\n");
   // will be initialized by first tree_insert
   occupiedBlockNumbers = NULL;
   blockIdByBlockNumber = hashtable_create();
@@ -639,7 +640,7 @@ void startBlockCacheInit() {
   phrases = hashtable_create();
   phrasesByFolder = hashtable_create();
 
-  Serial.printf("startBlockCacheInit DONE\r\n");
+  serialDebugPrintf("startBlockCacheInit DONE\r\n");
 }
 
 void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
@@ -664,32 +665,32 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
   }
 
   // 2. Update DB structures
-  Serial.printf("2. Update DB structures!\r\n");
-  Serial.printf("blockAndVersion.blockId %d\r\n", blockAndVersion.blockId);
+  serialDebugPrintf("2. Update DB structures!\r\n");
+  serialDebugPrintf("blockAndVersion.blockId %d\r\n", blockAndVersion.blockId);
   if (blockAndVersion.blockId > 0) {
-    Serial.printf("2.1. Update holders of last values / counters\r\n");
+    serialDebugPrintf("2.1. Update holders of last values / counters\r\n");
     // 2.1. Update holders of last values / counters
-    Serial.printf("lastBlockId %d\r\n", lastBlockId);
+    serialDebugPrintf("lastBlockId %d\r\n", lastBlockId);
     if (blockAndVersion.blockId > lastBlockId) {
       lastBlockId = blockAndVersion.blockId;
     }
-    Serial.printf("blockAndVersion.blockVersion %d\r\n", blockAndVersion.blockVersion);
-    Serial.printf("lastBlockVersion %d\r\n", lastBlockVersion);
-    Serial.printf("lastBlockNumber %d\r\n", lastBlockNumber);
-    Serial.printf("block_number %d\r\n", block_number);
-    Serial.printf("lastEntropy %d\r\n", lastEntropy);
-    Serial.printf("blockAndVersion.entropy %d\r\n", blockAndVersion.entropy);
+    serialDebugPrintf("blockAndVersion.blockVersion %d\r\n", blockAndVersion.blockVersion);
+    serialDebugPrintf("lastBlockVersion %d\r\n", lastBlockVersion);
+    serialDebugPrintf("lastBlockNumber %d\r\n", lastBlockNumber);
+    serialDebugPrintf("block_number %d\r\n", block_number);
+    serialDebugPrintf("lastEntropy %d\r\n", lastEntropy);
+    serialDebugPrintf("blockAndVersion.entropy %d\r\n", blockAndVersion.entropy);
     if (blockAndVersion.blockVersion > lastBlockVersion) {
       lastBlockVersion = blockAndVersion.blockVersion;
       lastBlockNumber = block_number;
       lastEntropy = blockAndVersion.entropy;
     }
 
-    Serial.printf("2.2. Add BlockNumber to BlockId mapping\r\n");
+    serialDebugPrintf("2.2. Add BlockNumber to BlockId mapping\r\n");
     // 2.2. Add BlockNumber to BlockId mapping
     hashtable_set(blockIdByBlockNumber, block_number, (void*)blockAndVersion.blockId);
 
-    Serial.printf("2.3. Update BlockId to BlockNumberAndVersionAndCount mapping\r\n");
+    serialDebugPrintf("2.3. Update BlockId to BlockNumberAndVersionAndCount mapping\r\n");
     // 2.3. Update BlockId to BlockNumberAndVersionAndCount mapping
     BlockNumberAndVersionAndCount* blockInfo = 
             (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, blockAndVersion.blockId);

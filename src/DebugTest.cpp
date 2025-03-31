@@ -4,24 +4,25 @@
 #include "hashtable.h"
 #include "pbkdf2-sha256.h"
 #include "PhraserUtils.h"
+#include "SerialUtils.h"
 
-static void perNode(data_t val) { Serial.printf("%u ", val); }
+static void perNode(data_t val) { serialDebugPrintf("%u ", val); }
 
 void outputTree(node_t *root) {
   traverse_inorder(root, perNode);
-  Serial.printf("\r\n");
+  serialDebugPrintf("\r\n");
   traverse_inorder_backwards(root, perNode);
-  Serial.printf("\r\n");
+  serialDebugPrintf("\r\n");
   traverse_right_excl(root, 15, perNode);
-  Serial.printf("\r\n");
+  serialDebugPrintf("\r\n");
   traverse_left_excl(root, 15, perNode);
-  Serial.printf("\r\n");
+  serialDebugPrintf("\r\n");
 }
 
 void rbtreeTest() {
   node_t *root = NULL;
 
-  Serial.printf("START!\r\n");
+  serialDebugPrintf("START!\r\n");
 
   int testKeys[] = {10, 20, 30, 15, 15, 15, 25, 5, 35, 40};
   for (int i : testKeys) {
@@ -29,49 +30,49 @@ void rbtreeTest() {
   }
 
   outputTree(root);
-  Serial.printf("\r\nHOP!\r\n");
+  serialDebugPrintf("\r\nHOP!\r\n");
 
   tree_delete(&root, 5);
 
   outputTree(root);
 
-  Serial.printf("\r\nHOP2!\r\n");
+  serialDebugPrintf("\r\nHOP2!\r\n");
 
   tree_delete(&root, 20);
 
-  Serial.printf("\r\nHOPHOP!\r\n");
+  serialDebugPrintf("\r\nHOPHOP!\r\n");
 
   outputTree(root);
 
   node_t* low = tree_minimum(root);
-  Serial.printf("\rlow %u\r\n", low->_data);
+  serialDebugPrintf("\rlow %u\r\n", low->_data);
   node_t* high = tree_maximum(root);
-  Serial.printf("high %u\r\n", high->_data);
+  serialDebugPrintf("high %u\r\n", high->_data);
 
   node_t* higher = tree_higherKey(root, 25);
-  Serial.printf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
+  serialDebugPrintf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
   node_t* lower = tree_lowerKey(root, 25);
-  Serial.printf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
+  serialDebugPrintf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
 
   higher = tree_higherKey(root, 18);
-  Serial.printf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
+  serialDebugPrintf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
   lower = tree_lowerKey(root, 18);
-  Serial.printf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
+  serialDebugPrintf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
 
   higher = tree_higherKey(root, 33);
-  Serial.printf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
+  serialDebugPrintf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
   lower = tree_lowerKey(root, 33);
-  Serial.printf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
+  serialDebugPrintf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
 
   higher = tree_higherKey(root, 5);
-  Serial.printf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
+  serialDebugPrintf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
   lower = tree_lowerKey(root, 5);
-  Serial.printf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
+  serialDebugPrintf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
 
   higher = tree_higherKey(root, 45);
-  Serial.printf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
+  serialDebugPrintf("\rhigher %u\r\n", higher == NULL ? 0 : higher->_data);
   lower = tree_lowerKey(root, 45);
-  Serial.printf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
+  serialDebugPrintf("\rlower %u\r\n", lower == NULL ? 0 : lower->_data);
 
   tree_destroy(&root);
 }
@@ -79,10 +80,10 @@ void rbtreeTest() {
 void perKvp(hashtable *t, uint32_t key, void* value) {
   uint32_t val = (uint32_t)value;
   if (val == 16) {
-    Serial.printf("ITER: %d's value is: %d, REMOVING\n", key, val);
+    serialDebugPrintf("ITER: %d's value is: %d, REMOVING\n", key, val);
     hashtable_remove(t, val);
   } else {
-    Serial.printf("ITER: %d's value is: %d\n", key, val);
+    serialDebugPrintf("ITER: %d's value is: %d\n", key, val);
   }
 }
 
@@ -100,14 +101,14 @@ void hashtableTest() {
   hashtable_set(mytable, 0, (void*)789);
 
   int result = (int)hashtable_get(mytable, 15);
-  Serial.printf("%d's value is: %d\n", 15, result);
+  serialDebugPrintf("%d's value is: %d\n", 15, result);
 
   int result2 = (int)hashtable_get(mytable, 0);
-  Serial.printf("%d's value is: %d\n", 0, result2);
+  serialDebugPrintf("%d's value is: %d\n", 0, result2);
 
   hashtable_iterate_entries(mytable, perKvp);
 
-  Serial.printf("======================\n");
+  serialDebugPrintf("======================\n");
 
   hashtable_iterate_entries(mytable, perKvp);
 }
@@ -129,7 +130,7 @@ void sha256Test() {
   sha2_finish(&ctx, sha2sum);
 
   char* hex = bytesToHexString(sha2sum, 32);
-  Serial.printf("HEX: %s\r\n", hex);
+  serialDebugPrintf("HEX: %s\r\n", hex);
 }
 
 void debugTest() {

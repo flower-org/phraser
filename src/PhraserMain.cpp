@@ -14,6 +14,7 @@
 #include "Unseal.h"
 #include "DbCreate.h"
 #include "DebugTest.h"
+#include "SerialUtils.h"
 
 // ---------- Common ---------- 
 
@@ -82,7 +83,7 @@ void testLoop() {
 
     debugTest();
   } else if (test_phase == 2) {
-    Serial.printf("\r\nEND!\r\n");
+    serialDebugPrintf("\r\nEND!\r\n");
     char* text = "Done.";
     initTextAreaDialog(text, strlen(text), DLG_OK);
     test_phase = 3;

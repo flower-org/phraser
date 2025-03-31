@@ -104,3 +104,13 @@ void sendStartRestoreSerial() {
   Serial.write(magic_number, 4);
   Serial.write(START_RESTORE);
 }
+
+bool is_debug = false;
+void serialDebugPrintf(const char *format, ...) {
+  if (is_debug) {
+    va_list args;
+    va_start(args, format);
+    Serial.printf(format, args);
+    va_end(args);
+  }
+}

@@ -30,3 +30,4 @@ bool canReadOperationSerial();
 uint8_t readOperationSerial();
 void sendStartRestoreSerial();
 void sendRestoreBlockReceivedSerial(uint8_t bank, uint32_t block_number);
+void serialDebugPrintf(const char *format, ...);

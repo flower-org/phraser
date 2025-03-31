@@ -45,7 +45,7 @@ void addLinesToList(char* text, int text_length, arraylist* list) {
     arraylist_add(list, strdup(currentLine));
   }
 
-  //Serial.printf("Init List size %d\r\n", c_list_length(list));
+  //serialDebugPrintf("Init List size %d\r\n", c_list_length(list));
 
   free(currentLine);
 }
