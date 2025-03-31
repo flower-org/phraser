@@ -49,12 +49,6 @@ struct SymbolSet {
   char* symbolSet;
 };
 
-struct Folder {
-  uint32_t folderId;
-  uint32_t parentFolderId;
-  char* folderName;
-};
-
 struct PhraseTemplate {
   uint32_t phraseTemplateId;
   char* phraseTemplateName;
@@ -71,12 +65,6 @@ struct WordTemplate {
   uint32_t maxLength;
   char* wordTemplateName;
   arraylist* symbolSetIds;
-};
-
-struct PhraseFolderAndName {
-  uint32_t phraseBlockId;
-  uint32_t folderId;
-  char* name;
 };
 
 struct Word {
@@ -133,7 +121,7 @@ hashtable* symbol_sets = NULL;//uint32_t, SymbolSet
 // - FoldersBlock cache
 uint16_t folders_block_id = 0;
 hashtable* folders;//uint32_t, Folder
-hashtable* sub_folders_by_folder;//uint32_t, List<uint32_t>
+hashtable* sub_folders_by_folder;//uint32_t, arraylist<uint32_t>
 
 // - PhraseTemplatesBlock cache
 uint16_t phrase_templates_block_id = 0;
@@ -142,7 +130,7 @@ hashtable* word_templates;//uint32_t, WordTemplate
 
 // - Phrase Blocks (minimal info) cache
 hashtable* phrases;//uint32_t, PhraseFolderAndName
-hashtable* phrasesByFolder;//uint32_t, arraylist<uint32_t>
+hashtable* phrases_by_folder;//uint32_t, arraylist<uint32_t>
 
 void setLoginData(uint8_t* key, uint32_t key_length) {
   if (key_block_key != NULL) {
@@ -522,7 +510,7 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
 }
 
 void deleteFromPhraseByFolderList(uint16_t folder_id, uint16_t phrase_block_id) {
-  arraylist* folderPhrases = (arraylist*)hashtable_get(phrasesByFolder, folder_id);
+  arraylist* folderPhrases = (arraylist*)hashtable_get(phrases_by_folder, folder_id);
   if (folderPhrases != NULL) {
     int i = 0;
     while (true) {
@@ -537,10 +525,10 @@ void deleteFromPhraseByFolderList(uint16_t folder_id, uint16_t phrase_block_id) 
 }
 
 void addToPhraseByFolderList(uint16_t folder_id, uint16_t phrase_block_id) {
-  arraylist* folderPhrases = (arraylist*)hashtable_get(phrasesByFolder, folder_id);
+  arraylist* folderPhrases = (arraylist*)hashtable_get(phrases_by_folder, folder_id);
   if (folderPhrases == NULL) {
     folderPhrases = arraylist_create();
-    hashtable_set(phrasesByFolder, folder_id, folderPhrases);
+    hashtable_set(phrases_by_folder, folder_id, folderPhrases);
   } else {
     for (int i = 0; i < arraylist_size(folderPhrases); i++) {
       if ((uint32_t)arraylist_get(folderPhrases, i) == phrase_block_id) {
@@ -582,7 +570,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
       size_t phrase_name_length = flatbuffers_string_len(phrase_name_str);
 
       if (is_tombstone) {
-        // Remove from `phrases` and `phrasesByFolder` is exists
+        // Remove from `phrases` and `phrases_by_folder` is exists
         PhraseFolderAndName* removed_phrase_folder_and_name = (PhraseFolderAndName*)hashtable_remove(phrases, phrase_block_id);
         if (removed_phrase_folder_and_name != NULL) {
           serialDebugPrintf("Tombstoning phrase %s\r\n", removed_phrase_folder_and_name->name);
@@ -596,7 +584,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
         PhraseFolderAndName* phrase_folder_and_name = (PhraseFolderAndName*)hashtable_get(phrases, phrase_block_id);
         if (phrase_folder_and_name == NULL) {
           // New block or blockInfo->isTombstoned
-          // Add to `phrases` and `phrasesByFolder`
+          // Add to `phrases` and `phrases_by_folder`
           phrase_folder_and_name = (PhraseFolderAndName*)malloc(sizeof(PhraseFolderAndName));
           phrase_folder_and_name->phraseBlockId = phrase_block_id;
           phrase_folder_and_name->folderId = folder_id;
@@ -606,7 +594,7 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
 
           addToPhraseByFolderList(folder_id, phrase_block_id);
         } else if (!(blockInfo->isTombstoned)) {
-          // Update `phrases` and `phrasesByFolder`
+          // Update `phrases` and `phrases_by_folder`
           if (phrase_folder_and_name->folderId == folder_id) {
             deleteFromPhraseByFolderList(phrase_folder_and_name->folderId, phrase_block_id);
             addToPhraseByFolderList(folder_id, phrase_block_id);
@@ -638,7 +626,7 @@ void startBlockCacheInit() {
   tombstonedBlockIds = hashtable_create();
 
   phrases = hashtable_create();
-  phrasesByFolder = hashtable_create();
+  phrases_by_folder = hashtable_create();
 
   serialDebugPrintf("startBlockCacheInit DONE\r\n");
 }
@@ -734,4 +722,54 @@ void finalizeBlockCacheInit() {
 
   // 4. Use blockInfos to add all actual block numbers to `occupiedBlockNumbers`
   hashtable_iterate_entries(blockInfos, formOccupiedBlockNumbers);
+}
+
+//  arraylist<FolderOrPhrase*>
+arraylist* getFolderContent(uint16_t parent_folder_id) {
+  arraylist* ret_list = arraylist_create();
+
+  //  hashtable* sub_folders_by_folder;//uint32_t, arraylist<uint32_t>
+  //  hashtable* folders;//uint32_t, Folder
+  arraylist* subfolders = (arraylist*)hashtable_get(sub_folders_by_folder, parent_folder_id);
+  if (subfolders != NULL) {
+    for (int i = 0; subfolders != NULL && i < arraylist_size(subfolders); i++) {
+      uint32_t subfolder_id = (uint32_t)arraylist_get(subfolders, i);
+      Folder* subfolder = (Folder*)hashtable_get(folders, subfolder_id);
+      if (subfolder != NULL) {
+        FolderOrPhrase* folder_or_phrase = (FolderOrPhrase*)malloc(sizeof(FolderOrPhrase));
+        folder_or_phrase->folder = subfolder;
+        folder_or_phrase->phrase = NULL;
+
+        arraylist_add(ret_list, (void*)folder_or_phrase);
+      }
+    }
+  }
+
+  //  hashtable* phrases_by_folder;//uint32_t, arraylist<uint32_t>
+  //  hashtable* phrases;//uint32_t, PhraseFolderAndName
+  arraylist* folderPhrases = (arraylist*)hashtable_get(phrases_by_folder, parent_folder_id);
+  if (folderPhrases != NULL) {
+    for (int i = 0; folderPhrases != NULL && i < arraylist_size(folderPhrases); i++) {
+      uint32_t phrase_id = (uint32_t)arraylist_get(folderPhrases, i);
+      PhraseFolderAndName* phrase = (PhraseFolderAndName*)hashtable_get(phrases, phrase_id);
+      if (phrase != NULL) {
+        FolderOrPhrase* folder_or_phrase = (FolderOrPhrase*)malloc(sizeof(FolderOrPhrase));
+        folder_or_phrase->folder = NULL;
+        folder_or_phrase->phrase = phrase;
+
+        arraylist_add(ret_list, (void*)folder_or_phrase);
+      }
+    }
+  }
+
+  return ret_list;
+}
+
+Folder root_folder_obj = { 0, 0, "/" };
+extern Folder* getFolder(uint16_t folder_id) {
+  if (folder_id == 0) {
+    return &root_folder_obj;
+  } else {
+    return (Folder*)hashtable_get(folders, folder_id);
+  }
 }

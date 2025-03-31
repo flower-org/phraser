@@ -5,6 +5,7 @@
 
 #include "PhraserUtils.h"
 #include "Schema_reader.h"
+#include "arraylist.h"
 
 extern uint8_t HARDCODED_SALT[];
 extern const int HARDCODED_SALT_LEN;
@@ -13,6 +14,23 @@ extern uint8_t HARDCODED_IV_MASK[];
 extern const int IV_MASK_LEN;
 
 extern const int PBKDF_INTERATIONS_COUNT;
+
+struct Folder {
+  uint32_t folderId;
+  uint32_t parentFolderId;
+  char* folderName;
+};
+
+struct PhraseFolderAndName {
+  uint32_t phraseBlockId;
+  uint32_t folderId;
+  char* name;
+};
+
+struct FolderOrPhrase {
+  PhraseFolderAndName* phrase;
+  Folder* folder;
+};
 
 // - Login data cache
 extern uint8_t* key_block_key;
@@ -33,3 +51,8 @@ void setLoginData(uint8_t* key, uint32_t key_length);
 void startBlockCacheInit();
 void registerBlockInBlockCache(uint8_t* block, uint16_t block_number);
 void finalizeBlockCacheInit();
+
+extern Folder* getFolder(uint16_t folder_id);
+//  arraylist<FolderOrPhrase*>
+arraylist* getFolderContent(uint16_t parent_folder_id);
+

@@ -9,11 +9,6 @@ int list_item_count;
 int item_cursor;
 int selection_pos;
 
-struct ItemAndPos {
-  int newly_selected_position;
-  ListItem* newly_selected;
-};
-
 void drawIcon(Thumby* thumby, int lineIndex, phraser_Icon_enum_t icon) {
   const int icon_offset_x = 1;
   const int icon_offset_y = 2;
@@ -204,7 +199,7 @@ void drawItem(Thumby* thumby, ListItem* item, int line, bool is_selected, bool n
 bool list_down_pressed = false;
 bool list_up_pressed = false;
 bool list_a_pressed = false;
-ItemAndPos innerListLoop(Thumby* thumby) {
+int listLoop(Thumby* thumby) {
   ListItem* previously_selected = list_items[item_cursor + selection_pos];
 
   // Up 
@@ -260,7 +255,7 @@ ItemAndPos innerListLoop(Thumby* thumby) {
   } else {
     if (list_a_pressed) {
       list_a_pressed = false;
-      return { newly_selected_position, newly_selected };
+      return newly_selected_position;
     }
   }
 
@@ -290,15 +285,7 @@ ItemAndPos innerListLoop(Thumby* thumby) {
     }
   }
 
-  return { -1, NULL };
-}
-
-int listLoop(Thumby* thumby) {
-  return innerListLoop(thumby).newly_selected_position;
-}
-
-ListItem* listLoopItem(Thumby* thumby) {
-  return innerListLoop(thumby).newly_selected;
+  return -1;
 }
 
 char* createDoubleName(char* name, int name_length) {
@@ -310,10 +297,6 @@ char* createDoubleName(char* name, int name_length) {
 }
 
 ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon) {
-  return createListItem(name, name_length, icon, NULL);
-}
-
-ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon, void* data) {
   ListItem* listItem = (ListItem*)malloc(sizeof(ListItem));
 
   listItem->name = copyString(name, name_length);
@@ -326,10 +309,6 @@ ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon, 
   listItem->shift = 0;
 
   return listItem;
-}
-
-ListItem* createListItem(const char* name, phraser_Icon_enum_t icon, void* data) {
-  return createListItem((char*)name, (int)strlen(name), icon, data);
 }
 
 ListItem* createListItem(const char* name, phraser_Icon_enum_t icon) {
