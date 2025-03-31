@@ -2,6 +2,8 @@
 
 #include "rbtree.h"
 #include "hashtable.h"
+#include "pbkdf2-sha256.h"
+#include "PhraserUtils.h"
 
 static void perNode(data_t val) { Serial.printf("%u ", val); }
 
@@ -110,8 +112,30 @@ void hashtableTest() {
   hashtable_iterate_entries(mytable, perKvp);
 }
 
-void debugTest() {
-  rbtreeTest();
+void sha256Test() {
+  const unsigned char* test_string = (const unsigned char*)"TEST SRING HERE";
+  int length = strlen((const char*)test_string);
+  const unsigned char* test_string2 = (const unsigned char*)"ALsDSDSSGD";
+  int length2 = strlen((const char*)test_string);
+  const unsigned char* test_string3 = (const unsigned char*)"iuwiojlkmewdslk";
+  int length3 = strlen((const char*)test_string);
 
-  hashtableTest();
+	unsigned char sha2sum[32];
+	sha2_context ctx;
+  sha2_starts(&ctx, 0);
+  sha2_update(&ctx, test_string, length);
+  sha2_update(&ctx, test_string2, length2);
+  sha2_update(&ctx, test_string3, length2);
+  sha2_finish(&ctx, sha2sum);
+
+  char* hex = bytesToHexString(sha2sum, 32);
+  Serial.printf("HEX: %s\r\n", hex);
+}
+
+void debugTest() {
+  sha256Test();
+
+//  rbtreeTest();
+
+//  hashtableTest();
 }

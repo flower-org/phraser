@@ -6,7 +6,6 @@
 #include "ScreenKeyboard.h"
 #include "BlockCache.h"
 #include "DefaultDbInitializer.h"
-#include <sha256.h>
 #include "pbkdf2-sha256.h"
 
 const uint16_t BANK_BLOCK_COUNT = 128;
@@ -313,14 +312,13 @@ void createNewDbLoop(Thumby* thumby) {
     itoa(micros_int, micros_str, 10);
 
     uint8_t digest[32];
-    struct tc_sha256_state_struct s;
+    sha2_context ctx;
+    sha2_starts(&ctx, 0);
+    sha2_update(&ctx, (uint8_t*)new_password, strlen(new_password));
+    sha2_update(&ctx, (uint8_t*)random_str, strlen(random_str));
+    sha2_update(&ctx, (uint8_t*)micros_str, strlen(micros_str));
+    sha2_finish(&ctx, digest);
 
-    tc_sha256_init(&s);
-    tc_sha256_update(&s, (uint8_t*)new_password, strlen(new_password));
-    tc_sha256_update(&s, (uint8_t*)random_str, strlen(random_str));
-    tc_sha256_update(&s, (uint8_t*)micros_str, strlen(micros_str));
-    tc_sha256_final(digest, &s);
-    
     uint32_t seed = sha256ToUInt32(digest);
     randomSeed(seed);
 

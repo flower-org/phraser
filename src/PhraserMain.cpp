@@ -82,7 +82,7 @@ void testLoop() {
 
     debugTest();
   } else if (test_phase == 2) {
-    Serial.printf("END!\r\n");
+    Serial.printf("\r\nEND!\r\n");
     char* text = "Done.";
     initTextAreaDialog(text, strlen(text), DLG_OK);
     test_phase = 3;

@@ -34,16 +34,6 @@
 
 #include "pbkdf2-sha256.h"
 
-typedef struct {
-	unsigned long total[2];	/*!< number of bytes processed  */
-	unsigned long state[8];	/*!< intermediate digest state  */
-	unsigned char buffer[64];	/*!< data block being processed */
-
-	unsigned char ipad[64];	/*!< HMAC: inner padding        */
-	unsigned char opad[64];	/*!< HMAC: outer padding        */
-	int is224;		/*!< 0 => SHA-256, else SHA-224 */
-} sha2_context;
-
 /*
  * 32-bit integer manipulation macros (big endian)
  */
