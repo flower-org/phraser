@@ -196,10 +196,29 @@ void drawItem(Thumby* thumby, ListItem* item, int line, bool is_selected, bool n
   }
 }
 
+SELECT_BUTTON select_button;
+SELECT_BUTTON getSelectButton() {
+  return select_button;
+}
+
 bool list_down_pressed = false;
 bool list_up_pressed = false;
 bool list_a_pressed = false;
+bool list_b_pressed = false;
+
 int listLoop(Thumby* thumby) {
+  return listLoop(thumby, false);
+}
+
+int listLoop(Thumby* thumby, bool allow_b_select) {
+  return listLoopCode(thumby, allow_b_select).selection;
+}
+
+SelectionAndCode listLoopCode(Thumby* thumby) {
+  return listLoopCode(thumby, false);
+}
+
+SelectionAndCode listLoopCode(Thumby* thumby, bool allow_b_select) {
   ListItem* previously_selected = list_items[item_cursor + selection_pos];
 
   // Up 
@@ -255,7 +274,21 @@ int listLoop(Thumby* thumby) {
   } else {
     if (list_a_pressed) {
       list_a_pressed = false;
-      return newly_selected_position;
+      select_button = SELECT_BUTTON_A;
+      return { newly_selected_position, newly_selected->code };
+    }
+  }
+
+  if (allow_b_select) {
+    // B (alt select item)
+    if (thumby->isPressed(BUTTON_B)) {
+      list_b_pressed = true;
+    } else {
+      if (list_b_pressed) {
+        list_b_pressed = false;
+        select_button = SELECT_BUTTON_B;
+        return { newly_selected_position, newly_selected->code };
+      }
     }
   }
 
@@ -285,7 +318,7 @@ int listLoop(Thumby* thumby) {
     }
   }
 
-  return -1;
+  return { -1, -1 };
 }
 
 char* createDoubleName(char* name, int name_length) {
@@ -296,7 +329,7 @@ char* createDoubleName(char* name, int name_length) {
   return double_name;
 }
 
-ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon) {
+ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon, int code) {
   ListItem* listItem = (ListItem*)malloc(sizeof(ListItem));
 
   listItem->name = copyString(name, name_length);
@@ -307,8 +340,17 @@ ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon) 
   listItem->last_move = 0;
   listItem->icon = icon;
   listItem->shift = 0;
+  listItem->code = code;
 
   return listItem;
+}
+
+ListItem* createListItem(const char* name, phraser_Icon_enum_t icon, int code) {
+  return createListItem((char*)name, (int)strlen(name), icon, code);
+}
+
+ListItem* createListItem(char* name, int name_length, phraser_Icon_enum_t icon) {
+  return createListItem(name, name_length, icon, -1);
 }
 
 ListItem* createListItem(const char* name, phraser_Icon_enum_t icon) {
