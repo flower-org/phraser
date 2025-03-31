@@ -60,17 +60,16 @@ void initCurrentFolderScreenList(int select_folder_id, int select_phrase_id) {
   }
 }
 
-void initFolder(int folder_id) {
+void initFolder(int folder_id, int select_folder_id, int select_phrase_id) {
   Folder* next_folder = getFolder(folder_id);
   if (next_folder != NULL) {
-    int select_folder_id = current_folder->folderId;
     current_folder = next_folder;
-    initCurrentFolderScreenList(select_folder_id, -1);
+    initCurrentFolderScreenList(select_folder_id, select_phrase_id);
   }
 }
 
 void phraserDbUiInit() {
-  initFolder(0);
+  initFolder(0, -1, -1);
 }
 
 void initPhrase(int phrase_block_id) {
@@ -84,7 +83,8 @@ void phraserDbUiLoop(Thumby* thumby) {
     if (current_folder->folderId > 0) {
       if (chosenItem == 0) {
         // Up one level
-        initFolder(current_folder->parentFolderId);
+        int select_folder_id = current_folder->folderId;
+        initFolder(current_folder->parentFolderId, select_folder_id, -1);
         return;
       } else {
         folder_index--;
@@ -94,7 +94,7 @@ void phraserDbUiLoop(Thumby* thumby) {
     FolderOrPhrase* new_selected_folder = (FolderOrPhrase*)arraylist_get(current_folder_content, folder_index);
     if (new_selected_folder != NULL) {
       if (new_selected_folder->folder != NULL) {
-        initFolder(new_selected_folder->folder->folderId);
+        initFolder(new_selected_folder->folder->folderId, -1, -1);
       } else {
         initPhrase(new_selected_folder->phrase->phraseBlockId);
       }
