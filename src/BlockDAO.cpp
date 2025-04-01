@@ -108,6 +108,12 @@ void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8
 
 // -------------------- PHRASER -------------------- 
 
+void storeBlockNewVersionAndEntropy(phraser_StoreBlock_t* store_block, phraser_StoreBlock_struct_t old_store_block) {
+  store_block->block_id = phraser_StoreBlock_block_id(old_store_block);
+  store_block->version = next_block_version();
+  store_block->entropy = random_uint32();
+}
+
 void foldersBlock_folder(flatcc_builder_t* builder, uint16_t folder_id, uint16_t parent_folder_id, const char* name) {
   phraser_FoldersBlock_folders_push_create(builder, folder_id, parent_folder_id, str(builder, name));
 }
@@ -126,11 +132,22 @@ void foldersBlock_folderVec(flatcc_builder_t* builder, phraser_Folder_vec_t old_
   }
 }
 
+void symbolSetsBlock_symbolSet(flatcc_builder_t* builder, uint16_t symbol_set_id, const char* name, const char* set) {
+  phraser_SymbolSetsBlock_symbol_sets_push_create(builder, symbol_set_id, str(builder, name), str(builder, set));
+}
 
-void storeBlockNewVersionAndEntropy(phraser_StoreBlock_t* store_block, phraser_StoreBlock_struct_t old_store_block) {
-  store_block->block_id = phraser_StoreBlock_block_id(old_store_block);
-  store_block->version = next_block_version();
-  store_block->entropy = random_uint32();
+void symbolSetsBlock_symbolSet(flatcc_builder_t* builder, phraser_SymbolSet_table_t symbol_set_fb) {
+  phraser_SymbolSetsBlock_symbol_sets_push_create(builder, 
+    phraser_SymbolSet_set_id(symbol_set_fb), 
+    str(builder, phraser_SymbolSet_symbol_set_name(symbol_set_fb)), 
+    str(builder, phraser_SymbolSet_symbol_set(symbol_set_fb)));
+}
+
+void symbolSetsBlock_symbolSetVec(flatcc_builder_t* builder, phraser_SymbolSet_vec_t old_symbol_sets) {
+  size_t symbol_sets_vec_length = flatbuffers_vec_len(old_symbol_sets);
+  for (int i = 0; i < symbol_sets_vec_length; i++) {
+    symbolSetsBlock_symbolSet(builder, phraser_SymbolSet_vec_at(old_symbol_sets, i));
+  }
 }
 
 // -------------------- PHRASER BLOCKS -------------------- 
@@ -186,9 +203,42 @@ UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_si
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t block_size) {
+UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
   initRandomIfNeeded();
-  return ERROR;
+  
+  phraser_SymbolSetsBlock_table_t symbol_sets_block;
+  if (!(symbol_sets_block = phraser_SymbolSetsBlock_as_root(block + DATA_OFFSET))) {
+    return ERROR;
+  }
+
+  phraser_StoreBlock_struct_t old_store_block = phraser_SymbolSetsBlock_block(symbol_sets_block);
+  phraser_SymbolSet_vec_t old_symbol_sets = phraser_SymbolSetsBlock_symbol_sets(symbol_sets_block);
+
+  flatcc_builder_t builder;
+  flatcc_builder_init(&builder);
+
+  phraser_SymbolSetsBlock_start_as_root(&builder);
+
+  phraser_SymbolSetsBlock_symbol_sets_start(&builder);
+  symbolSetsBlock_symbolSetVec(&builder, old_symbol_sets);
+  phraser_SymbolSetsBlock_symbol_sets_end(&builder);
+
+  phraser_StoreBlock_t* store_block = phraser_SymbolSetsBlock_block_start(&builder);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  phraser_SymbolSetsBlock_block_end(&builder);
+
+  phraser_SymbolSetsBlock_end_as_root(&builder);
+
+  void *block_buffer;
+  size_t block_buffer_size;
+  block_buffer = flatcc_builder_finalize_aligned_buffer(&builder, &block_buffer_size);
+
+  wrapDataBufferInBlock(phraser_BlockType_SymbolSetsBlock, block, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
+
+  flatcc_builder_aligned_free(block_buffer);
+  flatcc_builder_clear(&builder);
+
+  return OK;
 }
 
 UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
@@ -249,7 +299,7 @@ UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size,
     case phraser_BlockType_KeyBlock: 
       return updateVersionAndEntropyKeyBlock(block, block_size, aes_key, aes_iv_mask);
     case phraser_BlockType_SymbolSetsBlock: 
-      return updateVersionAndEntropySymbolSetsBlock(block, block_size);
+      return updateVersionAndEntropySymbolSetsBlock(block, block_size, aes_key, aes_iv_mask);
     case phraser_BlockType_FoldersBlock: 
       return updateVersionAndEntropyFoldersBlock(block, block_size, aes_key, aes_iv_mask);
     case phraser_BlockType_PhraseTemplatesBlock: 

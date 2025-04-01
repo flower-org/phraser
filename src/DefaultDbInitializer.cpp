@@ -48,10 +48,6 @@ void initDefaultKeyBlock(uint8_t* out_buffer, const uint8_t* in_aes_key, const u
   flatcc_builder_clear(&builder);
 }
 
-void symbolSet(flatcc_builder_t* builder, uint16_t symbol_set_id, const char* name, const char* set) {
-  phraser_SymbolSetsBlock_symbol_sets_push_create(builder, symbol_set_id, str(builder, name), str(builder, set));
-}
-
 void initDefaultSymbolSetsBlock(uint8_t* buffer, const uint8_t* aes_key, const uint8_t* aes_iv_mask) {
   flatcc_builder_t builder;
   flatcc_builder_init(&builder);
@@ -59,14 +55,14 @@ void initDefaultSymbolSetsBlock(uint8_t* buffer, const uint8_t* aes_key, const u
   phraser_SymbolSetsBlock_start_as_root(&builder);
 
   phraser_SymbolSetsBlock_symbol_sets_start(&builder);
-  symbolSet(&builder, 1, "Digits", "0123456789");
-  symbolSet(&builder, 2, "Letters", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
-  symbolSet(&builder, 3, "Uppercase", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-  symbolSet(&builder, 4, "Lowercase", "abcdefghijklmnopqrstuvwxyz");
-  symbolSet(&builder, 5, "Special", "%#!*^@$&");
-  symbolSet(&builder, 6, "Min special", "#!?");
-  symbolSet(&builder, 7, "Ext special", "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~");
-  symbolSet(&builder, 8, "Space", " ");
+  symbolSetsBlock_symbolSet(&builder, 1, "Digits", "0123456789");
+  symbolSetsBlock_symbolSet(&builder, 2, "Letters", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+  symbolSetsBlock_symbolSet(&builder, 3, "Uppercase", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+  symbolSetsBlock_symbolSet(&builder, 4, "Lowercase", "abcdefghijklmnopqrstuvwxyz");
+  symbolSetsBlock_symbolSet(&builder, 5, "Special", "%#!*^@$&");
+  symbolSetsBlock_symbolSet(&builder, 6, "Min special", "#!?");
+  symbolSetsBlock_symbolSet(&builder, 7, "Ext special", "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~");
+  symbolSetsBlock_symbolSet(&builder, 8, "Space", " ");
   phraser_SymbolSetsBlock_symbol_sets_end(&builder);
 
   uint32_t entropy = random_uint32();

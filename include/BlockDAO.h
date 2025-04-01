@@ -24,3 +24,4 @@ void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8
   const uint8_t* aes_iv_mask, void *block_buffer, size_t block_buffer_size);
 
 void foldersBlock_folder(flatcc_builder_t* builder, uint16_t folder_id, uint16_t parent_folder_id, const char* name);
+void symbolSetsBlock_symbolSet(flatcc_builder_t* builder, uint16_t symbol_set_id, const char* name, const char* set);
