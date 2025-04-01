@@ -105,12 +105,31 @@ void sendStartRestoreSerial() {
   Serial.write(START_RESTORE);
 }
 
-bool is_debug = false;
-void serialDebugPrintf(const char *format, ...) {
+bool is_debug = true;
+// printf-like functions and stdargs in C have some terminal issues forwarding arguments, 
+// so I had to just copy and paste the impl pretty much
+size_t serialDebugPrintf(const char *format, ...) {
   if (is_debug) {
-    va_list args;
-    va_start(args, format);
-    Serial.printf(format, args);
-    va_end(args);
+    va_list arg;
+    va_start(arg, format);
+    char temp[64];
+    char* buffer = temp;
+    size_t len = vsnprintf(temp, sizeof(temp), format, arg);
+    va_end(arg);
+    if (len > sizeof(temp) - 1) {
+        buffer = new char[len + 1];
+        if (!buffer) {
+            return 0;
+        }
+        va_start(arg, format);
+        vsnprintf(buffer, len + 1, format, arg);
+        va_end(arg);
+    }
+    len = Serial.write((const uint8_t*) buffer, len);
+    if (buffer != temp) {
+        delete[] buffer;
+    }
+    return len;
   }
+  return 0;
 }

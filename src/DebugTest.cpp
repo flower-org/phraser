@@ -5,6 +5,9 @@
 #include "pbkdf2-sha256.h"
 #include "PhraserUtils.h"
 #include "SerialUtils.h"
+#include "DefaultDbInitializer.h"
+#include "BlockCache.h"
+#include "BlockDAO.h"
 
 static void perNode(data_t val) { serialDebugPrintf("%u ", val); }
 
@@ -133,8 +136,17 @@ void sha256Test() {
   serialDebugPrintf("HEX: %s\r\n", hex);
 }
 
+void objectMutationTest() {
+  uint8_t block[FLASH_SECTOR_SIZE];
+  initDefaultFoldersBlock(block, HARDCODED_SALT, HARDCODED_IV_MASK);
+
+//  updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK);
+}
+
 void debugTest() {
-  sha256Test();
+  objectMutationTest();
+
+  //  sha256Test();
 
 //  rbtreeTest();
 

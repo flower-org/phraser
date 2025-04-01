@@ -14,6 +14,7 @@ extern uint8_t HARDCODED_IV_MASK[];
 extern const int IV_MASK_LEN;
 
 extern const int PBKDF_INTERATIONS_COUNT;
+extern const int DATA_OFFSET;
 
 struct Folder {
   uint32_t folderId;
@@ -35,6 +36,7 @@ struct FolderOrPhrase {
 // - Login data cache
 extern uint8_t* key_block_key;
 extern uint32_t key_block_key_length;
+extern uint8_t bank_number;
 
 // - KeyBlock cache
 extern char* db_name;
@@ -58,3 +60,5 @@ arraylist* getFolderContent(uint16_t parent_folder_id);
 
 uint16_t max_db_block_count();
 uint16_t valid_block_count();
+uint32_t get_last_entropy();
+uint32_t next_block_version();

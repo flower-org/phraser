@@ -322,6 +322,7 @@ void createNewDbLoop(Thumby* thumby) {
     // 8. Init random
     textAreaLoop(thumby);
 
+    // use password, user provided random string and current micros to create random seed
     uint32_t micros_int = micros();
     char micros_str[50];
     itoa(micros_int, micros_str, 10);

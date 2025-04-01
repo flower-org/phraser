@@ -21,7 +21,6 @@ int unseal_phase = 0;
 bool unseal_password_mode = false;
 bool ui_draw_cycle = false;
 int key_block_decrypt_cursor = 0;
-uint8_t unseal_bank = 1;
 int max_key_blocks = 128;
 int pbkdf2_iterations_count = PBKDF_INTERATIONS_COUNT;
 
@@ -35,7 +34,7 @@ void unsealInit(bool password_mode) {
   setLoginData(NULL, 0);
 
   debug_hex_key = NULL;
-  unseal_bank = 1;
+  bank_number = 1;
   max_key_blocks = 128;
   pbkdf2_iterations_count = PBKDF_INTERATIONS_COUNT;
   initOnScreenKeyboard(false, password_mode);
@@ -69,7 +68,7 @@ void unsealLoop(Thumby* thumby) {
     bank_items[2] = createListItem("BANK 3", phraser_Icon_Ledger);
     bank_items[3] = createListItem("Cancel", phraser_Icon_X);
 
-    initList(bank_items, count, unseal_bank-1);
+    initList(bank_items, count, bank_number-1);
     freeItemList(bank_items, count);
 
     unseal_phase = 222;
@@ -77,7 +76,7 @@ void unsealLoop(Thumby* thumby) {
     // PHASE 222. banks list
     int chosenItem = listLoop(thumby);
     if (chosenItem >= 0 && chosenItem <= 2) {
-      unseal_bank = chosenItem + 1;
+      bank_number = chosenItem + 1;
       initOnScreenKeyboard(false, unseal_password_mode);
       unseal_phase = 0;
     } else if (chosenItem == 3) {
@@ -135,9 +134,9 @@ void unsealLoop(Thumby* thumby) {
       initTextAreaDialog(text, strlen(text), DLG_OK);
       unseal_phase = -1;
     } else if (result == DLG_RES_YES) {
-      if (unseal_bank == 1) {
+      if (bank_number == 1) {
         max_key_blocks = 384;
-      } else if (unseal_bank == 2) {
+      } else if (bank_number == 2) {
         max_key_blocks = 256;
       }
       unseal_phase = 4;
@@ -149,7 +148,7 @@ void unsealLoop(Thumby* thumby) {
 
     if (key_block_decrypt_cursor >= max_key_blocks) {
       if (main_key == NULL) {//i.e. KeyBlock not loaded
-        if (max_key_blocks == 128 && (unseal_bank == 1 || unseal_bank == 2)) {
+        if (max_key_blocks == 128 && (bank_number == 1 || bank_number == 2)) {
           char* text = "Not found.\nSearch extended range?";
           initTextAreaDialog(text, strlen(text), DLG_YES_NO);
           unseal_phase = 555;
@@ -174,7 +173,7 @@ void unsealLoop(Thumby* thumby) {
 
       uint32_t db_block_size = FLASH_SECTOR_SIZE;
       uint8_t db_block[db_block_size];
-      if (loadBlockFromFlash(unseal_bank, key_block_decrypt_cursor, db_block_size,
+      if (loadBlockFromFlash(bank_number, key_block_decrypt_cursor, db_block_size,
         key_block_key, HARDCODED_IV_MASK, db_block)) {
         //5. validate KEY_BLOCK block type (1st byte in a buffer is BlockType)
         if (db_block[0] == phraser_BlockType_KeyBlock) {
@@ -196,6 +195,8 @@ void unsealLoop(Thumby* thumby) {
     if (key_block_decrypt_cursor >= max_key_blocks) {
       finalizeBlockCacheInit();
 
+      //random seed is initialized in BlockDAO at the time of first session's CUD
+
       unseal_phase = 6;
     } else {
       //0. output progress
@@ -205,7 +206,7 @@ void unsealLoop(Thumby* thumby) {
 
       uint32_t db_block_size = FLASH_SECTOR_SIZE;
       uint8_t db_block[db_block_size];
-      if (loadBlockFromFlash(unseal_bank, key_block_decrypt_cursor, db_block_size,
+      if (loadBlockFromFlash(bank_number, key_block_decrypt_cursor, db_block_size,
         main_key, main_iv_mask, db_block)) {
         //5. validate KEY_BLOCK block type (1st byte in a buffer is BlockType)
         registerBlockInBlockCache(db_block, key_block_decrypt_cursor);

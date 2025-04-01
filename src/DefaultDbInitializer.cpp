@@ -3,9 +3,12 @@
 #include "Schema_builder.h"
 #include "PhraserUtils.h"
 #include "Adler.h"
+#include "SerialUtils.h"
 
 void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8_t* aes_key, 
   const uint8_t* aes_iv_mask, void *block_buffer, size_t block_buffer_size) {
+  serialDebugPrintf("block_buffer_size %zu\r\n", (uint32_t)block_buffer_size);
+
   // Generate block IV
   uint8_t block_iv[AES256_IV_LENGTH];
   for (int i = 0; i < AES256_IV_LENGTH; i++) {
@@ -148,7 +151,9 @@ void initDefaultFoldersBlock(uint8_t* buffer, const uint8_t* aes_key, const uint
   store_block->entropy = entropy;
   phraser_FoldersBlock_block_end(&builder);
 
+  serialDebugPrintf("flatcc_builder_get_buffer_size(&builder) %zu\r\n", (uint32_t)flatcc_builder_get_buffer_size(&builder));
   phraser_FoldersBlock_end_as_root(&builder);
+  serialDebugPrintf("flatcc_builder_get_buffer_size(&builder) %zu\r\n", (uint32_t)flatcc_builder_get_buffer_size(&builder));
 
   void *block_buffer;
   size_t block_buffer_size;

@@ -101,6 +101,7 @@ hashtable* tombstonedBlockIds; //key BlockId, value BlockId
 // - Login data cache
 uint8_t* key_block_key = NULL;
 uint32_t key_block_key_length = 0;
+uint8_t bank_number;
 
 // - KeyBlock cache
 uint16_t key_block_id = 0;
@@ -781,4 +782,12 @@ uint16_t max_db_block_count() {
 
 uint16_t valid_block_count() {
   return blockInfos->size;
+}
+
+uint32_t get_last_entropy() {
+  return lastEntropy;
+}
+
+uint32_t next_block_version() {
+  return ++lastBlockVersion;
 }
