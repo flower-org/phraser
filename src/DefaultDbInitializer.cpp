@@ -108,9 +108,7 @@ void initDefaultFoldersBlock(uint8_t* buffer, const uint8_t* aes_key, const uint
   store_block->entropy = entropy;
   phraser_FoldersBlock_block_end(&builder);
 
-  serialDebugPrintf("flatcc_builder_get_buffer_size(&builder) %zu\r\n", (uint32_t)flatcc_builder_get_buffer_size(&builder));
   phraser_FoldersBlock_end_as_root(&builder);
-  serialDebugPrintf("flatcc_builder_get_buffer_size(&builder) %zu\r\n", (uint32_t)flatcc_builder_get_buffer_size(&builder));
 
   void *block_buffer;
   size_t block_buffer_size;
@@ -121,11 +119,6 @@ void initDefaultFoldersBlock(uint8_t* buffer, const uint8_t* aes_key, const uint
   flatcc_builder_aligned_free(block_buffer);
   flatcc_builder_clear(&builder);
 }
-
-/*void phraseTemplate(flatcc_builder_t* builder, uint16_t phrase_template_id, const char* phrase_template_name) {
-  v8_ref = flatbuffers_uint8_vec_create(B, 0, 0);
-  phraser_PhraseTemplatesBlock_phrase_templates_push_create(builder, phrase_template_id, str(builder, phrase_template_name), );
-}*/
 
 const uint8_t GENERATEABLE = 1;
 const uint8_t TYPEABLE = 2;
@@ -203,6 +196,46 @@ void initDefaultPhraseTemplatesBlock(uint8_t* buffer, const uint8_t* aes_key, co
   block_buffer = flatcc_builder_finalize_aligned_buffer(&builder, &block_buffer_size);
 
   wrapDataBufferInBlock(phraser_BlockType_PhraseTemplatesBlock, buffer, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
+
+  flatcc_builder_aligned_free(block_buffer);
+  flatcc_builder_clear(&builder);
+}
+
+void initDefaultPhraseBlock(uint8_t* buffer, const uint8_t* aes_key, const uint8_t* aes_iv_mask) {
+  flatcc_builder_t builder;
+  flatcc_builder_init(&builder);
+
+  phraser_PhraseBlock_start_as_root(&builder);
+
+  phraser_PhraseBlock_phrase_template_id_add(&builder, 1);
+  phraser_PhraseBlock_folder_id_add(&builder, 3);
+  phraser_PhraseBlock_is_tombstone_add(&builder, false);
+  phraser_PhraseBlock_phrase_name_add(&builder, str(&builder, "MyAccount"));
+
+  phraser_PhraseBlock_history_start(&builder);
+  phraser_Word_vec_start(&builder);
+  phraseBlock_history(&builder, 1, 1, "username", "admin", getWordPermissions(false, true, true, true), phraser_Icon_Login);
+  phraseBlock_history(&builder, 2, 1, "password", "admin", getWordPermissions(true, false, true, false), phraser_Icon_Key);
+  phraser_Word_vec_ref_t word_refs = phraser_Word_vec_end(&builder);
+  phraser_PhraseBlock_history_push_create(&builder, 1, word_refs);
+
+  phraser_PhraseBlock_history_end(&builder);
+
+  uint32_t entropy = random_uint32();
+  phraser_StoreBlock_t* store_block;
+  store_block = phraser_PhraseBlock_block_start(&builder);
+  store_block->block_id = 5;
+  store_block->version = 5;
+  store_block->entropy = entropy;
+  phraser_PhraseBlock_block_end(&builder);
+
+  phraser_PhraseBlock_end_as_root(&builder);
+
+  void *block_buffer;
+  size_t block_buffer_size;
+  block_buffer = flatcc_builder_finalize_aligned_buffer(&builder, &block_buffer_size);
+
+  wrapDataBufferInBlock(phraser_BlockType_PhraseBlock, buffer, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
 
   flatcc_builder_aligned_free(block_buffer);
   flatcc_builder_clear(&builder);

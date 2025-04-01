@@ -216,6 +216,18 @@ void phraseTemplatesBlock_phraseTemplateVec(flatcc_builder_t* builder, phraser_P
   }
 }
 
+void phraseBlock_history(flatcc_builder_t* builder, uint16_t word_template_id, int8_t word_template_ordinal,
+  char* name, char* word, int8_t permissions, phraser_Icon_enum_t icon) {
+  phraser_Word_vec_push_create(builder, 
+    word_template_id,
+    word_template_ordinal,
+    str(builder, name),
+    str(builder, word),
+    permissions,
+    icon
+  );
+}
+
 void phraseBlock_history(flatcc_builder_t* builder, phraser_PhraseHistory_table_t old_phrase_history) {
   uint16_t history_phrase_template_id = phraser_PhraseHistory_phrase_template_id(old_phrase_history);
   phraser_Word_vec_t words_vec = phraser_PhraseHistory_phrase(old_phrase_history);
@@ -411,6 +423,8 @@ UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block
 
   flatcc_builder_t builder;
   flatcc_builder_init(&builder);
+
+  phraser_PhraseBlock_start_as_root(&builder);
 
   phraser_PhraseBlock_phrase_template_id_add(&builder, phraser_PhraseBlock_phrase_template_id(phrase_block));
   phraser_PhraseBlock_folder_id_add(&builder, phraser_PhraseBlock_folder_id(phrase_block));

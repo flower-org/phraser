@@ -7,3 +7,4 @@ void initDefaultKeyBlock(uint8_t* out_buffer, const uint8_t* in_aes_key, const u
 void initDefaultSymbolSetsBlock(uint8_t* buffer, const uint8_t* aes_key, const uint8_t* aes_iv_mask);
 void initDefaultFoldersBlock(uint8_t* buffer, const uint8_t* aes_key, const uint8_t* aes_iv_mask);
 void initDefaultPhraseTemplatesBlock(uint8_t* buffer, const uint8_t* aes_key, const uint8_t* aes_iv_mask);
+void initDefaultPhraseBlock(uint8_t* buffer, const uint8_t* aes_key, const uint8_t* aes_iv_mask);

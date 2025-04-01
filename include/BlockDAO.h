@@ -30,3 +30,6 @@ void phraseTemplatesBlock_wordTemplate(flatcc_builder_t* builder, uint16_t word_
   uint16_t min_length, uint16_t max_length, const char* word_template_name, uint16_t* symbol_set_ids, uint16_t symbol_set_ids_length);
 void phraseTemplatesBlock_phraseTemplate(flatcc_builder_t* builder, uint16_t phrase_template_id, const char* phrase_template_name, 
   uint16_t* word_template_ids, uint8_t* word_template_ordinals, uint16_t word_templates_length);
+void phraseBlock_history(flatcc_builder_t* builder, uint16_t word_template_id, int8_t word_template_ordinal,
+  char* name, char* word, int8_t permissions, phraser_Icon_enum_t icon);
+  
