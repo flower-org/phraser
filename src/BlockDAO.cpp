@@ -216,6 +216,37 @@ void phraseTemplatesBlock_phraseTemplateVec(flatcc_builder_t* builder, phraser_P
   }
 }
 
+void phraseBlock_history(flatcc_builder_t* builder, phraser_PhraseHistory_table_t old_phrase_history) {
+  uint16_t history_phrase_template_id = phraser_PhraseHistory_phrase_template_id(old_phrase_history);
+  phraser_Word_vec_t words_vec = phraser_PhraseHistory_phrase(old_phrase_history);
+  size_t words_vec_length = flatbuffers_vec_len(words_vec);
+
+  phraser_Word_vec_start(builder);
+  for (int i = 0; i < words_vec_length; i++) {
+    phraser_Word_table_t word_fb = phraser_Word_vec_at(words_vec, i);
+    phraser_Word_vec_push_create(builder, 
+      phraser_Word_word_template_id(word_fb),
+      phraser_Word_word_template_ordinal(word_fb),
+      str(builder, phraser_Word_name(word_fb)),
+      str(builder, phraser_Word_word(word_fb)),
+      phraser_Word_permissions(word_fb),
+      phraser_Word_icon(word_fb)
+    );
+  }
+  phraser_Word_vec_ref_t word_refs = phraser_Word_vec_end(builder);
+
+  phraser_PhraseBlock_history_push_create(builder, 
+    history_phrase_template_id, 
+    word_refs);
+}
+
+void phraseBlock_historyVec(flatcc_builder_t* builder, phraser_PhraseHistory_vec_t old_phrase_history_vec) {
+  size_t old_phrase_history_vec_length = flatbuffers_vec_len(old_phrase_history_vec);
+  for (int i = 0; i < old_phrase_history_vec_length; i++) {
+    phraseBlock_history(builder, phraser_PhraseHistory_vec_at(old_phrase_history_vec, i));
+  }
+}
+
 // -------------------- PHRASER BLOCKS -------------------- 
 
 // TODO: this could a bit easier if Version was in the header outside flatbuf structure.
@@ -367,9 +398,37 @@ UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint1
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size) {
+UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
   initRandomIfNeeded();
-  return ERROR;
+ 
+  phraser_PhraseBlock_table_t phrase_block;
+  if (!(phrase_block = phraser_PhraseBlock_as_root(block + DATA_OFFSET))) {
+    return ERROR;
+  }
+
+  phraser_StoreBlock_struct_t old_store_block = phraser_PhraseBlock_block(phrase_block);
+  phraser_PhraseHistory_vec_t phrase_history_vec = phraser_PhraseBlock_history(phrase_block);
+
+  flatcc_builder_t builder;
+  flatcc_builder_init(&builder);
+
+  phraser_PhraseBlock_phrase_template_id_add(&builder, phraser_PhraseBlock_phrase_template_id(phrase_block));
+  phraser_PhraseBlock_folder_id_add(&builder, phraser_PhraseBlock_folder_id(phrase_block));
+  phraser_PhraseBlock_is_tombstone_add(&builder, phraser_PhraseBlock_is_tombstone(phrase_block));
+  phraser_PhraseBlock_phrase_name_add(&builder, str(&builder, phraser_PhraseBlock_phrase_name(phrase_block)));
+
+  phraser_PhraseBlock_history_start(&builder);
+  phraseBlock_historyVec(&builder, phrase_history_vec);
+  phraser_PhraseBlock_history_end(&builder);
+
+  phraser_StoreBlock_t* store_block = phraser_PhraseBlock_block_start(&builder);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  phraser_PhraseBlock_block_end(&builder);
+
+  phraser_PhraseBlock_end_as_root(&builder);
+
+  wrapUpBlock(phraser_BlockType_PhraseBlock, &builder, block, aes_key, aes_iv_mask);
+  return OK;
 }
 
 UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
@@ -388,7 +447,7 @@ UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size,
     case phraser_BlockType_PhraseTemplatesBlock: 
       return updateVersionAndEntropyPhraseTemplatesBlock(block, block_size, aes_key, aes_iv_mask);
     case phraser_BlockType_PhraseBlock: 
-      return updateVersionAndEntropyPhraseBlock(block, block_size);
+      return updateVersionAndEntropyPhraseBlock(block, block_size, aes_key, aes_iv_mask);
   }
   return ERROR;
 }
