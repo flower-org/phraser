@@ -72,6 +72,10 @@ flatbuffers_ref_t str(flatcc_builder_t* builder, const char* s) {
   return flatbuffers_string_create_str(builder, s);
 }
 
+flatbuffers_uint16_vec_ref_t vec_uint16(flatcc_builder_t* builder, uint16_t* arr, uint16_t arr_len) {
+  return flatbuffers_uint16_vec_create(builder, arr, arr_len);
+}
+
 // -------------------- BLOCK DB -------------------- 
 
 void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8_t* aes_key, 
@@ -150,12 +154,85 @@ void symbolSetsBlock_symbolSetVec(flatcc_builder_t* builder, phraser_SymbolSet_v
   }
 }
 
+void phraseTemplatesBlock_wordTemplate(flatcc_builder_t* builder, uint16_t word_template_id, uint8_t permissions, phraser_Icon_enum_t icon, 
+  uint16_t min_length, uint16_t max_length, const char* word_template_name, uint16_t* symbol_set_ids, uint16_t symbol_set_ids_length) {
+  phraser_PhraseTemplatesBlock_word_templates_push_create(builder, word_template_id, permissions, icon, min_length, max_length, 
+    str(builder, word_template_name), vec_uint16(builder, symbol_set_ids, symbol_set_ids_length));
+}
+
+void phraseTemplatesBlock_wordTemplate(flatcc_builder_t* builder, phraser_WordTemplate_table_t word_template_fb) {
+  flatbuffers_uint16_vec_t symbol_set_ids = phraser_WordTemplate_symbol_set_ids(word_template_fb);
+  phraser_PhraseTemplatesBlock_word_templates_push_create(builder, 
+    phraser_WordTemplate_word_template_id(word_template_fb),
+    phraser_WordTemplate_permissions(word_template_fb), 
+    phraser_WordTemplate_icon(word_template_fb), 
+    phraser_WordTemplate_min_length(word_template_fb), 
+    phraser_WordTemplate_max_length(word_template_fb), 
+    str(builder, phraser_WordTemplate_word_template_name(word_template_fb)), 
+    vec_uint16(builder, (uint16_t*)symbol_set_ids, flatbuffers_vec_len(symbol_set_ids))
+  );
+}
+
+void phraseTemplatesBlock_wordTemplateVec(flatcc_builder_t* builder, phraser_WordTemplate_vec_t old_word_templates) {
+  size_t word_templates_vec_length = flatbuffers_vec_len(old_word_templates);
+  for (int i = 0; i < word_templates_vec_length; i++) {
+    phraseTemplatesBlock_wordTemplate(builder, phraser_WordTemplate_vec_at(old_word_templates, i));
+  }
+}
+
+void phraseTemplatesBlock_phraseTemplate(flatcc_builder_t* builder, uint16_t phrase_template_id, const char* phrase_template_name, 
+  uint16_t* word_template_ids, uint8_t* word_template_ordinals, uint16_t word_templates_length) {
+  phraser_WordTemplateRef_vec_start(builder);
+  for (int i = 0; i < word_templates_length; i++) {
+    phraser_WordTemplateRef_vec_push_create(builder, word_template_ids[i], word_template_ordinals[i]);
+  }
+  phraser_WordTemplateRef_vec_ref_t word_template_refs = phraser_WordTemplateRef_vec_end(builder);
+
+  phraser_PhraseTemplatesBlock_phrase_templates_push_create(builder, phrase_template_id, str(builder, phrase_template_name), word_template_refs);
+}
+
+void phraseTemplatesBlock_phraseTemplate(flatcc_builder_t* builder, phraser_PhraseTemplate_table_t phrase_template_fb) {
+  phraser_WordTemplateRef_vec_t word_template_ref_vec = phraser_PhraseTemplate_word_template_refs(phrase_template_fb);
+  size_t word_templates_length = flatbuffers_vec_len(word_template_ref_vec);
+
+  phraser_WordTemplateRef_vec_start(builder);
+  for (int i = 0; i < word_templates_length; i++) {
+    phraser_WordTemplateRef_table_t word_template_fb = phraser_WordTemplateRef_vec_at(word_template_ref_vec, i);
+    phraser_WordTemplateRef_vec_push_create(builder, phraser_WordTemplateRef_word_template_id(word_template_fb), 
+          phraser_WordTemplateRef_word_template_ordinal(word_template_fb));
+  }
+  phraser_WordTemplateRef_vec_ref_t word_template_refs = phraser_WordTemplateRef_vec_end(builder);
+
+  phraser_PhraseTemplatesBlock_phrase_templates_push_create(builder, 
+    phraser_PhraseTemplate_phrase_template_id(phrase_template_fb),
+    str(builder, phraser_PhraseTemplate_phrase_template_name(phrase_template_fb)), 
+    word_template_refs);
+}
+
+void phraseTemplatesBlock_phraseTemplateVec(flatcc_builder_t* builder, phraser_PhraseTemplate_vec_t old_phrase_templates_vec) {
+  size_t old_phrase_templates_vec_length = flatbuffers_vec_len(old_phrase_templates_vec);
+  for (int i = 0; i < old_phrase_templates_vec_length; i++) {
+    phraseTemplatesBlock_phraseTemplate(builder, phraser_PhraseTemplate_vec_at(old_phrase_templates_vec, i));
+  }
+}
+
 // -------------------- PHRASER BLOCKS -------------------- 
 
 // TODO: this could a bit easier if Version was in the header outside flatbuf structure.
 //  That would also fit the common DB structure better and make complemantary copy operations agnostic to flatbuf or content format.
 //  With that said, we choose to update phraser-specific `entropy` field at the same time, which requires to deserialize flatBuffer.
 //  This consideration makes updating the structure-related code ASAP impractical. 
+
+void wrapUpBlock(uint8_t block_type, flatcc_builder_t* builder, uint8_t* block, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+  void *block_buffer;
+  size_t block_buffer_size;
+  block_buffer = flatcc_builder_finalize_aligned_buffer(builder, &block_buffer_size);
+
+  wrapDataBufferInBlock(block_type, block, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
+
+  flatcc_builder_aligned_free(block_buffer);
+  flatcc_builder_clear(builder);
+}
 
 UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
   initRandomIfNeeded();
@@ -191,15 +268,7 @@ UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_si
 
   phraser_KeyBlock_end_as_root(&builder);
 
-  void *block_buffer;
-  size_t block_buffer_size;
-  block_buffer = flatcc_builder_finalize_aligned_buffer(&builder, &block_buffer_size);
-
-  wrapDataBufferInBlock(phraser_BlockType_KeyBlock, block, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
-
-  flatcc_builder_aligned_free(block_buffer);
-  flatcc_builder_clear(&builder);
-
+  wrapUpBlock(phraser_BlockType_KeyBlock, &builder, block, aes_key, aes_iv_mask);
   return OK;
 }
 
@@ -229,15 +298,7 @@ UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t b
 
   phraser_SymbolSetsBlock_end_as_root(&builder);
 
-  void *block_buffer;
-  size_t block_buffer_size;
-  block_buffer = flatcc_builder_finalize_aligned_buffer(&builder, &block_buffer_size);
-
-  wrapDataBufferInBlock(phraser_BlockType_SymbolSetsBlock, block, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
-
-  flatcc_builder_aligned_free(block_buffer);
-  flatcc_builder_clear(&builder);
-
+  wrapUpBlock(phraser_BlockType_SymbolSetsBlock, &builder, block, aes_key, aes_iv_mask);
   return OK;
 }
 
@@ -267,21 +328,43 @@ UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t bloc
 
   phraser_FoldersBlock_end_as_root(&builder);
 
-  void *block_buffer;
-  size_t block_buffer_size;
-  block_buffer = flatcc_builder_finalize_aligned_buffer(&builder, &block_buffer_size);
-
-  wrapDataBufferInBlock(phraser_BlockType_FoldersBlock, block, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
-
-  flatcc_builder_aligned_free(block_buffer);
-  flatcc_builder_clear(&builder);
-
+  wrapUpBlock(phraser_BlockType_FoldersBlock, &builder, block, aes_key, aes_iv_mask);
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint16_t block_size) {
+UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
   initRandomIfNeeded();
-  return ERROR;
+
+  phraser_PhraseTemplatesBlock_table_t phrase_templates_block;
+  if (!(phrase_templates_block = phraser_PhraseTemplatesBlock_as_root(block + DATA_OFFSET))) {
+    return ERROR;
+  }
+
+  phraser_StoreBlock_struct_t old_store_block = phraser_PhraseTemplatesBlock_block(phrase_templates_block);
+  phraser_WordTemplate_vec_t word_templates_vec = phraser_PhraseTemplatesBlock_word_templates(phrase_templates_block);
+  phraser_PhraseTemplate_vec_t phrase_template_vec = phraser_PhraseTemplatesBlock_phrase_templates(phrase_templates_block);
+
+  flatcc_builder_t builder;
+  flatcc_builder_init(&builder);
+
+  phraser_PhraseTemplatesBlock_start_as_root(&builder);
+
+  phraser_PhraseTemplatesBlock_word_templates_start(&builder);
+  phraseTemplatesBlock_wordTemplateVec(&builder, word_templates_vec);
+  phraser_PhraseTemplatesBlock_word_templates_end(&builder);
+
+  phraser_PhraseTemplatesBlock_phrase_templates_start(&builder);
+  phraseTemplatesBlock_phraseTemplateVec(&builder, phrase_template_vec);
+  phraser_PhraseTemplatesBlock_phrase_templates_end(&builder);
+
+  phraser_StoreBlock_t* store_block = phraser_PhraseTemplatesBlock_block_start(&builder);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  phraser_PhraseTemplatesBlock_block_end(&builder);
+
+  phraser_PhraseTemplatesBlock_end_as_root(&builder);
+
+  wrapUpBlock(phraser_BlockType_PhraseTemplatesBlock, &builder, block, aes_key, aes_iv_mask);
+  return OK;
 }
 
 UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size) {
@@ -303,7 +386,7 @@ UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size,
     case phraser_BlockType_FoldersBlock: 
       return updateVersionAndEntropyFoldersBlock(block, block_size, aes_key, aes_iv_mask);
     case phraser_BlockType_PhraseTemplatesBlock: 
-      return updateVersionAndEntropyPhraseTemplatesBlock(block, block_size);
+      return updateVersionAndEntropyPhraseTemplatesBlock(block, block_size, aes_key, aes_iv_mask);
     case phraser_BlockType_PhraseBlock: 
       return updateVersionAndEntropyPhraseBlock(block, block_size);
   }
