@@ -211,14 +211,14 @@ int listLoop(Thumby* thumby) {
 }
 
 int listLoop(Thumby* thumby, bool allow_b_select) {
-  return listLoopCode(thumby, allow_b_select).selection;
+  return listLoopWithCode(thumby, allow_b_select).selection;
 }
 
-SelectionAndCode listLoopCode(Thumby* thumby) {
-  return listLoopCode(thumby, false);
+SelectionAndCode listLoopWithCode(Thumby* thumby) {
+  return listLoopWithCode(thumby, false);
 }
 
-SelectionAndCode listLoopCode(Thumby* thumby, bool allow_b_select) {
+SelectionAndCode listLoopWithCode(Thumby* thumby, bool allow_b_select) {
   ListItem* previously_selected = list_items[item_cursor + selection_pos];
 
   // Up 

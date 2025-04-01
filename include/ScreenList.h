@@ -32,8 +32,8 @@ SELECT_BUTTON getSelectButton();
 int listLoop(Thumby* thumby);
 int listLoop(Thumby* thumby, bool allow_b_select);
 
-SelectionAndCode listLoopCode(Thumby* thumby);
-SelectionAndCode listLoopCode(Thumby* thumby, bool allow_b_select);
+SelectionAndCode listLoopWithCode(Thumby* thumby);
+SelectionAndCode listLoopWithCode(Thumby* thumby, bool allow_b_select);
 
 void initList(ListItem** new_items, int new_item_count, int selection);
 void initList(ListItem** new_items, int new_item_count);

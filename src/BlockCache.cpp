@@ -773,3 +773,12 @@ extern Folder* getFolder(uint16_t folder_id) {
     return (Folder*)hashtable_get(folders, folder_id);
   }
 }
+
+// returns max_block_count
+uint16_t max_db_block_count() {
+  return max_block_count;
+}
+
+uint16_t valid_block_count() {
+  return blockInfos->size;
+}

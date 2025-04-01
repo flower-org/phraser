@@ -6,6 +6,7 @@
 #include "TextAreaDialog.h"
 #include "Adler.h"
 #include "BlockCache.h"
+#include "BlockDAO.h"
 #include "ScreenList.h"
 #include "UiCommon.h"
 
@@ -171,24 +172,10 @@ void unsealLoop(Thumby* thumby) {
       sprintf(progress, "Looking for a\nKeyBlock\n# %d/%d", key_block_decrypt_cursor, max_key_blocks);
       initTextAreaDialog(progress, strlen(progress), TEXT_AREA);
 
-      //1. Read block at key_block_decrypt_cursor
       uint32_t db_block_size = FLASH_SECTOR_SIZE;
       uint8_t db_block[db_block_size];
-      readDbBlockFromFlashBank(unseal_bank, key_block_decrypt_cursor, (void*)db_block);
-    
-      //2. Decrypt using aes256_key_block_key and HARDCODED_IV_MASK
-      uint8_t* iv = xorByteArrays(HARDCODED_IV_MASK, db_block+(db_block_size - IV_MASK_LEN), IV_MASK_LEN);
-      inPlaceDecryptBlock4096(key_block_key, iv, db_block);
-      free(iv);
-
-      //3. validate Adler32 checksum
-      uint32_t length_without_adler = db_block_size - IV_MASK_LEN - 4;
-      uint32_t expected_adler = bytesToUInt32(db_block+length_without_adler);
-      uint32_t adler32_checksum = adler32(db_block, length_without_adler);
-      if (expected_adler == adler32_checksum) {
-        //4. reverse decrypted block
-        reverseInPlace(db_block, length_without_adler);
-
+      if (loadBlockFromFlash(unseal_bank, key_block_decrypt_cursor, db_block_size,
+        key_block_key, HARDCODED_IV_MASK, db_block)) {
         //5. validate KEY_BLOCK block type (1st byte in a buffer is BlockType)
         if (db_block[0] == phraser_BlockType_KeyBlock) {
           //6. update `max_key_blocks` if needed
@@ -216,24 +203,10 @@ void unsealLoop(Thumby* thumby) {
       sprintf(progress, "Decrypting DB\nblocks\n# %d/%d", key_block_decrypt_cursor, max_key_blocks);
       initTextAreaDialog(progress, strlen(progress), TEXT_AREA);
 
-      //1. Read block at key_block_decrypt_cursor
       uint32_t db_block_size = FLASH_SECTOR_SIZE;
       uint8_t db_block[db_block_size];
-      readDbBlockFromFlashBank(unseal_bank, key_block_decrypt_cursor, (void*)db_block);
-    
-      //2. Decrypt using aes256_key_block_key and HARDCODED_IV_MASK
-      uint8_t* iv = xorByteArrays(main_iv_mask, db_block+(db_block_size - IV_MASK_LEN), IV_MASK_LEN);
-      inPlaceDecryptBlock4096(main_key, iv, db_block);
-      free(iv);
-
-      //3. validate Adler32 checksum
-      uint32_t length_without_adler = db_block_size - IV_MASK_LEN - 4;
-      uint32_t expected_adler = bytesToUInt32(db_block+length_without_adler);
-      uint32_t adler32_checksum = adler32(db_block, length_without_adler);
-      if (expected_adler == adler32_checksum) {
-        //4. reverse decrypted block
-        reverseInPlace(db_block, length_without_adler);
-
+      if (loadBlockFromFlash(unseal_bank, key_block_decrypt_cursor, db_block_size,
+        main_key, main_iv_mask, db_block)) {
         //5. validate KEY_BLOCK block type (1st byte in a buffer is BlockType)
         registerBlockInBlockCache(db_block, key_block_decrypt_cursor);
       }

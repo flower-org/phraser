@@ -125,14 +125,32 @@ void folderBrowserAction(int chosen_item) {
   }
 }
 
-void folderBrowserMenuAction(int chosen_item) {
-  // TODO: implement
+const int FOLDER_MENU_NEW_FOLDER = 1;
+const int FOLDER_MENU_RENAME_FOLDER = 2;
+const int FOLDER_MENU_DELETE_FOLDER = 3;
+const int FOLDER_MENU_NEW_PHRASE = 4;
+const int FOLDER_MENU_DELETE_PHRASE = 5;
+void folderBrowserMenuAction(int chosen_item, int code) {
+  if (FOLDER_MENU_NEW_FOLDER == code) {
+    // 1. check that db capacity is enough to add new block
+    // 2. get name
+    // 3. add new folder
+    // 4. build new Folders block
+    //  4.1 check Folders block size is within limits
+    // 5. perform DB update
+    // 6. resync folders from block
+    // 7. reinit UI
+  } else if (FOLDER_MENU_RENAME_FOLDER == code) {
+  } else if (FOLDER_MENU_DELETE_FOLDER == code) {
+  } else if (FOLDER_MENU_NEW_PHRASE == code) {
+  } else if (FOLDER_MENU_DELETE_PHRASE == code) {
+  }
 }
 
-void runMainUiPhaseAction(int chosen_item) {
+void runMainUiPhaseAction(int chosen_item, int code) {
   switch (main_ui_phase) {
     case FOLDER_BROWSER: folderBrowserAction(chosen_item); break;
-    case FOLDER_MENU: folderBrowserMenuAction(chosen_item); break;
+    case FOLDER_MENU: folderBrowserMenuAction(chosen_item, code); break;
     case PHRASE:
     case PHRASE_MENU:
     case PHRASE_HISTORY:
@@ -159,11 +177,6 @@ void init_folder_browser(int chosen_item) {
   folder_browser_selection = NULL;
 }
 
-const int FOLDER_MENU_NEW_FOLDER = 1;
-const int FOLDER_MENU_RENAME_FOLDER = 2;
-const int FOLDER_MENU_DELETE_FOLDER = 3;
-const int FOLDER_MENU_NEW_PHRASE = 4;
-const int FOLDER_MENU_DELETE_PHRASE = 5;
 void init_folder_menu(int chosen_item) {
   main_ui_phase = FOLDER_MENU;
   folder_browser_selection = getFolderBrowserSelection(chosen_item);
@@ -188,7 +201,7 @@ void init_folder_menu(int chosen_item) {
       screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Check, FOLDER_MENU_RENAME_FOLDER);
       sprintf(text, "Delete folder `%s`", folder_browser_selection->folder->folderName);
       screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, FOLDER_MENU_DELETE_FOLDER);
-    } 
+    }
   }
   if (folder_browser_selection != NULL) {
     if (folder_browser_selection->phrase != NULL) {
@@ -236,12 +249,12 @@ void menuSwitch(int chosen_item) {
 }
 
 void phraserDbUiLoop(Thumby* thumby) {
-  int chosen_item = listLoop(thumby, true);
-  if (chosen_item != -1) {
+  SelectionAndCode chosen = listLoopWithCode(thumby, true);
+  if (chosen.selection != -1) {
     if (getSelectButton() == SELECT_BUTTON_A) {
-      runMainUiPhaseAction(chosen_item);
+      runMainUiPhaseAction(chosen.selection, chosen.code);
     } else { //SELECT_BUTTON_B
-      menuSwitch(chosen_item);
+      menuSwitch(chosen.selection);
     }
   }
 }

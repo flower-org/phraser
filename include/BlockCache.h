@@ -56,3 +56,5 @@ extern Folder* getFolder(uint16_t folder_id);
 //  arraylist<FolderOrPhrase*>
 arraylist* getFolderContent(uint16_t parent_folder_id);
 
+uint16_t max_db_block_count();
+uint16_t valid_block_count();
