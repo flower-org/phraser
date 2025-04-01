@@ -311,7 +311,7 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
       uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       serialDebugPrintf("entropy %d\r\n", entropy);
 
-      phraser_SymbolSet_vec_t folders_vec = phraser_FoldersBlock_folders(folders_block);
+      phraser_Folder_vec_t folders_vec = phraser_FoldersBlock_folders(folders_block);
       size_t folders_vec_length = flatbuffers_vec_len(folders_vec);
       serialDebugPrintf("folders_vec_length %d\r\n", folders_vec_length);
 

@@ -140,7 +140,9 @@ void objectMutationTest() {
   uint8_t block[FLASH_SECTOR_SIZE];
   initDefaultFoldersBlock(block, HARDCODED_SALT, HARDCODED_IV_MASK);
 
-//  updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK);
+  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK) == ERROR) {
+    serialDebugPrintf("Error\r\n");
+  }
 }
 
 void debugTest() {

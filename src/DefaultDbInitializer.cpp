@@ -4,38 +4,7 @@
 #include "PhraserUtils.h"
 #include "Adler.h"
 #include "SerialUtils.h"
-
-void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8_t* aes_key, 
-  const uint8_t* aes_iv_mask, void *block_buffer, size_t block_buffer_size) {
-  serialDebugPrintf("block_buffer_size %zu\r\n", (uint32_t)block_buffer_size);
-
-  // Generate block IV
-  uint8_t block_iv[AES256_IV_LENGTH];
-  for (int i = 0; i < AES256_IV_LENGTH; i++) {
-    main_buffer[FLASH_SECTOR_SIZE - AES256_IV_LENGTH + i] =
-      block_iv[i] = (uint8_t)random(256); // Generate random byte
-  }
-
-  uint8_t* iv = xorByteArrays(block_iv, (uint8_t*)aes_iv_mask, AES256_IV_LENGTH);
-
-  main_buffer[0] = block_type;
-  uInt16ToBytes(block_buffer_size, main_buffer+1);
-
-  memcpy(main_buffer + 3, block_buffer, block_buffer_size);
-  
-  uint32_t length_without_adler = FLASH_SECTOR_SIZE - AES256_IV_LENGTH - 4;
-  for (int i = 3 + block_buffer_size; i < length_without_adler; i++) {
-    main_buffer[i] = (uint8_t)random(256);
-  }
-  reverseInPlace(main_buffer, length_without_adler);
-  
-  uint32_t adler32_checksum = adler32(main_buffer, length_without_adler);
-  uInt32ToBytes(adler32_checksum, main_buffer+length_without_adler);
-
-  inPlaceEncryptBlock4096((uint8_t*)aes_key, iv, main_buffer);
-
-  free(iv);
-}
+#include "BlockDAO.h"
 
 void initDefaultKeyBlock(uint8_t* out_buffer, const uint8_t* in_aes_key, const uint8_t* in_aes_iv_mask,
   uint8_t* out_new_aes_key, uint8_t* out_new_aes_iv_mask, const uint16_t in_block_count) {
@@ -79,10 +48,6 @@ void initDefaultKeyBlock(uint8_t* out_buffer, const uint8_t* in_aes_key, const u
   flatcc_builder_clear(&builder);
 }
 
-flatbuffers_ref_t str(flatcc_builder_t* builder, const char* s) {
-  return flatbuffers_string_create_str(builder, s);
-}
-
 void symbolSet(flatcc_builder_t* builder, uint16_t symbol_set_id, const char* name, const char* set) {
   phraser_SymbolSetsBlock_symbol_sets_push_create(builder, symbol_set_id, str(builder, name), str(builder, set));
 }
@@ -124,10 +89,6 @@ void initDefaultSymbolSetsBlock(uint8_t* buffer, const uint8_t* aes_key, const u
   flatcc_builder_clear(&builder);
 }
 
-void folder(flatcc_builder_t* builder, uint16_t folder_id, uint16_t parent_folder_id, const char* name) {
-  phraser_FoldersBlock_folders_push_create(builder, folder_id, parent_folder_id, str(builder, name));
-}
-
 void initDefaultFoldersBlock(uint8_t* buffer, const uint8_t* aes_key, const uint8_t* aes_iv_mask) {
   flatcc_builder_t builder;
   flatcc_builder_init(&builder);
@@ -135,12 +96,12 @@ void initDefaultFoldersBlock(uint8_t* buffer, const uint8_t* aes_key, const uint
   phraser_FoldersBlock_start_as_root(&builder);
 
   phraser_FoldersBlock_folders_start(&builder);
-  folder(&builder, 1, 0, "Websites");
-  folder(&builder, 2, 0, "Computers");
-  folder(&builder, 3, 1, "Social");
-  folder(&builder, 4, 1, "Finance");
-  folder(&builder, 5, 2, "Laptops");
-  folder(&builder, 6, 2, "Servers");
+  foldersBlock_folder(&builder, 1, 0, "Websites");
+  foldersBlock_folder(&builder, 2, 0, "Computers");
+  foldersBlock_folder(&builder, 3, 1, "Social");
+  foldersBlock_folder(&builder, 4, 1, "Finance");
+  foldersBlock_folder(&builder, 5, 2, "Laptops");
+  foldersBlock_folder(&builder, 6, 2, "Servers");
   phraser_FoldersBlock_folders_end(&builder);
 
   uint32_t entropy = random_uint32();

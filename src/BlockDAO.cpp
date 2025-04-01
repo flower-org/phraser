@@ -6,7 +6,7 @@
 #include "Adler.h"
 #include "pbkdf2-sha256.h"
 #include "Schema_builder.h"
-#include "DefaultDbInitializer.h"
+#include "SerialUtils.h"
 
 // -------------------- DB block load -------------------- 
 
@@ -35,44 +35,155 @@ void initRandomIfNeeded() {
   }
 }
 
+bool inPlaceDecryptAndValidateBlock(uint8_t *in_out_db_block, uint32_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+  //2. Decrypt using aes256_key_block_key and HARDCODED_IV_MASK
+  uint8_t* iv = xorByteArrays(aes_iv_mask, in_out_db_block+(block_size - IV_MASK_LEN), IV_MASK_LEN);
+  inPlaceDecryptBlock4096(aes_key, iv, in_out_db_block);
+  free(iv);
+
+  //3. validate Adler32 checksum
+  uint32_t length_without_adler = block_size - IV_MASK_LEN - 4;
+  uint32_t expected_adler = bytesToUInt32(in_out_db_block+length_without_adler);
+  uint32_t adler32_checksum = adler32(in_out_db_block, length_without_adler);
+  if (expected_adler == adler32_checksum) {
+    //4. reverse decrypted block
+    reverseInPlace(in_out_db_block, length_without_adler);
+    return true;
+  } else {
+    return false;
+  }
+}
+
 bool loadBlockFromFlash(uint8_t bank_number, uint16_t block_number, uint32_t block_size,
                         uint8_t* aes_key, uint8_t* aes_iv_mask, 
                         uint8_t *out_db_block) {
     //1. Read block at key_block_decrypt_cursor
     readDbBlockFromFlashBank(bank_number, block_number, (void*)out_db_block);
-
-    //2. Decrypt using aes256_key_block_key and HARDCODED_IV_MASK
-    uint8_t* iv = xorByteArrays(aes_iv_mask, out_db_block+(block_size - IV_MASK_LEN), IV_MASK_LEN);
-    inPlaceDecryptBlock4096(aes_key, iv, out_db_block);
-    free(iv);
-
-    //3. validate Adler32 checksum
-    uint32_t length_without_adler = block_size - IV_MASK_LEN - 4;
-    uint32_t expected_adler = bytesToUInt32(out_db_block+length_without_adler);
-    uint32_t adler32_checksum = adler32(out_db_block, length_without_adler);
-    if (expected_adler == adler32_checksum) {
-      //4. reverse decrypted block
-      reverseInPlace(out_db_block, length_without_adler);
-      return true;
-    } else {
-      return false;
-    }
+    return inPlaceDecryptAndValidateBlock(out_db_block, block_size, aes_key, aes_iv_mask);
 }
 
 bool throw_block_back(uint16_t block_number) {
   return NULL;
 }
 
-// -------------------- COMMON -------------------- 
+// -------------------- FLATBUF -------------------- 
+
+flatbuffers_ref_t str(flatcc_builder_t* builder, const char* s) {
+  return flatbuffers_string_create_str(builder, s);
+}
+
+// -------------------- BLOCK DB -------------------- 
+
+void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8_t* aes_key, 
+  const uint8_t* aes_iv_mask, void *block_buffer, size_t block_buffer_size) {
+  serialDebugPrintf("block_buffer_size %zu\r\n", (uint32_t)block_buffer_size);
+
+  // Generate block IV
+  uint8_t block_iv[IV_MASK_LEN];
+  for (int i = 0; i < IV_MASK_LEN; i++) {
+    main_buffer[FLASH_SECTOR_SIZE - IV_MASK_LEN + i] =
+      block_iv[i] = (uint8_t)random(256); // Generate random byte
+  }
+
+  uint8_t* iv = xorByteArrays(block_iv, (uint8_t*)aes_iv_mask, IV_MASK_LEN);
+
+  main_buffer[0] = block_type;
+  uInt16ToBytes(block_buffer_size, main_buffer+1);
+
+  memcpy(main_buffer + 3, block_buffer, block_buffer_size);
+  
+  uint32_t length_without_adler = FLASH_SECTOR_SIZE - IV_MASK_LEN - 4;
+  for (int i = 3 + block_buffer_size; i < length_without_adler; i++) {
+    main_buffer[i] = (uint8_t)random(256);
+  }
+  reverseInPlace(main_buffer, length_without_adler);
+  
+  uint32_t adler32_checksum = adler32(main_buffer, length_without_adler);
+  uInt32ToBytes(adler32_checksum, main_buffer+length_without_adler);
+
+  inPlaceEncryptBlock4096((uint8_t*)aes_key, iv, main_buffer);
+
+  free(iv);
+}
+
+// -------------------- PHRASER -------------------- 
+
+void foldersBlock_folder(flatcc_builder_t* builder, uint16_t folder_id, uint16_t parent_folder_id, const char* name) {
+  phraser_FoldersBlock_folders_push_create(builder, folder_id, parent_folder_id, str(builder, name));
+}
+
+void foldersBlock_folder(flatcc_builder_t* builder, phraser_Folder_table_t folder_fb) {
+  phraser_FoldersBlock_folders_push_create(builder, 
+    phraser_Folder_folder_id(folder_fb),
+    phraser_Folder_parent_folder_id(folder_fb),
+    str(builder, phraser_Folder_folder_name(folder_fb)));
+}
+
+void foldersBlock_folderVec(flatcc_builder_t* builder, phraser_Folder_vec_t old_folders) {
+  size_t folders_vec_length = flatbuffers_vec_len(old_folders);
+  for (int i = 0; i < folders_vec_length; i++) {
+    foldersBlock_folder(builder, phraser_Folder_vec_at(old_folders, i));
+  }
+}
+
+
+void storeBlockNewVersionAndEntropy(phraser_StoreBlock_t* store_block, phraser_StoreBlock_struct_t old_store_block) {
+  store_block->block_id = phraser_StoreBlock_block_id(old_store_block);
+  store_block->version = next_block_version();
+  store_block->entropy = random_uint32();
+}
+
+// -------------------- PHRASER BLOCKS -------------------- 
 
 // TODO: this could a bit easier if Version was in the header outside flatbuf structure.
 //  That would also fit the common DB structure better and make complemantary copy operations agnostic to flatbuf or content format.
 //  With that said, we choose to update phraser-specific `entropy` field at the same time, which requires to deserialize flatBuffer.
 //  This consideration makes updating the structure-related code ASAP impractical. 
 
-UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_size) {
+UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
   initRandomIfNeeded();
-  return ERROR;
+  
+  phraser_KeyBlock_table_t key_block;
+  if (!(key_block = phraser_KeyBlock_as_root(block + DATA_OFFSET))) {
+    return ERROR;
+  }
+  phraser_StoreBlock_struct_t old_store_block = phraser_KeyBlock_block(key_block);
+
+  flatcc_builder_t builder;
+  flatcc_builder_init(&builder);
+
+  phraser_KeyBlock_start_as_root(&builder);
+
+  phraser_KeyBlock_block_count_add(&builder, phraser_KeyBlock_block_count(key_block));
+
+  flatbuffers_int8_vec_t key = phraser_KeyBlock_key(key_block);
+  size_t key_length = flatbuffers_vec_len(key);
+  phraser_KeyBlock_key_create(&builder, key, key_length);
+
+  flatbuffers_int8_vec_t iv = phraser_KeyBlock_iv(key_block);
+  size_t iv_length = flatbuffers_vec_len(iv);
+  phraser_KeyBlock_iv_create(&builder, iv, iv_length);
+
+  flatbuffers_int8_vec_t db_name = phraser_KeyBlock_db_name(key_block);
+  size_t db_name_length = flatbuffers_vec_len(db_name);
+  phraser_KeyBlock_db_name_create(&builder, db_name, db_name_length);
+
+  phraser_StoreBlock_t* store_block = phraser_KeyBlock_block_start(&builder);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  phraser_KeyBlock_block_end(&builder);
+
+  phraser_KeyBlock_end_as_root(&builder);
+
+  void *block_buffer;
+  size_t block_buffer_size;
+  block_buffer = flatcc_builder_finalize_aligned_buffer(&builder, &block_buffer_size);
+
+  wrapDataBufferInBlock(phraser_BlockType_KeyBlock, block, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
+
+  flatcc_builder_aligned_free(block_buffer);
+  flatcc_builder_clear(&builder);
+
+  return OK;
 }
 
 UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t block_size) {
@@ -88,18 +199,21 @@ UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t bloc
     return ERROR;
   }
 
+  phraser_StoreBlock_struct_t old_store_block = phraser_FoldersBlock_block(folders_block);
+  phraser_Folder_vec_t old_folders = phraser_FoldersBlock_folders(folders_block);
+
   flatcc_builder_t builder;
   flatcc_builder_init(&builder);
 
-  if (!phraser_FoldersBlock_clone_as_root(&builder, folders_block)) {
-    return ERROR;
-  };
+  phraser_FoldersBlock_start_as_root(&builder);
 
-  phraser_StoreBlock_mutable_struct_t store_block = (phraser_StoreBlock_mutable_struct_t)phraser_FoldersBlock_block_get(folders_block);
-  store_block->version = next_block_version();
-  store_block->entropy = random_uint32();
+  phraser_FoldersBlock_folders_start(&builder);
+  foldersBlock_folderVec(&builder, old_folders);
+  phraser_FoldersBlock_folders_end(&builder);
 
-  phraser_FoldersBlock_block_add(&builder, store_block);
+  phraser_StoreBlock_t* store_block = phraser_FoldersBlock_block_start(&builder);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  phraser_FoldersBlock_block_end(&builder);
 
   phraser_FoldersBlock_end_as_root(&builder);
 
@@ -127,22 +241,21 @@ UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block
 
 UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
   initRandomIfNeeded();
+  if (!inPlaceDecryptAndValidateBlock(block, block_size, aes_key, aes_iv_mask)) {
+    return ERROR;
+  }
+
   switch (block[0]) {
     case phraser_BlockType_KeyBlock: 
-      return updateVersionAndEntropyKeyBlock(block, block_size);
-      break;
+      return updateVersionAndEntropyKeyBlock(block, block_size, aes_key, aes_iv_mask);
     case phraser_BlockType_SymbolSetsBlock: 
       return updateVersionAndEntropySymbolSetsBlock(block, block_size);
-      break;
     case phraser_BlockType_FoldersBlock: 
       return updateVersionAndEntropyFoldersBlock(block, block_size, aes_key, aes_iv_mask);
-      break;
     case phraser_BlockType_PhraseTemplatesBlock: 
       return updateVersionAndEntropyPhraseTemplatesBlock(block, block_size);
-      break;
     case phraser_BlockType_PhraseBlock: 
       return updateVersionAndEntropyPhraseBlock(block, block_size);
-      break;
   }
   return ERROR;
 }
