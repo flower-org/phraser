@@ -647,7 +647,7 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
   }
 
   // 2. Update DB structures
-  serialDebugPrintf("2. Update DB structures!\r\n");
+  serialDebugPrintf("2. Update DB structures! %d \r\n", block[0]);
   serialDebugPrintf("blockAndVersion.blockId %d\r\n", blockAndVersion.blockId);
   if (blockAndVersion.blockId > 0) {
     serialDebugPrintf("2.1. Update holders of last values / counters\r\n");
@@ -662,7 +662,9 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
     serialDebugPrintf("block_number %d\r\n", block_number);
     serialDebugPrintf("lastEntropy %d\r\n", lastEntropy);
     serialDebugPrintf("blockAndVersion.entropy %d\r\n", blockAndVersion.entropy);
-    if (blockAndVersion.blockVersion > lastBlockVersion) {
+    if (blockAndVersion.blockVersion >= lastBlockVersion) {
+      // we need == part in  "blockAndVersion.blockVersion >= lastBlockVersion" 
+      // for runtime updates, when we increment version first and then update cache
       lastBlockVersion = blockAndVersion.blockVersion;
       lastBlockNumber = block_number;
       lastEntropy = blockAndVersion.entropy;
@@ -715,7 +717,8 @@ void addToOccupiedBlockNumbers(uint32_t key) {
 }
 
 void formOccupiedBlockNumbers(hashtable *t, uint32_t key, void* value) {
-  tree_insert(&occupiedBlockNumbers, key);
+  BlockNumberAndVersionAndCount* block_info = (BlockNumberAndVersionAndCount*)value;
+  tree_insert(&occupiedBlockNumbers, block_info->blockNumber);
 }
 
 void finalizeBlockCacheInit() {
@@ -816,5 +819,11 @@ uint32_t last_block_version() {
 uint32_t key_block_number() {
   BlockNumberAndVersionAndCount* blockNumberAndVersionAndCount = 
     (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, key_block_id);
+  return blockNumberAndVersionAndCount->blockNumber;
+}
+
+uint32_t folders_block_number() {
+  BlockNumberAndVersionAndCount* blockNumberAndVersionAndCount = 
+    (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, folders_block_id);
   return blockNumberAndVersionAndCount->blockNumber;
 }

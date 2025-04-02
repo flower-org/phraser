@@ -229,8 +229,8 @@ void createNewDbLoop(Thumby* thumby) {
       init_block_count = atoi(new_block_count);
 
       bool issue_found = false;
-      if (init_block_count < 32) {
-        char* text = "Block count can't be < 32.";
+      if (init_block_count < 12) {
+        char* text = "Block count can't be < 12.";
         initTextAreaDialog(text, strlen(text), DLG_OK);
         create_new_db_phase = 61;
         issue_found = true;

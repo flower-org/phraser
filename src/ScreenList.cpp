@@ -146,7 +146,7 @@ void freeItemList(ListItem** items, int count) {
 ListItem** duplicateItemList(ListItem** items, int count) {
   ListItem** dup_items = (ListItem**)malloc(count * sizeof(ListItem*));
   for (int i = 0; i < count; i++) {
-    dup_items[i] = createListItem(items[i]->name, items[i]->icon);
+    dup_items[i] = createListItemWithCode(items[i]->name, items[i]->icon, items[i]->code);
   }
   return dup_items;
 }

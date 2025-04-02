@@ -44,6 +44,15 @@
 		}	
  }
 
+ bool hashtable_exists(hashtable *t,uint32_t key) {
+		int index = hashtable_find_slot(t, key);
+		if (t->body[index].key != HASHTABLE_NULL_KEY) {
+			return true;
+		} else {
+			return false;
+		}
+ }
+
  /**
 	* Return the item associated with the given key, or NULL if not found.
 	*/

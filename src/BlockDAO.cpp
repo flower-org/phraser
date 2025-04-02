@@ -131,9 +131,9 @@ void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8
 
 // -------------------- PHRASER -------------------- 
 
-void storeBlockNewVersionAndEntropy(phraser_StoreBlock_t* store_block, phraser_StoreBlock_struct_t old_store_block) {
+void storeBlockNewVersionAndEntropy(phraser_StoreBlock_t* store_block, phraser_StoreBlock_struct_t old_store_block, uint32_t new_version) {
   store_block->block_id = phraser_StoreBlock_block_id(old_store_block);
-  store_block->version = increment_and_get_next_block_version();
+  store_block->version = new_version;//increment_and_get_next_block_version();
   store_block->entropy = random_uint32();
 }
 
@@ -303,7 +303,7 @@ UpdateResponse wrapUpBlock(uint8_t block_type, flatcc_builder_t* builder, uint8_
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_size, uint8_t* key_block_key, uint8_t* key_block_mask) {
+UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_size, uint8_t* key_block_key, uint8_t* key_block_mask, uint32_t new_version) {
   initRandomIfNeeded();
   
   phraser_KeyBlock_table_t key_block;
@@ -332,7 +332,7 @@ UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_si
   phraser_KeyBlock_db_name_create(&builder, db_name, db_name_length);
 
   phraser_StoreBlock_t* store_block = phraser_KeyBlock_block_start(&builder);
-  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block, new_version);
   phraser_KeyBlock_block_end(&builder);
 
   phraser_KeyBlock_end_as_root(&builder);
@@ -341,7 +341,7 @@ UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_si
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version) {
   initRandomIfNeeded();
   
   phraser_SymbolSetsBlock_table_t symbol_sets_block;
@@ -362,7 +362,7 @@ UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t b
   phraser_SymbolSetsBlock_symbol_sets_end(&builder);
 
   phraser_StoreBlock_t* store_block = phraser_SymbolSetsBlock_block_start(&builder);
-  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block, new_version);
   phraser_SymbolSetsBlock_block_end(&builder);
 
   phraser_SymbolSetsBlock_end_as_root(&builder);
@@ -372,7 +372,7 @@ UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t b
 }
 
 //arraylist<DAOFolder> new_folders
-UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, 
+UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version, 
   arraylist* new_folders) {
   initRandomIfNeeded();
   
@@ -401,7 +401,7 @@ UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t bloc
   phraser_FoldersBlock_folders_end(&builder);
 
   phraser_StoreBlock_t* store_block = phraser_FoldersBlock_block_start(&builder);
-  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block, new_version);
   phraser_FoldersBlock_block_end(&builder);
 
   phraser_FoldersBlock_end_as_root(&builder);
@@ -410,11 +410,11 @@ UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t bloc
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
-  return updateVersionAndEntropyFoldersBlock(block, block_size, aes_key, aes_iv_mask, NULL);
+UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version) {
+  return updateVersionAndEntropyFoldersBlock(block, block_size, aes_key, aes_iv_mask, new_version, NULL);
 }
 
-UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version) {
   initRandomIfNeeded();
 
   phraser_PhraseTemplatesBlock_table_t phrase_templates_block;
@@ -440,7 +440,7 @@ UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint1
   phraser_PhraseTemplatesBlock_phrase_templates_end(&builder);
 
   phraser_StoreBlock_t* store_block = phraser_PhraseTemplatesBlock_block_start(&builder);
-  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block, new_version);
   phraser_PhraseTemplatesBlock_block_end(&builder);
 
   phraser_PhraseTemplatesBlock_end_as_root(&builder);
@@ -449,7 +449,7 @@ UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint1
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version) {
   initRandomIfNeeded();
  
   phraser_PhraseBlock_table_t phrase_block;
@@ -475,7 +475,7 @@ UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block
   phraser_PhraseBlock_history_end(&builder);
 
   phraser_StoreBlock_t* store_block = phraser_PhraseBlock_block_start(&builder);
-  storeBlockNewVersionAndEntropy(store_block, old_store_block);
+  storeBlockNewVersionAndEntropy(store_block, old_store_block, new_version);
   phraser_PhraseBlock_block_end(&builder);
 
   phraser_PhraseBlock_end_as_root(&builder);
@@ -484,23 +484,25 @@ UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version, boolean decrypt) {
   initRandomIfNeeded();
-  if (!inPlaceDecryptAndValidateBlock(block, block_size, aes_key, aes_iv_mask)) {
-    return ERROR;
+  if (decrypt) {
+    if (!inPlaceDecryptAndValidateBlock(block, block_size, aes_key, aes_iv_mask)) {
+      return ERROR;
+    }
   }
 
   switch (block[0]) {
     case phraser_BlockType_KeyBlock: 
-      return updateVersionAndEntropyKeyBlock(block, block_size, aes_key, aes_iv_mask);
+      return updateVersionAndEntropyKeyBlock(block, block_size, aes_key, aes_iv_mask, new_version);
     case phraser_BlockType_SymbolSetsBlock: 
-      return updateVersionAndEntropySymbolSetsBlock(block, block_size, aes_key, aes_iv_mask);
+      return updateVersionAndEntropySymbolSetsBlock(block, block_size, aes_key, aes_iv_mask, new_version);
     case phraser_BlockType_FoldersBlock: 
-      return updateVersionAndEntropyFoldersBlock(block, block_size, aes_key, aes_iv_mask);
+      return updateVersionAndEntropyFoldersBlock(block, block_size, aes_key, aes_iv_mask, new_version);
     case phraser_BlockType_PhraseTemplatesBlock: 
-      return updateVersionAndEntropyPhraseTemplatesBlock(block, block_size, aes_key, aes_iv_mask);
+      return updateVersionAndEntropyPhraseTemplatesBlock(block, block_size, aes_key, aes_iv_mask, new_version);
     case phraser_BlockType_PhraseBlock: 
-      return updateVersionAndEntropyPhraseBlock(block, block_size, aes_key, aes_iv_mask);
+      return updateVersionAndEntropyPhraseBlock(block, block_size, aes_key, aes_iv_mask, new_version);
   }
   return ERROR;
 }
@@ -532,14 +534,14 @@ uint32_t get_free_block_number_on_the_left_of(uint32_t block_number) {
   left_lookup_missing_block_number_found = false;
   left_lookup_missing_block_number = block_number;
   traverse_left_excl(occupied_block_numbers(), block_number, left_lookup);
-  if (!left_lookup_missing_block_number_found) {
+  if (left_lookup_missing_block_number_found) {
     return left_lookup_missing_block_number;
   }
 
   left_lookup_missing_block_number_found = false;
   left_lookup_missing_block_number = db_block_count();
   traverse_left_excl(occupied_block_numbers(), db_block_count(), left_lookup);
-  if (!left_lookup_missing_block_number_found) {
+  if (left_lookup_missing_block_number_found) {
     return left_lookup_missing_block_number;
   }
 
@@ -548,34 +550,40 @@ uint32_t get_free_block_number_on_the_left_of(uint32_t block_number) {
 }
 
 void invalidateBlockIndices(uint32_t b1_block_number, uint32_t b2_block_number) {
+  serialDebugPrintf("invalidateBlockIndices b1_block_number %d b2_block_number %d\r\n", b1_block_number, b2_block_number);
   // ---- B2-related logic, it was replaced at B2 block_number by B1 blockId ----
   uint32_t b1_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, b1_block_number);
 
-  // Remove B2 block number from blockIdByBlockNumber, since we've just replaced it with B1
-  uint32_t b2_block_id = (uint32_t)hashtable_remove(blockIdByBlockNumber, b2_block_number);
-  
-  // Get B2 block info and decrement copy count, since 1 copy of B2 blockId was just destroyed
-  BlockNumberAndVersionAndCount* b2_info = 
-    (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, b2_block_id);
-  b2_info->copyCount--;
+  if (hashtable_exists(blockIdByBlockNumber, b2_block_number)) {
+    // Remove B2 block number from blockIdByBlockNumber, since we've just replaced it with B1
+    uint32_t b2_block_id = (uint32_t)hashtable_remove(blockIdByBlockNumber, b2_block_number);
+    serialDebugPrintf("invalidateBlockIndices b1_block_id %d b2_block_id %d\r\n", b1_block_id, b2_block_id);
+    
+    // Get B2 block info and decrement copy count, since 1 copy of B2 blockId was just destroyed
+    BlockNumberAndVersionAndCount* b2_info = 
+      (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, b2_block_id);
+    b2_info->copyCount--;
 
-  if (b2_info->isTombstoned && b2_info->copyCount <= 1 && b2_block_id != b1_block_id) {
-    // If we discover that B2 is Tombstoned and now has only 1 copy left,
-    // and as long as B2 is not the same blockId as B1 (a copy of which we've just created)  
-    // we can safely assume that disposing of that last copy of B2 won't result in incorect 
-    // tombstone revival, due to the fact that it's the last and only copy left.
-    // Therefore, it's safe to remove B2 from the indexes entirely and dispose of B2 blockId.
-    hashtable_remove(blockInfos, b2_block_id);
-    hashtable_remove(tombstonedBlockIds, b2_block_id);
+    if (b2_info->isTombstoned && b2_info->copyCount <= 1 && b2_block_id != b1_block_id) {
+      // If we discover that B2 is Tombstoned and now has only 1 copy left,
+      // and as long as B2 is not the same blockId as B1 (a copy of which we've just created)  
+      // we can safely assume that disposing of that last copy of B2 won't result in incorect 
+      // tombstone revival, due to the fact that it's the last and only copy left.
+      // Therefore, it's safe to remove B2 from the indexes entirely and dispose of B2 blockId.
+      hashtable_remove(blockInfos, b2_block_id);
+      hashtable_remove(tombstonedBlockIds, b2_block_id);
+    }
+    // In the context of B2 removal, B2 is no longer occupied
+    removeFromOccupiedBlockNumbers(b2_block_number);
   }
-  // In the context of B2 removal, B2 is no longer occupied
-  removeFromOccupiedBlockNumbers(b2_block_number);
 }
 
-void updateBlockIndicesPostMove(uint32_t b1_block_number, uint32_t b2_block_number) {
+void updateBlockIndicesPostThrowbackMove(uint32_t b1_block_number, uint32_t b2_block_number) {
+  serialDebugPrintf("updateBlockIndicesPostMove b1_block_number %d b2_block_number %d\r\n", b1_block_number, b2_block_number);
   // ---- B1-related logic, new version of which replaced B2 ---
   uint32_t b1_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, b1_block_number);
   uint32_t b1_block_new_version = last_block_version();
+  serialDebugPrintf("updateBlockIndicesPostMove b1_block_id %d\r\n", b1_block_id);
 
   // B2 block number now holds block with B1 blockId
   hashtable_set(blockIdByBlockNumber, b2_block_number, (void*)b1_block_id);
@@ -599,12 +607,38 @@ void updateBlockIndicesPostMove(uint32_t b1_block_number, uint32_t b2_block_numb
   removeFromOccupiedBlockNumbers(b1_block_number);
 }
 
+void updateBlockIndicesPostBlockMove(uint32_t b1_block_number, bool b1_tombstoned, uint32_t b2_block_number) {
+  // Only update what's not going to be updated by `registerBlockInBlockCache` call
+
+  uint32_t b1_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, b1_block_number);
+  // Tombstone indices 
+  if (b1_tombstoned) {
+    hashtable_set(tombstonedBlockIds, b1_block_id, (void*)b1_block_id);
+  }
+
+  // In the context of B1 creation, B2 block number is now occupied by B1 blockId.
+  addToOccupiedBlockNumbers(b2_block_number);
+
+  // B1 block number becomes "free", since the latest version of B1 blockId 
+  // was moved to B2 block number
+  removeFromOccupiedBlockNumbers(b1_block_number);
+}
+
+static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return true; }
 // returns block_number to which the main update shold go
-uint16_t throwbackCopy(uint32_t b0_block_number) {
+uint16_t throwbackCopy(uint32_t b0_block_number, uint32_t new_version) {
+  serialDebugPrintf("t1.\r\n");
+  traverse_inorder(occupied_block_numbers(), perNode);
+
+  serialDebugPrintf("t1.\r\n");
   uint32_t border_block_number = last_block_number();
+  serialDebugPrintf("t2 border_block_number %d.\r\n", border_block_number);
   uint32_t b1_block_number = get_valid_block_number_on_the_right_of(border_block_number);
+  serialDebugPrintf("t3 b1_block_number %d.\r\n", b1_block_number);
   uint32_t b2_block_number = get_free_block_number_on_the_left_of(border_block_number);
+  serialDebugPrintf("t4 b2_block_number %d.\r\n", b2_block_number);
   uint32_t b3_block_number;
+  serialDebugPrintf("t5.\r\n");
 
   if (last_block_left()) {
     // In case we have only 1 free block, initially the only free block is B2.
@@ -612,6 +646,7 @@ uint16_t throwbackCopy(uint32_t b0_block_number) {
     // Therefore the only place the main update can go to is B1
 
     // Main updates goes to B1
+    serialDebugPrintf("t6.\r\n");
     b3_block_number = b1_block_number;
   } else {
     // If we have more than 1 free block initially, then after Throwback Copy is done,
@@ -630,6 +665,7 @@ uint16_t throwbackCopy(uint32_t b0_block_number) {
     //  to the right of the border stays intact, i.e. it's free.
 
     // Main update goes to the block immediately to the right of the border
+    serialDebugPrintf("t7.\r\n");
     b3_block_number = (border_block_number + 1) % db_block_count();
   }
 
@@ -647,28 +683,34 @@ uint16_t throwbackCopy(uint32_t b0_block_number) {
     aes_iv_mask = main_iv_mask;
   }
 
+  serialDebugPrintf("t8. bank_number %d b1_block_number %d\r\n", bank_number, b1_block_number);
   bool load_success = loadBlockFromFlash(bank_number, b1_block_number, block_size, aes_key, aes_iv_mask, block);
   if (!load_success) {
     return -1;
   }
 
   // 2. Update B1 version
-  UpdateResponse update_response = updateVersionAndEntropyBlock(block, block_size, aes_key, aes_iv_mask);
+  serialDebugPrintf("t9.\r\n");
+  UpdateResponse update_response = updateVersionAndEntropyBlock(block, block_size, aes_key, aes_iv_mask, new_version, false);
   if (update_response != OK) {
     return -1;
   }
 
   // 3. Save B1 with bumped version to B2
+  serialDebugPrintf("t10 bank_number %d b2_block_number %d.\r\n", bank_number, b2_block_number);
   saveBlockUpdateToFlash(bank_number, b2_block_number, block, block_size);
 
   // 4. Update DB indices
 
   // B2-related logic, it was replaced at B2 block_number by B1 blockId
+  serialDebugPrintf("t11.\r\n");
   invalidateBlockIndices(b1_block_number, b2_block_number);
   // B1-related logic, new version of which replaced B2
-  updateBlockIndicesPostMove(b1_block_number, b2_block_number);
+  serialDebugPrintf("t12.\r\n");
+  updateBlockIndicesPostThrowbackMove(b1_block_number, b2_block_number);
 
   // ---- Return block_number to which Main Update shold go ----
+  serialDebugPrintf("t13 b3_block_number %d.\r\n", b3_block_number);
   return b3_block_number;
 }
 
@@ -677,14 +719,16 @@ uint16_t throwbackCopy(uint32_t b0_block_number) {
 UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
   initRandomIfNeeded();
   // 1. check that db capacity is enough to add new block
+  serialDebugPrintf("1.\r\n");
   if (last_block_left()) {
     return DB_FULL;
   } 
 
   // 2. load folders block
-  uint16_t folder_block_number;
+  uint16_t folder_block_number = folders_block_number();
   uint16_t block_size = FLASH_SECTOR_SIZE;
   uint8_t block[block_size];
+  serialDebugPrintf("2. loading bank_number %d, folder_block_number %d\r\n", bank_number, folder_block_number);
   if (!loadBlockFromFlash(bank_number, folder_block_number, block_size,
     main_key, main_iv_mask, 
     block)) {
@@ -696,6 +740,7 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
   if (!(folders_block = phraser_FoldersBlock_as_root(block + DATA_OFFSET))) {
     return ERROR;
   }
+  serialDebugPrintf("3.\r\n");
 
   // 4. Form arraylist of existing block folders
   uint16_t max_folder_id = 0;
@@ -716,6 +761,7 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
 
     arraylist_add(dao_folders, daoFolder);
   }
+  serialDebugPrintf("4.\r\n");
 
   // 5. Add new folder to the arraylist
   DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
@@ -724,9 +770,14 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
   daoFolder->folder_name = new_folder_name;
 
   arraylist_add(dao_folders, daoFolder);
+  serialDebugPrintf("5.\r\n");
+
+  uint32_t throwback_copy_version = increment_and_get_next_block_version();//throwback version comes first
+  uint32_t new_block_version = increment_and_get_next_block_version();
 
   // 6. Form updated block with updated list of folders
-  UpdateResponse block_response = updateVersionAndEntropyFoldersBlock(block, block_size, main_key, main_iv_mask, dao_folders);
+  UpdateResponse block_response = updateVersionAndEntropyFoldersBlock(block, block_size, main_key, main_iv_mask, new_block_version, dao_folders);
+  serialDebugPrintf("6.\r\n");
 
   // 7. Free arraylist of folders
   for (int i = 0; i < arraylist_size(dao_folders); i++) {
@@ -737,24 +788,40 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
   if (OK != block_response) {
     return block_response;
   }
-  
+  serialDebugPrintf("7.\r\n");
+
   // 8. Perform Throwback Copy, according to flash preservation algorithm
-  uint16_t b3_block_number = throwbackCopy(folder_block_number);
-  if (b3_block_number != -1) {
+  uint16_t b3_block_number = throwbackCopy(folder_block_number, throwback_copy_version);
+  if (b3_block_number == -1) {
     return ERROR;
   }
+  serialDebugPrintf("8.\r\n");
 
   // 9. Save the updated block to flash
   saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
+  serialDebugPrintf("9.\r\n");
 
-  // 10. Update DB indices
+  // 10. Re-Load new block version from flash
+  if (!loadBlockFromFlash(bank_number, b3_block_number, block_size,
+    main_key, main_iv_mask, 
+    block)) {
+    return ERROR;
+  }
+  serialDebugPrintf("10.\r\n");
+
+  // 11. Update DB indices
 
   // B3-related logic, it was replaced at B3 block_number by B0 blockId
   invalidateBlockIndices(folder_block_number, b3_block_number);
-  // B0-related logic, new version of which replaced B3
-  // Since folders block doesn't have tombstoned status, we don't update tombstone-related stuff.
-  updateBlockIndicesPostMove(folder_block_number, b3_block_number);
-  
+  // B0-related logic, new version of which replaced B3 (only partial index update, 
+  //  to avoid interfering with subsequent registerBlockInBlockCache() call)
+  updateBlockIndicesPostBlockMove(folder_block_number, false, b3_block_number);
+  serialDebugPrintf("11.\r\n");
+
+  // 12. Register new version in cache
+  registerBlockInBlockCache(block, b3_block_number);
+  serialDebugPrintf("12.\r\n");
+
   return OK;
 }
 

@@ -2,9 +2,13 @@
 
 #include "TextAreaDialog.h"
 #include "ScreenList.h"
+#include "ScreenKeyboard.h"
 #include "BlockCache.h"
+#include "BlockDAO.h"
+#include "SerialUtils.h"
 
 enum MainUiPhase {
+  // Menus
   FOLDER_BROWSER,
   FOLDER_MENU,
   PHRASE,
@@ -13,11 +17,43 @@ enum MainUiPhase {
   PHRASE_HISTORY_MENU,
   PHRASE_HISTORY_ENTRY,
   PHRASE_HISTORY_ENTRY_MENU,
-  
+
+  // Word Actions
   VIEW_WORD,
 
+  EDIT_WORD_YES_NO,
+  ENTER_NEW_WORD,
   EDIT_WORD,
 
+  // BlockDAO Dialogs
+  CREATE_NEW_FOLDER_YES_NO,
+  CREATE_NEW_FOLDER,
+  CREATE_NEW_FOLDER_REPORT,
+  
+  RENAME_FOLDER_YES_NO,
+  ENTER_RENAME_FOLDER_NAME,
+  RENAME_FOLDER,
+  
+  DELETE_FOLDER_YES_NO,
+  DELETE_FOLDER,
+  
+  CREATE_NEW_PHRASE_YES_NO,
+  ENTER_NEW_PHRASE_NAME,
+  SELECT_NEW_PHRASE_TEMPLATE_OK,
+  SELECT_NEW_PHRASE_TEMPLATE,
+  CREATE_NEW_PHRASE,
+  
+  RENAME_PHRASE_YES_NO,
+  ENTER_RENAME_PHRASE_NAME,
+  RENAME_PHRASE,
+  
+  CHANGE_PHRASE_FOLDER_YES_NO,
+  SELECT_NEW_FOLDER,
+  CHANGE_PHRASE_FOLDER,
+  SWITCH_FOLDER_YES_NO,
+  
+  DELETE_PHRASE_YES_NO,
+  DELETE_PHRASE
 };
 
 MainUiPhase main_ui_phase = FOLDER_BROWSER;
@@ -29,6 +65,7 @@ Folder* folder_browser_folder;
 FolderOrPhrase* folder_browser_selection;
 
 void initCurrentFolderScreenList(int select_folder_id, int select_phrase_id) {
+  serialDebugPrintf("initCurrentFolderScreenList\r\n");
   int selection = 0;
   if (current_list_content != NULL) {
     for (int i = 0; i < arraylist_size(current_list_content); i++) {
@@ -38,6 +75,7 @@ void initCurrentFolderScreenList(int select_folder_id, int select_phrase_id) {
     current_list_content = NULL;
   }
 
+  serialDebugPrintf("getFolderContent %d\r\n", folder_browser_folder->folderId);
   current_list_content = getFolderContent(folder_browser_folder->folderId);
   if (current_list_content != NULL) {
     int current_folder_content_size = arraylist_size(current_list_content);
@@ -82,9 +120,25 @@ void initCurrentFolderScreenList(int select_folder_id, int select_phrase_id) {
 
 void initFolder(int folder_id, int select_folder_id, int select_phrase_id) {
   Folder* next_folder = getFolder(folder_id);
+  if (next_folder == NULL) {
+    next_folder = getFolder(0);//root folder
+  }
+
   if (next_folder != NULL) {
     folder_browser_folder = next_folder;
     initCurrentFolderScreenList(select_folder_id, select_phrase_id);
+  }
+}
+
+void initFolder(int folder_id, FolderOrPhrase* selection) {
+  if (selection != NULL) {
+    if (selection->folder != NULL) {
+      initFolder(folder_id, selection->folder->folderId, -1);
+    } else {
+      initFolder(folder_id, -1, selection->phrase->phraseBlockId);
+    }
+  } else {
+    initFolder(folder_id, -1, -1);
   }
 }
 
@@ -130,21 +184,57 @@ const int FOLDER_MENU_RENAME_FOLDER = 2;
 const int FOLDER_MENU_DELETE_FOLDER = 3;
 const int FOLDER_MENU_NEW_PHRASE = 4;
 const int FOLDER_MENU_DELETE_PHRASE = 5;
+const int FOLDER_MENU_RENAME_PHRASE = 6;
+const int FOLDER_MENU_CHANGE_PHRASE_FOLDER = 7;
 void folderBrowserMenuAction(int chosen_item, int code) {
+  serialDebugPrintf("%d %d \r\n", chosen_item, code);
   if (FOLDER_MENU_NEW_FOLDER == code) {
-    // 1. check that db capacity is enough to add new block
-    // 2. get name
-    // 3. add new folder
-    // 4. build new Folders block
-    //  4.1 check Folders block size is within limits
-    // 5. perform DB update
-    // 6. resync folders from block
-    // 7. reinit UI
+    char* text = "Create new folder?";
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_ui_phase = CREATE_NEW_FOLDER_YES_NO;
+    //CREATE_NEW_FOLDER_YES_NO,
+    //ENTER_NEW_FOLDER_NAME,
+    //CREATE_NEW_FOLDER
   } else if (FOLDER_MENU_RENAME_FOLDER == code) {
+    //RENAME_FOLDER_YES_NO,
+    //ENTER_RENAME_FOLDER_NAME,
+    //RENAME_FOLDER
   } else if (FOLDER_MENU_DELETE_FOLDER == code) {
+    //DELETE_FOLDER_YES_NO,
+    //DELETE_FOLDER
   } else if (FOLDER_MENU_NEW_PHRASE == code) {
+    //CREATE_NEW_PHRASE_YES_NO,
+    //ENTER_NEW_PHRASE_NAME,
+    //SELECT_NEW_PHRASE_TEMPLATE_OK,
+    //SELECT_NEW_PHRASE_TEMPLATE,
+    //CREATE_NEW_PHRASE
   } else if (FOLDER_MENU_DELETE_PHRASE == code) {
+    //DELETE_PHRASE_YES_NO,
+    //DELETE_PHRASE
+  } else if (FOLDER_MENU_RENAME_PHRASE == code) {
+    //RENAME_PHRASE_YES_NO,
+    //ENTER_RENAME_PHRASE_NAME,
+    //RENAME_PHRASE/
+  } else if (FOLDER_MENU_CHANGE_PHRASE_FOLDER == code) {
+    //CHANGE_PHRASE_FOLDER_YES_NO,
+    //SELECT_NEW_FOLDER,
+    //CHANGE_PHRASE_FOLDER
+    //SWITCH_FOLDER_YES_NO
   }
+}
+
+bool isMenuPhase() {
+  switch (main_ui_phase) {
+    case FOLDER_BROWSER:
+    case FOLDER_MENU:
+    case PHRASE:
+    case PHRASE_MENU:
+    case PHRASE_HISTORY:
+    case PHRASE_HISTORY_MENU:
+    case PHRASE_HISTORY_ENTRY:
+    case PHRASE_HISTORY_ENTRY_MENU: return true;
+  }
+  return false;
 }
 
 void runMainUiPhaseAction(int chosen_item, int code) {
@@ -157,8 +247,6 @@ void runMainUiPhaseAction(int chosen_item, int code) {
     case PHRASE_HISTORY_MENU:
     case PHRASE_HISTORY_ENTRY:
     case PHRASE_HISTORY_ENTRY_MENU:
-    case VIEW_WORD:
-    case EDIT_WORD:
     default: return;
   }
 }
@@ -248,13 +336,98 @@ void menuSwitch(int chosen_item) {
   }
 }
 
+void dialogActionsLoop(Thumby* thumby) {
+  switch (main_ui_phase) {
+    case CREATE_NEW_FOLDER_YES_NO: { 
+        DialogResult result = textAreaLoop(thumby);
+        if (result == DLG_RES_YES) {
+          main_ui_phase = CREATE_NEW_FOLDER;
+          initOnScreenKeyboard(false, false);
+        } else if (result == DLG_RES_NO) {
+          main_ui_phase = FOLDER_MENU;
+        }
+      }
+      break;
+    case CREATE_NEW_FOLDER: {
+        char* new_folder_name = keyboardLoop(thumby);
+        if (new_folder_name != NULL) {
+          uint16_t parent_folder_id = folder_browser_folder->folderId;
+          UpdateResponse new_folder_response = addNewFolder(new_folder_name, parent_folder_id);
+          if (new_folder_response == OK) {
+            
+            serialDebugPrintf("Initing folder: %d\r\n", folder_browser_folder->folderId);
+//            serialDebugPrintf("folder_browser_selection folderId: %d\r\n", folder_browser_selection->folder->folderId);
+            main_ui_phase = FOLDER_BROWSER;
+          } else {
+            if (new_folder_response == ERROR) {
+              char* text = "Create new folder ERROR.";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            } else if (new_folder_response == DB_FULL) {
+              char* text = "Database full, can't create";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            } else if (new_folder_response == BLOCK_SIZE_EXCEEDED) {
+              char* text = "Block size exceeded - too many folders. Can't create";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            }
+            main_ui_phase = CREATE_NEW_FOLDER_REPORT;
+          }
+        }
+      }
+      break;
+    case CREATE_NEW_FOLDER_REPORT: {
+        DialogResult result = textAreaLoop(thumby);
+        if (result == DLG_RES_OK) {
+          initFolder(folder_browser_folder->folderId, folder_browser_selection);
+          main_ui_phase = FOLDER_BROWSER;
+        }
+      }
+      break;
+  }
+
+  // BlockDAO Dialogs
+  // CREATE_NEW_FOLDER_YES_NO,
+  // ENTER_NEW_FOLDER_NAME,
+  // CREATE_NEW_FOLDER,
+  
+  // RENAME_FOLDER_YES_NO,
+  // ENTER_RENAME_FOLDER_NAME,
+  // RENAME_FOLDER,
+  
+  // DELETE_FOLDER_YES_NO,
+  // DELETE_FOLDER,
+  
+  // CREATE_NEW_PHRASE_YES_NO,
+  // ENTER_NEW_PHRASE_NAME,
+  // SELECT_NEW_PHRASE_TEMPLATE_OK,
+  // SELECT_NEW_PHRASE_TEMPLATE,
+  // CREATE_NEW_PHRASE,
+  
+  // RENAME_PHRASE_YES_NO,
+  // ENTER_RENAME_PHRASE_NAME,
+  // RENAME_PHRASE,
+  
+  // CHANGE_PHRASE_FOLDER_YES_NO,
+  // SELECT_NEW_FOLDER,
+  // CHANGE_PHRASE_FOLDER,
+  // SWITCH_FOLDER_YES_NO,
+  
+  // DELETE_PHRASE_YES_NO,
+  // DELETE_PHRASE
+}
+
 void phraserDbUiLoop(Thumby* thumby) {
-  SelectionAndCode chosen = listLoopWithCode(thumby, true);
-  if (chosen.selection != -1) {
-    if (getSelectButton() == SELECT_BUTTON_A) {
-      runMainUiPhaseAction(chosen.selection, chosen.code);
-    } else { //SELECT_BUTTON_B
-      menuSwitch(chosen.selection);
+  if (isMenuPhase()) {
+    // Menu phase, all menus are ScreenList-based
+    SelectionAndCode chosen = listLoopWithCode(thumby, true);
+    if (chosen.selection != -1) {
+      if (getSelectButton() == SELECT_BUTTON_A) {
+        runMainUiPhaseAction(chosen.selection, chosen.code);
+      } else { //SELECT_BUTTON_B
+        menuSwitch(chosen.selection);
+      }
     }
+  } else {
+    // Dialog phase
+    dialogActionsLoop(thumby);
   }
 }

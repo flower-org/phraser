@@ -11,6 +11,7 @@ void* hashtable_remove(hashtable *t,uint32_t key);
 void hashtable_resize(hashtable *t,unsigned int capacity);
 void* hashtable_set(hashtable *t,uint32_t key,void *value);
 void *hashtable_get(hashtable *t,uint32_t key);
+bool hashtable_exists(hashtable *t,uint32_t key);
 unsigned int hashtable_find_slot(hashtable *t,uint32_t key);
 unsigned long hashtable_hash(uint32_t str);
 void hashtable_iterate_entries(hashtable *t, void (*func)(hashtable *t, uint32_t key, void* value));

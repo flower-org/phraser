@@ -144,31 +144,31 @@ void objectMutationTest() {
 
   serialDebugPrintf("Key\r\n");
   initDefaultKeyBlock(block, HARDCODED_SALT, HARDCODED_IV_MASK, out_new_aes_key, out_new_aes_iv_mask, 128);
-  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK) == ERROR) {
+  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK, increment_and_get_next_block_version(), true) == ERROR) {
     serialDebugPrintf("Error\r\n");
   }
 
   serialDebugPrintf("SymbolSets\r\n");
   initDefaultSymbolSetsBlock(block, HARDCODED_SALT, HARDCODED_IV_MASK);
-  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK) == ERROR) {
+  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK, increment_and_get_next_block_version(), true) == ERROR) {
     serialDebugPrintf("Error\r\n");
   }
 
   serialDebugPrintf("Folder\r\n");
   initDefaultFoldersBlock(block, HARDCODED_SALT, HARDCODED_IV_MASK);
-  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK) == ERROR) {
+  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK, increment_and_get_next_block_version(), true) == ERROR) {
     serialDebugPrintf("Error\r\n");
   }
 
   serialDebugPrintf("PhraseTemplate\r\n");
   initDefaultPhraseTemplatesBlock(block, HARDCODED_SALT, HARDCODED_IV_MASK);
-  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK) == ERROR) {
+  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK, increment_and_get_next_block_version(), true) == ERROR) {
     serialDebugPrintf("Error\r\n");
   }
 
   serialDebugPrintf("Phrase\r\n");
   initDefaultPhraseBlock(block, HARDCODED_SALT, HARDCODED_IV_MASK);
-  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK) == ERROR) {
+  if (updateVersionAndEntropyBlock(block, FLASH_SECTOR_SIZE, HARDCODED_SALT, HARDCODED_IV_MASK, increment_and_get_next_block_version(), true) == ERROR) {
     serialDebugPrintf("Error\r\n");
   }
 }
