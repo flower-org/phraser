@@ -7,6 +7,7 @@
 #include "pbkdf2-sha256.h"
 #include "Schema_builder.h"
 #include "SerialUtils.h"
+#include "rbtree.h"
 
 struct DAOFolder {
   uint16_t folder_id;
@@ -75,8 +76,9 @@ bool loadBlockFromFlash(uint8_t bank_number, uint16_t block_number, uint32_t blo
     return inPlaceDecryptAndValidateBlock(out_db_block, block_size, aes_key, aes_iv_mask);
 }
 
-void saveBlockToFlash(uint8_t bank_number, uint16_t block_number, uint8_t* encrypted_block, uint32_t block_size) {
+void saveBlockUpdateToFlash(uint8_t bank_number, uint16_t block_number, uint8_t* encrypted_block, uint32_t block_size) {
     writeDbBlockToFlashBank(bank_number, block_number, encrypted_block);
+    //
 }
 
 bool throw_block_back(uint16_t block_number) {
@@ -507,8 +509,80 @@ void throwBlockBack(uint8_t bank_number, uint16_t block_number_from, uint16_t bl
   // TODO: implement
 }
 
-uint16_t throwbackCopy() {
-  //TODO implement - return block_number to which B0 shold go
+uint32_t get_valid_block_number_on_the_right_of(uint32_t block_number) {
+  node_t* valid_block_node = tree_higherKey(occupied_block_numbers(), block_number);
+  if (valid_block_node == NULL) {
+    valid_block_node = tree_minimum(occupied_block_numbers());
+  }  
+  return valid_block_node->_data;
+}
+
+bool left_lookup_missing_block_number_found;
+uint32_t left_lookup_missing_block_number;
+bool left_lookup(data_t next_block_number) {
+  left_lookup_missing_block_number = left_lookup_missing_block_number - 1;
+  if (next_block_number < left_lookup_missing_block_number) {
+    left_lookup_missing_block_number_found = true;
+    return false;
+  }
+  return true;
+}
+
+uint32_t get_free_block_number_on_the_left_of(uint32_t block_number) {
+  left_lookup_missing_block_number_found = false;
+  left_lookup_missing_block_number = block_number;
+  
+  traverse_left_excl(occupied_block_numbers(), left_lookup_missing_block_number, left_lookup);
+  if (!left_lookup_missing_block_number_found) {
+    return left_lookup_missing_block_number;
+  }
+
+  left_lookup_missing_block_number_found = false;
+  left_lookup_missing_block_number = db_block_count();
+  traverse_left_excl(occupied_block_numbers(), left_lookup_missing_block_number, left_lookup);
+  if (!left_lookup_missing_block_number_found) {
+    return left_lookup_missing_block_number;
+  }
+
+  // If there are no free blocks, DB is in a bad state, offline repair needed.
+  return -1;
+}
+
+uint16_t throwbackCopy(uint32_t b0_block_number) {
+  uint32_t border_block_number = last_block_number();
+  uint32_t b1_block_number = get_valid_block_number_on_the_right_of(border_block_number);
+  uint32_t b2_block_number = get_free_block_number_on_the_left_of(border_block_number);
+  uint32_t b3_block_number;
+
+  if (last_block_left()) {
+    // In case we have only 1 free block, the only free block is B2.
+    // Since B1 overwrites B2, B1 becomes the only free block.
+    // Therefore the only place the main update can go to is B1
+
+    // Main updates goes to B1
+    b3_block_number = b1_block_number;
+  } else {
+    // If we have more than 1 free block initially, then after Throwback Copy is done,
+    // the block immediately to the right of the border will always be free.
+    // This boils down to 2 possibilities:
+    // 1) B2 is actually the block immediately to the right of the border, and after 
+    //  throwback copy is done, it will become free.
+    // 2) The block immediately to the right of the border is not B2.
+    //  That would mean this block is free, because B2 is first non-free block to the right.
+    //  This block is also not B1, because B1 is the first free block to the left, and since 
+    //  we have more than 1 free block, B1 has to be some other block than the "rightest" 
+    //  free block.
+    //  In this case Throwback Copy updates B2 and B1, while the block immediately 
+    //  to the right of the border stays intact, i.e. it's free.
+
+    // Main update goes to the block immediately to the right of the border
+    b3_block_number = (border_block_number + 1) % db_block_count();
+  }
+
+  // 1. Move B1 to B2
+  // 2. Deactivate B2
+
+  // return block_number to which B0 shold go
   return -1;
 }
 
@@ -517,7 +591,7 @@ uint16_t throwbackCopy() {
 UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
   initRandomIfNeeded();
   // 1. check that db capacity is enough to add new block
-  if (max_db_block_count() - valid_block_count() <= 1) {
+  if (last_block_left()) {
     return DB_FULL;
   } 
 
@@ -574,8 +648,8 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
     return block_response;
   }
   
-  uint16_t main_block_number = throwbackCopy();
-  saveBlockToFlash(bank_number, main_block_number, block, block_size);
+  uint16_t main_block_number = throwbackCopy(folder_block_number);
+  saveBlockUpdateToFlash(bank_number, main_block_number, block, block_size);
 
   return ERROR;
 }

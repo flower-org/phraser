@@ -776,12 +776,20 @@ extern Folder* getFolder(uint16_t folder_id) {
 }
 
 // returns max_block_count
-uint16_t max_db_block_count() {
+uint16_t db_block_count() {
   return max_block_count;
 }
 
 uint16_t valid_block_count() {
   return blockInfos->size;
+}
+
+uint16_t free_block_count() {
+  return db_block_count() - valid_block_count();
+}
+
+bool last_block_left() {
+  return free_block_count() <= 1;
 }
 
 uint32_t get_last_entropy() {
@@ -790,4 +798,12 @@ uint32_t get_last_entropy() {
 
 uint32_t next_block_version() {
   return ++lastBlockVersion;
+}
+
+node_t* occupied_block_numbers() {
+  return occupiedBlockNumbers;
+}
+
+uint32_t last_block_number() {
+  return lastBlockNumber;
 }
