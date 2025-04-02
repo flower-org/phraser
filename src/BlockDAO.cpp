@@ -548,6 +548,7 @@ uint32_t get_free_block_number_on_the_left_of(uint32_t block_number) {
   return -1;
 }
 
+// returns block_number to which the main update shold go
 uint16_t throwbackCopy(uint32_t b0_block_number) {
   uint32_t border_block_number = last_block_number();
   uint32_t b1_block_number = get_valid_block_number_on_the_right_of(border_block_number);
@@ -555,8 +556,8 @@ uint16_t throwbackCopy(uint32_t b0_block_number) {
   uint32_t b3_block_number;
 
   if (last_block_left()) {
-    // In case we have only 1 free block, the only free block is B2.
-    // Since B1 overwrites B2, B1 becomes the only free block.
+    // In case we have only 1 free block, initially the only free block is B2.
+    // Since B1 overwrites B2, after Throwback Copy B1 becomes the only free block.
     // Therefore the only place the main update can go to is B1
 
     // Main updates goes to B1
@@ -564,9 +565,11 @@ uint16_t throwbackCopy(uint32_t b0_block_number) {
   } else {
     // If we have more than 1 free block initially, then after Throwback Copy is done,
     // the block immediately to the right of the border will always be free.
+    //
     // This boils down to 2 possibilities:
     // 1) B2 is actually the block immediately to the right of the border, and after 
     //  throwback copy is done, it will become free.
+    //
     // 2) The block immediately to the right of the border is not B2.
     //  That would mean this block is free, because B2 is first non-free block to the right.
     //  This block is also not B1, because B1 is the first free block to the left, and since 
@@ -579,11 +582,13 @@ uint16_t throwbackCopy(uint32_t b0_block_number) {
     b3_block_number = (border_block_number + 1) % db_block_count();
   }
 
-  // 1. Move B1 to B2
-  // 2. Deactivate B2
+  // 1. Load B1 (use keyBlockKey for key block)
+  // 2. Update B1 version
+  // 3. Save B1 to B2
+  // 4. Update DB indices
 
-  // return block_number to which B0 shold go
-  return -1;
+  // return block_number to which Main Update shold go
+  return b3_block_number;
 }
 
 // -------------------- FOLDERS -------------------- 
