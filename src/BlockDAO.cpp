@@ -8,6 +8,7 @@
 #include "Schema_builder.h"
 #include "SerialUtils.h"
 #include "rbtree.h"
+#include "hashtable.h"
 
 struct DAOFolder {
   uint16_t folder_id;
@@ -78,7 +79,6 @@ bool loadBlockFromFlash(uint8_t bank_number, uint16_t block_number, uint32_t blo
 
 void saveBlockUpdateToFlash(uint8_t bank_number, uint16_t block_number, uint8_t* encrypted_block, uint32_t block_size) {
     writeDbBlockToFlashBank(bank_number, block_number, encrypted_block);
-    //
 }
 
 bool throw_block_back(uint16_t block_number) {
@@ -133,7 +133,7 @@ void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8
 
 void storeBlockNewVersionAndEntropy(phraser_StoreBlock_t* store_block, phraser_StoreBlock_struct_t old_store_block) {
   store_block->block_id = phraser_StoreBlock_block_id(old_store_block);
-  store_block->version = next_block_version();
+  store_block->version = increment_and_get_next_block_version();
   store_block->entropy = random_uint32();
 }
 
@@ -531,21 +531,72 @@ bool left_lookup(data_t next_block_number) {
 uint32_t get_free_block_number_on_the_left_of(uint32_t block_number) {
   left_lookup_missing_block_number_found = false;
   left_lookup_missing_block_number = block_number;
-  
-  traverse_left_excl(occupied_block_numbers(), left_lookup_missing_block_number, left_lookup);
+  traverse_left_excl(occupied_block_numbers(), block_number, left_lookup);
   if (!left_lookup_missing_block_number_found) {
     return left_lookup_missing_block_number;
   }
 
   left_lookup_missing_block_number_found = false;
   left_lookup_missing_block_number = db_block_count();
-  traverse_left_excl(occupied_block_numbers(), left_lookup_missing_block_number, left_lookup);
+  traverse_left_excl(occupied_block_numbers(), db_block_count(), left_lookup);
   if (!left_lookup_missing_block_number_found) {
     return left_lookup_missing_block_number;
   }
 
   // If there are no free blocks, DB is in a bad state, offline repair needed.
   return -1;
+}
+
+void invalidateBlockIndices(uint32_t b1_block_number, uint32_t b2_block_number) {
+  // ---- B2-related logic, it was replaced at B2 block_number by B1 blockId ----
+  uint32_t b1_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, b1_block_number);
+
+  // Remove B2 block number from blockIdByBlockNumber, since we've just replaced it with B1
+  uint32_t b2_block_id = (uint32_t)hashtable_remove(blockIdByBlockNumber, b2_block_number);
+  
+  // Get B2 block info and decrement copy count, since 1 copy of B2 blockId was just destroyed
+  BlockNumberAndVersionAndCount* b2_info = 
+    (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, b2_block_id);
+  b2_info->copyCount--;
+
+  if (b2_info->isTombstoned && b2_info->copyCount <= 1 && b2_block_id != b1_block_id) {
+    // If we discover that B2 is Tombstoned and now has only 1 copy left,
+    // and as long as B2 is not the same blockId as B1 (a copy of which we've just created)  
+    // we can safely assume that disposing of that last copy of B2 won't result in incorect 
+    // tombstone revival, due to the fact that it's the last and only copy left.
+    // Therefore, it's safe to remove B2 from the indexes entirely and dispose of B2 blockId.
+    hashtable_remove(blockInfos, b2_block_id);
+    hashtable_remove(tombstonedBlockIds, b2_block_id);
+  }
+  // In the context of B2 removal, B2 is no longer occupied
+  removeFromOccupiedBlockNumbers(b2_block_number);
+}
+
+void updateBlockIndicesPostMove(uint32_t b1_block_number, uint32_t b2_block_number) {
+  // ---- B1-related logic, new version of which replaced B2 ---
+  uint32_t b1_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, b1_block_number);
+  uint32_t b1_block_new_version = last_block_version();
+
+  // B2 block number now holds block with B1 blockId
+  hashtable_set(blockIdByBlockNumber, b2_block_number, (void*)b1_block_id);
+  
+  // We've just created a new copy of B1 blockId, so we increment copyCount
+  // And we also update version to the new one, and block number to B2 block number
+  BlockNumberAndVersionAndCount* b1_info = 
+    (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, b1_block_id);
+  b1_info->copyCount++;
+  b1_info->blockVersion = b1_block_new_version;
+  b1_info->blockNumber = b2_block_number;
+
+  // Since B1 was essentially copied with a version bump, there is no need to update
+  // tombstone stats, they didn't change. 
+
+  // In the context of B1 creation, B2 block number is now occupied by B1 blockId.
+  addToOccupiedBlockNumbers(b2_block_number);
+
+  // B1 block number becomes "free", since the latest version of B1 blockId 
+  // was moved to B2 block number
+  removeFromOccupiedBlockNumbers(b1_block_number);
 }
 
 // returns block_number to which the main update shold go
@@ -583,15 +634,45 @@ uint16_t throwbackCopy(uint32_t b0_block_number) {
   }
 
   // 1. Load B1 (use keyBlockKey for key block)
+  uint16_t block_size = FLASH_SECTOR_SIZE;
+  uint8_t block[block_size];
+  uint8_t* aes_key; 
+  uint8_t* aes_iv_mask;
+
+  if (b1_block_number == key_block_number()) {
+    aes_key = key_block_key;
+    aes_iv_mask = HARDCODED_IV_MASK;
+  } else {
+    aes_key = main_key;
+    aes_iv_mask = main_iv_mask;
+  }
+
+  bool load_success = loadBlockFromFlash(bank_number, b1_block_number, block_size, aes_key, aes_iv_mask, block);
+  if (!load_success) {
+    return -1;
+  }
+
   // 2. Update B1 version
-  // 3. Save B1 to B2
+  UpdateResponse update_response = updateVersionAndEntropyBlock(block, block_size, aes_key, aes_iv_mask);
+  if (update_response != OK) {
+    return -1;
+  }
+
+  // 3. Save B1 with bumped version to B2
+  saveBlockUpdateToFlash(bank_number, b2_block_number, block, block_size);
+
   // 4. Update DB indices
 
-  // return block_number to which Main Update shold go
+  // B2-related logic, it was replaced at B2 block_number by B1 blockId
+  invalidateBlockIndices(b1_block_number, b2_block_number);
+  // B1-related logic, new version of which replaced B2
+  updateBlockIndicesPostMove(b1_block_number, b2_block_number);
+
+  // ---- Return block_number to which Main Update shold go ----
   return b3_block_number;
 }
 
-// -------------------- FOLDERS -------------------- 
+// -------------------- FOLDERS --------------------
 
 UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
   initRandomIfNeeded();
@@ -610,12 +691,13 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
     return ERROR;
   }
 
-  // 2.1 deserialize folders flatbuf block
+  // 3. deserialize folders flatbuf block
   phraser_FoldersBlock_table_t folders_block;
   if (!(folders_block = phraser_FoldersBlock_as_root(block + DATA_OFFSET))) {
     return ERROR;
   }
 
+  // 4. Form arraylist of existing block folders
   uint16_t max_folder_id = 0;
   arraylist* dao_folders = arraylist_create();
   phraser_Folder_vec_t folders_vec = phraser_FoldersBlock_folders(folders_block);
@@ -635,15 +717,18 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
     arraylist_add(dao_folders, daoFolder);
   }
 
+  // 5. Add new folder to the arraylist
   DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
-  daoFolder->folder_id = max_folder_id+1;
+  daoFolder->folder_id = max_folder_id + 1;
   daoFolder->parent_folder_id = parent_folder_id;
   daoFolder->folder_name = new_folder_name;
 
   arraylist_add(dao_folders, daoFolder);
 
+  // 6. Form updated block with updated list of folders
   UpdateResponse block_response = updateVersionAndEntropyFoldersBlock(block, block_size, main_key, main_iv_mask, dao_folders);
-  
+
+  // 7. Free arraylist of folders
   for (int i = 0; i < arraylist_size(dao_folders); i++) {
     free(arraylist_get(dao_folders, i)); 
   }
@@ -653,10 +738,24 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
     return block_response;
   }
   
-  uint16_t main_block_number = throwbackCopy(folder_block_number);
-  saveBlockUpdateToFlash(bank_number, main_block_number, block, block_size);
+  // 8. Perform Throwback Copy, according to flash preservation algorithm
+  uint16_t b3_block_number = throwbackCopy(folder_block_number);
+  if (b3_block_number != -1) {
+    return ERROR;
+  }
 
-  return ERROR;
+  // 9. Save the updated block to flash
+  saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
+
+  // 10. Update DB indices
+
+  // B3-related logic, it was replaced at B3 block_number by B0 blockId
+  invalidateBlockIndices(folder_block_number, b3_block_number);
+  // B0-related logic, new version of which replaced B3
+  // Since folders block doesn't have tombstoned status, we don't update tombstone-related stuff.
+  updateBlockIndicesPostMove(folder_block_number, b3_block_number);
+  
+  return OK;
 }
 
 UpdateResponse renameFolder(uint16_t folder_id, char* new_folder_name) {

@@ -36,13 +36,6 @@ struct BlockIdAndVersion {
 
 BlockIdAndVersion BLOCK_NOT_UPDATED = { 0, 0, 0, false };
 
-struct BlockNumberAndVersionAndCount {
-  uint32_t blockNumber;
-  uint32_t blockVersion;
-  uint32_t copyCount;
-  bool isTombstoned;
-};
-
 struct SymbolSet {
   uint32_t symbolSetId;
   char* symbolSetName;
@@ -713,6 +706,14 @@ void processTombstonedBlocks(hashtable *t, uint32_t key, void* value) {
   }
 }
 
+void removeFromOccupiedBlockNumbers(uint32_t key) {
+  while (tree_delete(&occupiedBlockNumbers, key));
+}
+
+void addToOccupiedBlockNumbers(uint32_t key) {
+  tree_insert(&occupiedBlockNumbers, key);
+}
+
 void formOccupiedBlockNumbers(hashtable *t, uint32_t key, void* value) {
   tree_insert(&occupiedBlockNumbers, key);
 }
@@ -796,7 +797,7 @@ uint32_t get_last_entropy() {
   return lastEntropy;
 }
 
-uint32_t next_block_version() {
+uint32_t increment_and_get_next_block_version() {
   return ++lastBlockVersion;
 }
 
@@ -806,4 +807,14 @@ node_t* occupied_block_numbers() {
 
 uint32_t last_block_number() {
   return lastBlockNumber;
+}
+
+uint32_t last_block_version() {
+  return lastBlockVersion;
+}
+
+uint32_t key_block_number() {
+  BlockNumberAndVersionAndCount* blockNumberAndVersionAndCount = 
+    (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, key_block_id);
+  return blockNumberAndVersionAndCount->blockNumber;
 }

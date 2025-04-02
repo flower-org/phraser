@@ -115,6 +115,7 @@
   "files.associations": {
     "string": "cpp",
     "new": "cpp",
-    "cstdio": "cpp"
+    "cstdio": "cpp",
+    "*.tcc": "cpp"
   }
 }

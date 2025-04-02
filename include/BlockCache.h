@@ -7,6 +7,7 @@
 #include "Schema_reader.h"
 #include "arraylist.h"
 #include "rbtree.h"
+#include "hashtable.h"
 
 extern uint8_t HARDCODED_SALT[];
 extern const int HARDCODED_SALT_LEN;
@@ -16,6 +17,13 @@ extern const int IV_MASK_LEN;
 
 extern const int PBKDF_INTERATIONS_COUNT;
 extern const int DATA_OFFSET;
+
+struct BlockNumberAndVersionAndCount {
+  uint32_t blockNumber;
+  uint32_t blockVersion;
+  uint32_t copyCount;
+  bool isTombstoned;
+};
 
 struct Folder {
   uint32_t folderId;
@@ -33,6 +41,16 @@ struct FolderOrPhrase {
   PhraseFolderAndName* phrase;
   Folder* folder;
 };
+
+// DB data structures
+extern uint16_t lastBlockId;
+extern uint32_t lastBlockVersion;
+extern uint32_t lastBlockNumber;
+extern uint32_t lastEntropy;
+
+extern hashtable* blockIdByBlockNumber; //key BlockNumber, value BlockId
+extern hashtable* blockInfos; //key BlockId, value BlockNumberAndVersionAndCount
+extern hashtable* tombstonedBlockIds; //key BlockId, value BlockId 
 
 // - Login data cache
 extern uint8_t* key_block_key;
@@ -65,7 +83,12 @@ uint16_t free_block_count();
 bool last_block_left();
 
 uint32_t get_last_entropy();
-uint32_t next_block_version();
+uint32_t increment_and_get_next_block_version();
+uint32_t last_block_version();
 
 node_t* occupied_block_numbers();
+void removeFromOccupiedBlockNumbers(uint32_t key);
+void addToOccupiedBlockNumbers(uint32_t key);
+
 uint32_t last_block_number();
+uint32_t key_block_number();

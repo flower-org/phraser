@@ -233,11 +233,14 @@ void tree_insert(node_t **root, data_t query) {
   tree_insert_raw(root, n);
 }
 
-void tree_delete(node_t **root, data_t query) {
+bool tree_delete(node_t **root, data_t query) {
   node_t *n = search(*root, query);
   if (n != NULL) {
     tree_delete_raw(root, n);
     free(n);
+    return true;
+  } else {
+    return false;
   }
 }
 

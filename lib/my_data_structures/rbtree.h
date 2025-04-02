@@ -16,7 +16,7 @@ typedef struct node {
 // Interfaces
 //
 void tree_insert(node_t **root, data_t query);
-void tree_delete(node_t **root, data_t query);
+bool tree_delete(node_t **root, data_t query);
 
 void tree_insert_raw(node_t **root, node_t *node);
 node_t *search(const node_t *root, data_t query);
