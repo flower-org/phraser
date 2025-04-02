@@ -8,6 +8,20 @@
 #include "Schema_builder.h"
 #include "SerialUtils.h"
 
+struct DAOFolder {
+  uint16_t folder_id;
+  uint16_t parent_folder_id;
+  char* folder_name;
+};
+
+int IV_SIZE = 16;
+int ADLER_32_CHECKSUM_SIZE = 4;
+int BLOCK_TYPE_SIZE = 1;
+int DATA_LENGTH_SIZE = 2;
+int DATA_BLOCK_SIZE = FLASH_SECTOR_SIZE - (IV_SIZE + ADLER_32_CHECKSUM_SIZE + BLOCK_TYPE_SIZE + DATA_LENGTH_SIZE);
+int ENCRYPTED_BLOCK_SIZE_NO_ADLER = FLASH_SECTOR_SIZE - (IV_SIZE + ADLER_32_CHECKSUM_SIZE);
+int ENCRYPTED_BLOCK_SIZE = FLASH_SECTOR_SIZE - IV_SIZE;
+
 // -------------------- DB block load -------------------- 
 
 bool random_seed_initialized = false;
@@ -57,9 +71,12 @@ bool inPlaceDecryptAndValidateBlock(uint8_t *in_out_db_block, uint32_t block_siz
 bool loadBlockFromFlash(uint8_t bank_number, uint16_t block_number, uint32_t block_size,
                         uint8_t* aes_key, uint8_t* aes_iv_mask, 
                         uint8_t *out_db_block) {
-    //1. Read block at key_block_decrypt_cursor
     readDbBlockFromFlashBank(bank_number, block_number, (void*)out_db_block);
     return inPlaceDecryptAndValidateBlock(out_db_block, block_size, aes_key, aes_iv_mask);
+}
+
+void saveBlockToFlash(uint8_t bank_number, uint16_t block_number, uint8_t* encrypted_block, uint32_t block_size) {
+    writeDbBlockToFlashBank(bank_number, block_number, encrypted_block);
 }
 
 bool throw_block_back(uint16_t block_number) {
@@ -261,23 +278,30 @@ void phraseBlock_historyVec(flatcc_builder_t* builder, phraser_PhraseHistory_vec
 
 // -------------------- PHRASER BLOCKS -------------------- 
 
-// TODO: this could a bit easier if Version was in the header outside flatbuf structure.
-//  That would also fit the common DB structure better and make complemantary copy operations agnostic to flatbuf or content format.
+// TODO: Version bump could be a bit easier if Version was in the block header outside flatbuf structure.
+//  That would also fit the common DB structure better and make Complementary Copy (throwback) operation agnostic to flatbuf structure
+//  or more generally, to content format.
 //  With that said, we choose to update phraser-specific `entropy` field at the same time, which requires to deserialize flatBuffer.
-//  This consideration makes updating the structure-related code ASAP impractical. 
+//  This consideration makes updating the structure-related code ASAP impractical (or at all in this project). 
 
-void wrapUpBlock(uint8_t block_type, flatcc_builder_t* builder, uint8_t* block, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+UpdateResponse wrapUpBlock(uint8_t block_type, flatcc_builder_t* builder, uint8_t* block, uint8_t* aes_key, uint8_t* aes_iv_mask) {
   void *block_buffer;
   size_t block_buffer_size;
   block_buffer = flatcc_builder_finalize_aligned_buffer(builder, &block_buffer_size);
+
+  if (block_buffer_size > DATA_BLOCK_SIZE) {
+    return BLOCK_SIZE_EXCEEDED;
+  }
 
   wrapDataBufferInBlock(block_type, block, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
 
   flatcc_builder_aligned_free(block_buffer);
   flatcc_builder_clear(builder);
+
+  return OK;
 }
 
-UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_size, uint8_t* key_block_key, uint8_t* key_block_mask) {
   initRandomIfNeeded();
   
   phraser_KeyBlock_table_t key_block;
@@ -311,7 +335,7 @@ UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_si
 
   phraser_KeyBlock_end_as_root(&builder);
 
-  wrapUpBlock(phraser_BlockType_KeyBlock, &builder, block, aes_key, aes_iv_mask);
+  wrapUpBlock(phraser_BlockType_KeyBlock, &builder, block, key_block_key, key_block_mask);
   return OK;
 }
 
@@ -345,7 +369,9 @@ UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t b
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+//arraylist<DAOFolder> new_folders
+UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, 
+  arraylist* new_folders) {
   initRandomIfNeeded();
   
   phraser_FoldersBlock_table_t folders_block;
@@ -362,7 +388,14 @@ UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t bloc
   phraser_FoldersBlock_start_as_root(&builder);
 
   phraser_FoldersBlock_folders_start(&builder);
-  foldersBlock_folderVec(&builder, old_folders);
+  if (new_folders == NULL) {
+    foldersBlock_folderVec(&builder, old_folders);
+  } else {
+    for (int i = 0; i < arraylist_size(new_folders); i++) {
+      DAOFolder* folder = (DAOFolder*)arraylist_get(new_folders, i);
+      foldersBlock_folder(&builder, folder->folder_id, folder->parent_folder_id, folder->folder_name);
+    }
+  }
   phraser_FoldersBlock_folders_end(&builder);
 
   phraser_StoreBlock_t* store_block = phraser_FoldersBlock_block_start(&builder);
@@ -373,6 +406,10 @@ UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t bloc
 
   wrapUpBlock(phraser_BlockType_FoldersBlock, &builder, block, aes_key, aes_iv_mask);
   return OK;
+}
+
+UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+  return updateVersionAndEntropyFoldersBlock(block, block_size, aes_key, aes_iv_mask, NULL);
 }
 
 UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask) {
@@ -466,9 +503,18 @@ UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size,
   return ERROR;
 }
 
+void throwBlockBack(uint8_t bank_number, uint16_t block_number_from, uint16_t block_number_to, uint8_t* aes_key, uint8_t* aes_iv_mask) {
+  // TODO: implement
+}
+
+uint16_t throwbackCopy() {
+  //TODO implement - return block_number to which B0 shold go
+  return -1;
+}
+
 // -------------------- FOLDERS -------------------- 
 
-UpdateResponse addNewFolder(char* new_folder_name) {
+UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
   initRandomIfNeeded();
   // 1. check that db capacity is enough to add new block
   if (max_db_block_count() - valid_block_count() <= 1) {
@@ -491,35 +537,45 @@ UpdateResponse addNewFolder(char* new_folder_name) {
     return ERROR;
   }
 
-  flatcc_builder_t builder;
-  flatcc_builder_init(&builder);
+  uint16_t max_folder_id = 0;
+  arraylist* dao_folders = arraylist_create();
+  phraser_Folder_vec_t folders_vec = phraser_FoldersBlock_folders(folders_block);
+  size_t folders_vec_length = flatbuffers_vec_len(folders_vec);
+  for (int i = 0; i < folders_vec_length; i++) {
+    phraser_Folder_table_t folder_fb = phraser_Folder_vec_at(folders_vec, i);
 
-  if (!phraser_FoldersBlock_clone_as_root(&builder, folders_block)) {
-    return ERROR;
-  };
+    DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
+    daoFolder->folder_id = phraser_Folder_folder_id(folder_fb);
+    daoFolder->parent_folder_id = phraser_Folder_parent_folder_id(folder_fb);
+    daoFolder->folder_name = (char*)phraser_Folder_folder_name(folder_fb);
 
-  flatbuffers_buffer_ref_t unused_prob = phraser_FoldersBlock_clone_as_root(&builder, folders_block);
-  phraser_StoreBlock_mutable_struct_t store_block = (phraser_StoreBlock_mutable_struct_t)phraser_FoldersBlock_block_get(folders_block);
-  store_block->version = next_block_version();
-  store_block->entropy = random_uint32();
+    if (daoFolder->folder_id > max_folder_id) {
+      max_folder_id = daoFolder->folder_id;
+    }
 
-  phraser_FoldersBlock_block_add(&builder, store_block);
+    arraylist_add(dao_folders, daoFolder);
+  }
 
-  /*
-  folders_block_id = phraser_StoreBlock_block_id(storeblock);
-  serialDebugPrintf("folders_block_id %d\r\n", folders_block_id);
-*/
+  DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
+  daoFolder->folder_id = max_folder_id+1;
+  daoFolder->parent_folder_id = parent_folder_id;
+  daoFolder->folder_name = new_folder_name;
 
-  // 3. common updates
-  //  3.1 version update
-  //  3.2 entropy
+  arraylist_add(dao_folders, daoFolder);
 
-  // 4. add new folder
-  // 5. build new Folders block
-  //  5.1 check Folders block size is within limits
-  // 6. perform DB update
-  // 7. resync folders from block
-  // 8. reinit UI
+  UpdateResponse block_response = updateVersionAndEntropyFoldersBlock(block, block_size, main_key, main_iv_mask, dao_folders);
+  
+  for (int i = 0; i < arraylist_size(dao_folders); i++) {
+    free(arraylist_get(dao_folders, i)); 
+  }
+  free(dao_folders);
+
+  if (OK != block_response) {
+    return block_response;
+  }
+  
+  uint16_t main_block_number = throwbackCopy();
+  saveBlockToFlash(bank_number, main_block_number, block, block_size);
 
   return ERROR;
 }
