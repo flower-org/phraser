@@ -449,7 +449,9 @@ UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint1
   return OK;
 }
 
-UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version) {
+UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version,
+  uint16_t* phrase_template_id, uint16_t* folder_id, char* phrase_name, bool* is_tombstone, arraylist* new_history
+) {
   initRandomIfNeeded();
  
   phraser_PhraseBlock_table_t phrase_block;
@@ -458,20 +460,39 @@ UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block
   }
 
   phraser_StoreBlock_struct_t old_store_block = phraser_PhraseBlock_block(phrase_block);
-  phraser_PhraseHistory_vec_t phrase_history_vec = phraser_PhraseBlock_history(phrase_block);
 
   flatcc_builder_t builder;
   flatcc_builder_init(&builder);
 
   phraser_PhraseBlock_start_as_root(&builder);
 
-  phraser_PhraseBlock_phrase_template_id_add(&builder, phraser_PhraseBlock_phrase_template_id(phrase_block));
-  phraser_PhraseBlock_folder_id_add(&builder, phraser_PhraseBlock_folder_id(phrase_block));
-  phraser_PhraseBlock_is_tombstone_add(&builder, phraser_PhraseBlock_is_tombstone(phrase_block));
-  phraser_PhraseBlock_phrase_name_add(&builder, str(&builder, phraser_PhraseBlock_phrase_name(phrase_block)));
-
+  if (phrase_template_id == NULL) {
+    phraser_PhraseBlock_phrase_template_id_add(&builder, phraser_PhraseBlock_phrase_template_id(phrase_block));
+  } else {
+    phraser_PhraseBlock_phrase_template_id_add(&builder, *phrase_template_id);
+  }
+  if (folder_id == NULL) {
+    phraser_PhraseBlock_folder_id_add(&builder, phraser_PhraseBlock_folder_id(phrase_block));
+  } else {
+    phraser_PhraseBlock_folder_id_add(&builder, *folder_id);
+  }
+  if (phrase_name == NULL) {
+    phraser_PhraseBlock_phrase_name_add(&builder, str(&builder, phraser_PhraseBlock_phrase_name(phrase_block)));
+  } else {
+    phraser_PhraseBlock_phrase_name_add(&builder, str(&builder, phrase_name));
+  }
+  if (is_tombstone == NULL) {
+    phraser_PhraseBlock_is_tombstone_add(&builder, phraser_PhraseBlock_is_tombstone(phrase_block));
+  } else {
+    phraser_PhraseBlock_is_tombstone_add(&builder, *is_tombstone);
+  }
   phraser_PhraseBlock_history_start(&builder);
-  phraseBlock_historyVec(&builder, phrase_history_vec);
+  if (new_history == NULL) {
+    phraser_PhraseHistory_vec_t phrase_history_vec = phraser_PhraseBlock_history(phrase_block);
+    phraseBlock_historyVec(&builder, phrase_history_vec);
+  } else {
+
+  }
   phraser_PhraseBlock_history_end(&builder);
 
   phraser_StoreBlock_t* store_block = phraser_PhraseBlock_block_start(&builder);
@@ -482,6 +503,10 @@ UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block
 
   wrapUpBlock(phraser_BlockType_PhraseBlock, &builder, block, aes_key, aes_iv_mask);
   return OK;
+}
+
+UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version) {
+  return updateVersionAndEntropyPhraseBlock(block, block_size, aes_key, aes_iv_mask, new_version, NULL, NULL, NULL, NULL, NULL);
 }
 
 UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version, boolean decrypt) {
@@ -608,6 +633,15 @@ void updateBlockIndicesPostThrowbackMove(uint32_t b1_block_number, uint32_t b2_b
   removeFromOccupiedBlockNumbers(b1_block_number);
 }
 
+void updateBlockIndicesPostNewBlock(uint32_t b3_block_id, uint32_t b3_block_number, bool b3_tombstoned) {
+  // Tombstone indices 
+  if (b3_tombstoned) {
+    hashtable_set(tombstonedBlockIds, b3_block_id, (void*)b3_block_id);
+  }
+
+  addToOccupiedBlockNumbers(b3_block_number);
+}
+
 void updateBlockIndicesPostBlockMove(uint32_t b1_block_number, bool b1_tombstoned, uint32_t b2_block_number) {
   // Only update what's not going to be updated by `registerBlockInBlockCache` call
 
@@ -627,7 +661,7 @@ void updateBlockIndicesPostBlockMove(uint32_t b1_block_number, bool b1_tombstone
 
 //static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return false; }
 // returns block_number to which the main update shold go
-uint16_t throwbackCopy(uint32_t b0_block_number, uint32_t new_version) {
+uint16_t throwbackCopy(uint32_t new_version) {
   serialDebugPrintf("t1.\r\n");
 //  traverse_inorder(occupied_block_numbers(), perNode);
 
@@ -719,14 +753,9 @@ uint16_t throwbackCopy(uint32_t b0_block_number, uint32_t new_version) {
 
 UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_vec)) {
   initRandomIfNeeded();
-  // 1. check that db capacity is enough to add new block
-  serialDebugPrintf("1.\r\n");
-  if (last_block_left()) {
-    return DB_FULL;
-  } 
 
-  // 2. load folders block
-  uint16_t folder_block_number = folders_block_number();
+  // 1. load folders block
+  uint16_t folder_block_number = get_folders_block_number();
   uint16_t block_size = FLASH_SECTOR_SIZE;
   uint8_t block[block_size];
   serialDebugPrintf("2. loading bank_number %d, folder_block_number %d\r\n", bank_number, folder_block_number);
@@ -736,14 +765,14 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
     return ERROR;
   }
 
-  // 3. deserialize folders flatbuf block
+  // 2. deserialize folders flatbuf block
   phraser_FoldersBlock_table_t folders_block;
   if (!(folders_block = phraser_FoldersBlock_as_root(block + DATA_OFFSET))) {
     return ERROR;
   }
   serialDebugPrintf("3.\r\n");
 
-  // 4. Form arraylist of existing block folders
+  // 3. Form arraylist of existing block folders
   phraser_Folder_vec_t folders_vec = phraser_FoldersBlock_folders(folders_block);
 
   arraylist* dao_folders = func(&folders_vec);
@@ -754,11 +783,11 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
   uint32_t throwback_copy_version = increment_and_get_next_block_version();//throwback version comes first
   uint32_t new_block_version = increment_and_get_next_block_version();
 
-  // 6. Form updated block with updated list of folders
+  // 4. Form updated block with updated list of folders
   UpdateResponse block_response = updateVersionAndEntropyFoldersBlock(block, block_size, main_key, main_iv_mask, new_block_version, dao_folders);
   serialDebugPrintf("6.\r\n");
 
-  // 7. Free arraylist of folders
+  // 5. Free arraylist of folders
   for (int i = 0; i < arraylist_size(dao_folders); i++) {
     free(arraylist_get(dao_folders, i)); 
   }
@@ -769,18 +798,18 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
   }
   serialDebugPrintf("7.\r\n");
 
-  // 8. Perform Throwback Copy, according to flash preservation algorithm
-  uint16_t b3_block_number = throwbackCopy(folder_block_number, throwback_copy_version);
+  // 6. Perform Throwback Copy, according to flash preservation algorithm
+  uint16_t b3_block_number = throwbackCopy(throwback_copy_version);
   if (b3_block_number == -1) {
     return ERROR;
   }
   serialDebugPrintf("8.\r\n");
 
-  // 9. Save the updated block to flash
+  // 7. Save the updated block to flash
   saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
   serialDebugPrintf("9.\r\n");
 
-  // 10. Re-Load new block version from flash
+  // 8. Re-Load new block version from flash
   if (!loadBlockFromFlash(bank_number, b3_block_number, block_size,
     main_key, main_iv_mask, 
     block)) {
@@ -788,7 +817,7 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
   }
   serialDebugPrintf("10.\r\n");
 
-  // 11. Update DB indices
+  // 9. Update DB indices
 
   // B3-related logic, it was replaced at B3 block_number by B0 blockId
   invalidateBlockIndices(folder_block_number, b3_block_number);
@@ -797,7 +826,7 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
   updateBlockIndicesPostBlockMove(folder_block_number, false, b3_block_number);
   serialDebugPrintf("11.\r\n");
 
-  // 12. Register new version in cache
+  // 10. Register new version in cache
   registerBlockInBlockCache(block, b3_block_number);
   serialDebugPrintf("12.\r\n");
 
@@ -900,6 +929,280 @@ UpdateResponse deleteFolder(uint16_t folder_id) {
 }
 
 // -------------------- PHRASES -------------------- 
+
+char* generateWordOrReturnEmptyStr(WordTemplate* word_template) {
+  if (isGenerateable(word_template->permissions)) {
+    int symbol_set_size = arraylist_size(word_template->symbolSetIds);
+    if (symbol_set_size > 0) {
+      // Create a unique character set
+      char uniqueSet[256] = {0}; // Assuming ASCII characters
+      size_t uniqueCount = 0;
+
+      for (int j = 0; j < symbol_set_size; j++) {
+        uint16_t symbol_set_id = (uint32_t)arraylist_get(word_template->symbolSetIds, j);
+        SymbolSet* symbolSet = getSymbolSet(symbol_set_id);
+        for (const char* p = symbolSet->symbolSet; *p != '\0'; p++) {
+          if (!uniqueSet[(unsigned char)*p]) {
+            uniqueSet[(unsigned char)*p] = 1;
+            uniqueCount++;
+          }
+        }
+      }
+
+      if (uniqueCount > 0) {
+        char* combinedSet = (char*)malloc(uniqueCount);
+        size_t index = 0;
+        for (int i = 0; i < 256; i++) {
+            if (uniqueSet[i]) {
+                combinedSet[index++] = (char)i;
+            }
+        }
+
+        uint32_t s1 = word_template->minLength;
+        uint32_t s2 = word_template->maxLength;
+        int resultLength = s1 + random(s2 - s1 + 1);
+
+        char* resultString = (char*)malloc(resultLength + 1);
+        for (int i = 0; i < resultLength; i++) {
+          int randomIndex = random(uniqueCount);
+          resultString[i] = combinedSet[randomIndex];
+        }
+        resultString[resultLength] = '\0';
+
+        free(combinedSet);
+
+        return resultString;
+      }
+    }
+  }
+  
+  char* ret_val = (char*)malloc(sizeof(char));
+  ret_val[0] = '\0';
+  return ret_val;
+}
+
+// fill buffer with encrypted block ready for persistence on flash
+UpdateResponse initDefaultPhraseBlock(uint8_t* buffer, const uint8_t* aes_key, const uint8_t* aes_iv_mask, 
+                                      uint16_t phrase_template_id, uint16_t folder_id, char* phraseName,
+                                      uint16_t block_id, uint32_t version) {
+  // get phrase template from BlockCache
+  PhraseTemplate* phrase_template = getPhraseTemplate(phrase_template_id);
+  if (phrase_template == NULL) {
+    return ERROR;
+  }
+
+  flatcc_builder_t builder;
+  flatcc_builder_init(&builder);
+
+  phraser_PhraseBlock_start_as_root(&builder);
+
+  phraser_PhraseBlock_phrase_template_id_add(&builder, phrase_template_id);
+  phraser_PhraseBlock_folder_id_add(&builder, folder_id);
+  phraser_PhraseBlock_phrase_name_add(&builder, str(&builder, phraseName));
+  phraser_PhraseBlock_is_tombstone_add(&builder, false);
+
+  phraser_PhraseBlock_history_start(&builder);
+  phraser_Word_vec_start(&builder);
+
+  // get word templates list for phrase template
+  for (int i = 0; i < arraylist_size(phrase_template->wordTemplateIds); i++) {
+    uint16_t word_template_id = (uint32_t)arraylist_get(phrase_template->wordTemplateIds, i);
+    uint16_t word_template_ordinal = (uint32_t)arraylist_get(phrase_template->wordTemplateOrdinals, i);
+
+    WordTemplate* word_template = getWordTemplate(word_template_id);
+    if (word_template == NULL) {
+      return ERROR;
+    }
+
+    // generate generateable words, create non-generateable words empty
+    char* word_value = generateWordOrReturnEmptyStr(word_template);
+    phraseBlock_history(&builder, word_template_id, word_template_ordinal, word_template->wordTemplateName, 
+      word_value, word_template->permissions, word_template->icon);
+    free(word_value);
+  }
+
+  phraser_Word_vec_ref_t word_refs = phraser_Word_vec_end(&builder);
+  phraser_PhraseBlock_history_push_create(&builder, 1, word_refs);
+  phraser_PhraseBlock_history_end(&builder);
+
+  uint32_t entropy = random_uint32();
+  phraser_StoreBlock_t* store_block;
+  store_block = phraser_PhraseBlock_block_start(&builder);
+  store_block->block_id = block_id;
+  store_block->version = version;
+  store_block->entropy = entropy;
+  phraser_PhraseBlock_block_end(&builder);
+
+  phraser_PhraseBlock_end_as_root(&builder);
+
+  void *block_buffer;
+  size_t block_buffer_size;
+  block_buffer = flatcc_builder_finalize_aligned_buffer(&builder, &block_buffer_size);
+
+  wrapDataBufferInBlock(phraser_BlockType_PhraseBlock, buffer, aes_key, aes_iv_mask, block_buffer, block_buffer_size);
+
+  flatcc_builder_aligned_free(block_buffer);
+  flatcc_builder_clear(&builder);
+
+  return OK;
+}
+
+// If phrase_block_id = -1, it's a new phrase
+UpdateResponse phraseMutation(int phrase_block_id, 
+                              uint16_t (*phraseTemplateIdMutation)(uint16_t phrase_template_id),
+                              uint16_t (*folderIdMutation)(uint16_t folder_id),
+                              char* (*phraseNameMutation)(flatbuffers_string_t phraseName),
+                              bool (*tombstoneMutation)(bool tombstone),
+                              arraylist* (*phraseHistoryMutation)(phraser_PhraseHistory_vec_t* history_vec)
+                            ) {
+  initRandomIfNeeded();
+  bool is_new_phrase = phrase_block_id <= -1;
+
+  // 1. check that db capacity is enough to add new block
+  serialDebugPrintf("1.\r\n");
+  if (last_block_left()) {
+    return DB_FULL;
+  }
+
+  // 2. if not a new phrase, load phrase block
+  uint32_t throwback_copy_version;
+
+  uint16_t block_size = FLASH_SECTOR_SIZE;
+  uint8_t block[block_size];
+  uint32_t old_phrase_block_number;
+
+  if (is_new_phrase) {
+    // Create new PhraseBlock
+    uint16_t phrase_template_id = phraseTemplateIdMutation(-1);
+    uint16_t folder_id = folderIdMutation(-1);
+    char* phraseName = phraseNameMutation(NULL);
+
+    throwback_copy_version = increment_and_get_next_block_version();
+    uint32_t new_block_version = increment_and_get_next_block_version();
+    phrase_block_id = increment_and_get_next_block_id();
+
+    UpdateResponse block_init_response = initDefaultPhraseBlock(block, main_key, main_iv_mask, 
+                                                    phrase_template_id, folder_id, phraseName,
+                                                    phrase_block_id, new_block_version);
+
+    if (block_init_response != OK) {
+      return block_init_response;
+    }
+  } else {
+    // Load existing PhraseBlock and apply mutations
+    old_phrase_block_number = get_phrase_block_number(phrase_block_id);
+    serialDebugPrintf("2. loading bank_number %d, phrase_block_id %d\r\n", bank_number, old_phrase_block_number);
+    if (!loadBlockFromFlash(bank_number, old_phrase_block_number, block_size,
+      main_key, main_iv_mask, 
+      block)) {
+      return ERROR;
+    }
+
+    // 3. deserialize phrase flatbuf block
+    phraser_PhraseBlock_table_t phrase_block;
+    if (!(phrase_block = phraser_PhraseBlock_as_root(block + DATA_OFFSET))) {
+      return ERROR;
+    }
+    serialDebugPrintf("3.\r\n");
+
+    // 4. Form params
+    uint16_t phrase_template_id_raw;
+    uint16_t folder_id_raw;
+    bool is_tombstone_raw;
+    uint16_t* phrase_template_id = NULL;
+    uint16_t* folder_id = NULL;
+    bool* is_tombstone = NULL;
+    char* phrase_name = NULL;
+    arraylist* new_history = NULL;
+    
+    if (phraseTemplateIdMutation != NULL) {
+      phrase_template_id_raw = phraseTemplateIdMutation(phraser_PhraseBlock_phrase_template_id(phrase_block));
+      phrase_template_id = &phrase_template_id_raw;
+    }
+    if (folderIdMutation != NULL) {
+      folder_id_raw = folderIdMutation(phraser_PhraseBlock_folder_id(phrase_block));
+      folder_id = &folder_id_raw;
+    }
+    if (phraseNameMutation != NULL) {
+      phrase_name = phraseNameMutation(phraser_PhraseBlock_phrase_name(phrase_block));
+    }
+    if (tombstoneMutation != NULL) {
+      is_tombstone_raw = tombstoneMutation(phraser_PhraseBlock_is_tombstone(phrase_block));
+      is_tombstone = &is_tombstone_raw;
+    }
+    if (phraseHistoryMutation != NULL) {
+      phraser_PhraseHistory_vec_t phrase_history_vec = phraser_PhraseBlock_history(phrase_block);
+      new_history = phraseHistoryMutation(&phrase_history_vec);
+    }
+
+    // 4.1 Form versions
+    throwback_copy_version = increment_and_get_next_block_version();//throwback version comes first
+    uint32_t new_block_version = increment_and_get_next_block_version();
+  
+    // 6. Form updated block with updates
+    UpdateResponse block_response = updateVersionAndEntropyPhraseBlock(block, block_size, main_key, main_iv_mask, new_block_version,
+      phrase_template_id, folder_id, phrase_name, is_tombstone, new_history);
+    
+    serialDebugPrintf("6.\r\n");
+
+    // 7. Free arraylists and else
+    if (phrase_name != NULL) {
+      // TODO: free if needed
+    }
+
+    if (new_history != NULL) {
+      // TODO: free this properly
+      for (int i = 0; i < arraylist_size(new_history); i++) {
+        free(arraylist_get(new_history, i)); 
+      }
+      free(new_history);
+    }
+
+    if (OK != block_response) {
+      return block_response;
+    }
+    serialDebugPrintf("7.\r\n");
+  }
+
+  // 8. Perform Throwback Copy, according to flash preservation algorithm
+  uint16_t b3_block_number = throwbackCopy(throwback_copy_version);
+  if (b3_block_number == -1) {
+    return ERROR;
+  }
+  serialDebugPrintf("8.\r\n");
+
+  // 9. Save the updated block to flash
+  saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
+  serialDebugPrintf("9.\r\n");
+
+  // 10. Re-Load new block version from flash
+  if (!loadBlockFromFlash(bank_number, b3_block_number, block_size,
+    main_key, main_iv_mask, 
+    block)) {
+    return ERROR;
+  }
+  serialDebugPrintf("10.\r\n");
+
+  // 11. Update DB indices
+  if (is_new_phrase) {
+    // - since there was no B0 we don't need to call invalidateBlockIndices
+    // - and updateBlockIndicesPostBlockMove needs to be adjusted to accomodate for the absense of B0
+    updateBlockIndicesPostNewBlock(phrase_block_id, b3_block_number, false);
+  } else {
+    // B3-related logic, it was replaced at B3 block_number by B0 blockId
+    invalidateBlockIndices(old_phrase_block_number, b3_block_number);
+    // B0-related logic, new version of which replaced B3 (only partial index update, 
+    //  to avoid interfering with subsequent registerBlockInBlockCache() call)
+    updateBlockIndicesPostBlockMove(old_phrase_block_number, false, b3_block_number);
+    serialDebugPrintf("11.\r\n");
+  }
+
+  // 12. Register new version in cache
+  registerBlockInBlockCache(block, b3_block_number);
+  serialDebugPrintf("12.\r\n");
+
+  return OK;
+}
 
 UpdateResponse addNewPhrase(char* new_phrase_name, uint16_t phrase_template_id, uint16_t folder_id) {
   initRandomIfNeeded();

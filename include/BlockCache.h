@@ -25,6 +25,12 @@ struct BlockNumberAndVersionAndCount {
   bool isTombstoned;
 };
 
+struct SymbolSet {
+  uint32_t symbolSetId;
+  char* symbolSetName;
+  char* symbolSet;
+};
+
 struct Folder {
   uint32_t folderId;
   uint32_t parentFolderId;
@@ -40,6 +46,24 @@ struct PhraseFolderAndName {
 struct FolderOrPhrase {
   PhraseFolderAndName* phrase;
   Folder* folder;
+};
+
+struct PhraseTemplate {
+  uint32_t phraseTemplateId;
+  char* phraseTemplateName;
+
+  arraylist* wordTemplateIds;
+  arraylist* wordTemplateOrdinals;
+};
+
+struct WordTemplate {
+  uint32_t wordTemplateId;
+  uint8_t permissions;
+  phraser_Icon_enum_t icon;
+  uint32_t minLength;
+  uint32_t maxLength;
+  char* wordTemplateName;
+  arraylist* symbolSetIds;
 };
 
 // DB data structures
@@ -85,6 +109,7 @@ uint16_t free_block_count();
 bool last_block_left();
 
 uint32_t get_last_entropy();
+uint16_t increment_and_get_next_block_id();
 uint32_t increment_and_get_next_block_version();
 uint32_t last_block_version();
 
@@ -95,4 +120,9 @@ void addToOccupiedBlockNumbers(uint32_t key);
 uint32_t last_block_number();
 
 uint32_t key_block_number();
-uint32_t folders_block_number();
+uint32_t get_folders_block_number();
+uint32_t get_phrase_block_number(uint16_t phrase_block_id);
+
+PhraseTemplate* getPhraseTemplate(uint16_t phrase_template_id);
+WordTemplate* getWordTemplate(uint16_t word_template_id);
+SymbolSet* getSymbolSet(uint16_t symbol_set_id);

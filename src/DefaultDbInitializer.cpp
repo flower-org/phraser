@@ -120,18 +120,6 @@ void initDefaultFoldersBlock(uint8_t* buffer, const uint8_t* aes_key, const uint
   flatcc_builder_clear(&builder);
 }
 
-const uint8_t GENERATEABLE = 1;
-const uint8_t TYPEABLE = 2;
-const uint8_t VIEWABLE = 4;
-const uint8_t USER_EDITABLE = 8;
-uint8_t getWordPermissions(bool is_generateable, bool is_user_editable, bool is_typeable, bool is_viewable) {
-  uint8_t permissions = 0;
-  if (is_generateable) { permissions = permissions | GENERATEABLE; }
-  if (is_typeable) { permissions = permissions | TYPEABLE; }
-  if (is_viewable) { permissions = permissions | VIEWABLE; }
-  if (is_user_editable) { permissions = permissions | USER_EDITABLE; }
-  return permissions;
-}
 
 void initDefaultPhraseTemplatesBlock(uint8_t* buffer, const uint8_t* aes_key, const uint8_t* aes_iv_mask) {
   flatcc_builder_t builder;

@@ -75,3 +75,9 @@ void generateUniqueNumbers(int N, int count, int* result);
 uint32_t sha256ToUInt32(uint8_t* sha256_digest);
 
 uint32_t random_uint32();
+
+uint8_t getWordPermissions(bool is_generateable, bool is_user_editable, bool is_typeable, bool is_viewable);
+bool isGenerateable(uint8_t permissions);
+bool isUserEditable(uint8_t permissions);
+bool isTypeable(uint8_t permissions);
+bool isViewable(uint8_t permissions);

@@ -486,3 +486,34 @@ uint32_t random_uint32() {
   uint32_t low = random();
   return (high << 1) | (low & 0x1);
 }
+
+
+const uint8_t GENERATEABLE = 1;
+const uint8_t TYPEABLE = 2;
+const uint8_t VIEWABLE = 4;
+const uint8_t USER_EDITABLE = 8;
+
+uint8_t getWordPermissions(bool is_generateable, bool is_user_editable, bool is_typeable, bool is_viewable) {
+  uint8_t permissions = 0;
+  if (is_generateable) { permissions = permissions | GENERATEABLE; }
+  if (is_typeable) { permissions = permissions | TYPEABLE; }
+  if (is_viewable) { permissions = permissions | VIEWABLE; }
+  if (is_user_editable) { permissions = permissions | USER_EDITABLE; }
+  return permissions;
+}
+
+bool isGenerateable(uint8_t permissions) {
+  return (permissions & GENERATEABLE) != 0;
+}
+
+bool isUserEditable(uint8_t permissions) {
+  return (permissions & USER_EDITABLE) != 0;
+}
+
+bool isTypeable(uint8_t permissions) {
+  return (permissions & TYPEABLE) != 0;
+}
+
+bool isViewable(uint8_t permissions) {
+  return (permissions & VIEWABLE) != 0;
+}

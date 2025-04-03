@@ -36,30 +36,6 @@ struct BlockIdAndVersion {
 
 BlockIdAndVersion BLOCK_NOT_UPDATED = { 0, 0, 0, false };
 
-struct SymbolSet {
-  uint32_t symbolSetId;
-  char* symbolSetName;
-  char* symbolSet;
-};
-
-struct PhraseTemplate {
-  uint32_t phraseTemplateId;
-  char* phraseTemplateName;
-
-  arraylist* wordTemplateIds;
-  arraylist* wordTemplateOrdinals;
-};
-
-struct WordTemplate {
-  uint32_t wordTemplateId;
-  uint8_t permissions;
-  phraser_Icon_enum_t icon;
-  uint32_t minLength;
-  uint32_t maxLength;
-  char* wordTemplateName;
-  arraylist* symbolSetIds;
-};
-
 struct Word {
   uint16_t word_template_id;
   uint8_t word_template_ordinal;
@@ -427,10 +403,10 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
         size_t word_template_refs_length = flatbuffers_vec_len(word_template_refs_vec);
 
         PhraseTemplate* phrase_template = (PhraseTemplate*)malloc(sizeof(PhraseTemplate));
+        hashtable_set(phrase_templates, phrase_template_id, phrase_template);
         phrase_template->phraseTemplateId = phrase_template_id;
         phrase_template->phraseTemplateName = copyString((char*)phrase_template_name_str, phrase_template_name_length);
 
-        hashtable_set(phrase_templates, phrase_template_id, phrase_template);
         phrase_template->wordTemplateIds = arraylist_create();
         phrase_template->wordTemplateOrdinals = arraylist_create();
 
@@ -477,6 +453,7 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
         serialDebugPrintf("max_length %d\r\n", max_length);
 
         WordTemplate* word_template = (WordTemplate*)malloc(sizeof(WordTemplate));
+        hashtable_set(word_templates, word_template_id, word_template);
         word_template->wordTemplateId = word_template_id;
         word_template->permissions = permissions;
         word_template->icon = icon;
@@ -822,6 +799,10 @@ uint32_t increment_and_get_next_block_version() {
   return ++lastBlockVersion;
 }
 
+uint16_t increment_and_get_next_block_id() {
+  return ++lastBlockId;
+}
+
 node_t* occupied_block_numbers() {
   return occupiedBlockNumbers;
 }
@@ -840,8 +821,30 @@ uint32_t key_block_number() {
   return blockNumberAndVersionAndCount->blockNumber;
 }
 
-uint32_t folders_block_number() {
+uint32_t get_folders_block_number() {
   BlockNumberAndVersionAndCount* blockNumberAndVersionAndCount = 
     (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, folders_block_id);
   return blockNumberAndVersionAndCount->blockNumber;
+}
+
+uint32_t get_phrase_block_number(uint16_t phrase_block_id) {
+  BlockNumberAndVersionAndCount* blockNumberAndVersionAndCount = 
+    (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, phrase_block_id);
+  if (blockNumberAndVersionAndCount != NULL) {
+    return blockNumberAndVersionAndCount->blockNumber;
+  } else {
+    return -1;
+  }
+}
+
+PhraseTemplate* getPhraseTemplate(uint16_t phrase_template_id) {
+  return (PhraseTemplate*)hashtable_get(phrase_templates, phrase_template_id);
+}
+
+WordTemplate* getWordTemplate(uint16_t word_template_id) {
+  return (WordTemplate*)hashtable_get(word_templates, word_template_id);
+}
+
+SymbolSet* getSymbolSet(uint16_t symbol_set_id) {
+  return (SymbolSet*)hashtable_get(symbol_sets, symbol_set_id);
 }
