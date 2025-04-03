@@ -729,6 +729,20 @@ void finalizeBlockCacheInit() {
   hashtable_iterate_entries(blockInfos, formOccupiedBlockNumbers);
 }
 
+int getFolderChildCount(uint16_t parent_folder_id) {
+  int count = 0;
+  arraylist* subfolders = (arraylist*)hashtable_get(sub_folders_by_folder, parent_folder_id);
+  if (subfolders != NULL) {
+    count += arraylist_size(subfolders);
+  }
+
+  arraylist* folderPhrases = (arraylist*)hashtable_get(phrases_by_folder, parent_folder_id);
+  if (folderPhrases != NULL) {
+    count += arraylist_size(folderPhrases);
+  }
+  return count;
+}
+
 //  arraylist<FolderOrPhrase*>
 arraylist* getFolderContent(uint16_t parent_folder_id) {
   arraylist* ret_list = arraylist_create();

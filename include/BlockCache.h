@@ -77,6 +77,7 @@ PhraseFolderAndName* getPhrase(uint16_t phrase_id);
 extern Folder* getFolder(uint16_t folder_id);
 //  arraylist<FolderOrPhrase*>
 arraylist* getFolderContent(uint16_t parent_folder_id);
+int getFolderChildCount(uint16_t parent_folder_id);
 
 uint16_t db_block_count();
 uint16_t valid_block_count();

@@ -507,10 +507,6 @@ UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size,
   return ERROR;
 }
 
-void throwBlockBack(uint8_t bank_number, uint16_t block_number_from, uint16_t block_number_to, uint8_t* aes_key, uint8_t* aes_iv_mask) {
-  // TODO: implement
-}
-
 uint32_t get_valid_block_number_on_the_right_of(node_t* root, uint32_t block_number) {
   node_t* valid_block_node = tree_higherKey(root, block_number);
   if (valid_block_node == NULL) {

@@ -366,23 +366,29 @@ void dialogActionsLoop(Thumby* thumby) {
     case CREATE_NEW_FOLDER: {
         char* new_folder_name = keyboardLoop(thumby);
         if (new_folder_name != NULL) {
-          uint16_t new_folder_id;
-          UpdateResponse new_folder_response = addNewFolder(new_folder_name, folder_browser_folder_id, &new_folder_id);
-          if (new_folder_response == OK) {
-            initFolder(folder_browser_folder_id, new_folder_id, selected_phrase_id);
-            main_ui_phase = FOLDER_BROWSER;
-          } else {
-            if (new_folder_response == ERROR) {
-              char* text = "Create new folder ERROR.";
-              initTextAreaDialog(text, strlen(text), DLG_OK);
-            } else if (new_folder_response == DB_FULL) {
-              char* text = "Database full, can't create";
-              initTextAreaDialog(text, strlen(text), DLG_OK);
-            } else if (new_folder_response == BLOCK_SIZE_EXCEEDED) {
-              char* text = "Block size exceeded - too many folders. Can't create";
-              initTextAreaDialog(text, strlen(text), DLG_OK);
-            }
+          if (strlen(new_folder_name) == 0) {
+            char* text = "Folder name can't be empty.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
             main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+          } else {
+            uint16_t new_folder_id;
+            UpdateResponse new_folder_response = addNewFolder(new_folder_name, folder_browser_folder_id, &new_folder_id);
+            if (new_folder_response == OK) {
+              initFolder(folder_browser_folder_id, new_folder_id, selected_phrase_id);
+              main_ui_phase = FOLDER_BROWSER;
+            } else {
+              if (new_folder_response == ERROR) {
+                char* text = "Create new folder ERROR.";
+                initTextAreaDialog(text, strlen(text), DLG_OK);
+              } else if (new_folder_response == DB_FULL) {
+                char* text = "Database full, can't create";
+                initTextAreaDialog(text, strlen(text), DLG_OK);
+              } else if (new_folder_response == BLOCK_SIZE_EXCEEDED) {
+                char* text = "Block size exceeded - too many folders. Can't create";
+                initTextAreaDialog(text, strlen(text), DLG_OK);
+              }
+              main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+            }
           }
         }
       }
@@ -391,22 +397,29 @@ void dialogActionsLoop(Thumby* thumby) {
     case DELETE_FOLDER_YES_NO: {
         DialogResult result = textAreaLoop(thumby);
         if (result == DLG_RES_YES) {
-          UpdateResponse delete_folder_response = deleteFolder(selected_folder_id);
-          if (delete_folder_response == OK) {
-            initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
-            main_ui_phase = FOLDER_BROWSER;
-          } else {
-            if (delete_folder_response == ERROR) {
-              char* text = "Delete folder ERROR.";
-              initTextAreaDialog(text, strlen(text), DLG_OK);
-            } else if (delete_folder_response == DB_FULL) {
-              char* text = "Database full (probably something is really wrong since we're trying to delete)";
-              initTextAreaDialog(text, strlen(text), DLG_OK);
-            } else if (delete_folder_response == BLOCK_SIZE_EXCEEDED) {
-              char* text = "Block size exceeded - too many folders. Can't delete? doesn't make sense.";
-              initTextAreaDialog(text, strlen(text), DLG_OK);
-            }
+          int child_count = getFolderChildCount(selected_folder_id);
+          if (child_count > 0) {
+            char* text = "Folder's not empty, can't delete.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
             main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+          } else {
+            UpdateResponse delete_folder_response = deleteFolder(selected_folder_id);
+            if (delete_folder_response == OK) {
+              initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
+              main_ui_phase = FOLDER_BROWSER;
+            } else {
+              if (delete_folder_response == ERROR) {
+                char* text = "Delete folder ERROR.";
+                initTextAreaDialog(text, strlen(text), DLG_OK);
+              } else if (delete_folder_response == DB_FULL) {
+                char* text = "Database full (probably something is really wrong since we're trying to delete)";
+                initTextAreaDialog(text, strlen(text), DLG_OK);
+              } else if (delete_folder_response == BLOCK_SIZE_EXCEEDED) {
+                char* text = "Block size exceeded - too many folders. Can't delete? doesn't make sense.";
+                initTextAreaDialog(text, strlen(text), DLG_OK);
+              }
+              main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+            }
           }
         } else if (result == DLG_RES_NO) {
           main_ui_phase = FOLDER_MENU;
@@ -428,22 +441,28 @@ void dialogActionsLoop(Thumby* thumby) {
       case RENAME_FOLDER: {
         char* new_folder_name = keyboardLoop(thumby);
         if (new_folder_name != NULL) {
-          UpdateResponse new_folder_response = renameFolder(selected_folder_id, new_folder_name);
-          if (new_folder_response == OK) {
-            initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
-            main_ui_phase = FOLDER_BROWSER;
-          } else {
-            if (new_folder_response == ERROR) {
-              char* text = "Rename folder ERROR.";
-              initTextAreaDialog(text, strlen(text), DLG_OK);
-            } else if (new_folder_response == DB_FULL) {
-              char* text = "Database full (probably something is really wrong since we're trying to rename)";
-              initTextAreaDialog(text, strlen(text), DLG_OK);
-            } else if (new_folder_response == BLOCK_SIZE_EXCEEDED) {
-              char* text = "Block size exceeded - too many folders/name too long. Can't rename";
-              initTextAreaDialog(text, strlen(text), DLG_OK);
-            }
+          if (strlen(new_folder_name) == 0) {
+            char* text = "Folder name can't be empty.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
             main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+          } else {
+            UpdateResponse new_folder_response = renameFolder(selected_folder_id, new_folder_name);
+            if (new_folder_response == OK) {
+              initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
+              main_ui_phase = FOLDER_BROWSER;
+            } else {
+              if (new_folder_response == ERROR) {
+                char* text = "Rename folder ERROR.";
+                initTextAreaDialog(text, strlen(text), DLG_OK);
+              } else if (new_folder_response == DB_FULL) {
+                char* text = "Database full (probably something is really wrong since we're trying to rename)";
+                initTextAreaDialog(text, strlen(text), DLG_OK);
+              } else if (new_folder_response == BLOCK_SIZE_EXCEEDED) {
+                char* text = "Block size exceeded - too many folders/name too long. Can't rename";
+                initTextAreaDialog(text, strlen(text), DLG_OK);
+              }
+              main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+            }
           }
         }
       }
