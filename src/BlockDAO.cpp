@@ -525,9 +525,9 @@ bool left_lookup(data_t next_block_number) {
   left_lookup_missing_block_number = left_lookup_missing_block_number - 1;
   if (next_block_number < left_lookup_missing_block_number) {
     left_lookup_missing_block_number_found = true;
-    return false;
+    return true;
   }
-  return true;
+  return false;
 }
 
 uint32_t get_free_block_number_on_the_left_of(uint32_t block_number) {
@@ -624,11 +624,11 @@ void updateBlockIndicesPostBlockMove(uint32_t b1_block_number, bool b1_tombstone
   removeFromOccupiedBlockNumbers(b1_block_number);
 }
 
-static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return true; }
+//static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return false; }
 // returns block_number to which the main update shold go
 uint16_t throwbackCopy(uint32_t b0_block_number, uint32_t new_version) {
   serialDebugPrintf("t1.\r\n");
-  traverse_inorder(occupied_block_numbers(), perNode);
+//  traverse_inorder(occupied_block_numbers(), perNode);
 
   serialDebugPrintf("t1.\r\n");
   uint32_t border_block_number = last_block_number();
@@ -716,7 +716,7 @@ uint16_t throwbackCopy(uint32_t b0_block_number, uint32_t new_version) {
 
 // -------------------- FOLDERS --------------------
 
-UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
+UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, uint16_t* out_new_folder_id) {
   initRandomIfNeeded();
   // 1. check that db capacity is enough to add new block
   serialDebugPrintf("1.\r\n");
@@ -766,6 +766,7 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id) {
   // 5. Add new folder to the arraylist
   DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
   daoFolder->folder_id = max_folder_id + 1;
+  *out_new_folder_id = max_folder_id + 1;
   daoFolder->parent_folder_id = parent_folder_id;
   daoFolder->folder_name = new_folder_name;
 

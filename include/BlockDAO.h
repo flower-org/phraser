@@ -33,4 +33,4 @@ void phraseTemplatesBlock_phraseTemplate(flatcc_builder_t* builder, uint16_t phr
 void phraseBlock_history(flatcc_builder_t* builder, uint16_t word_template_id, int8_t word_template_ordinal,
   char* name, char* word, int8_t permissions, phraser_Icon_enum_t icon);
   
-UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id);
+UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, uint16_t* out_new_folder_id);

@@ -22,10 +22,12 @@ void tree_insert_raw(node_t **root, node_t *node);
 node_t *search(const node_t *root, data_t query);
 node_t *best_fit(const node_t *root, data_t query);
 void tree_delete_raw(node_t **root, node_t *node);
-void traverse_inorder(node_t *root, bool (*)(data_t data));
-void traverse_inorder_backwards(node_t *node, bool (*func)(data_t data));
-void traverse_right_excl(node_t *node, data_t key, bool (*func)(data_t data));
-void traverse_left_excl(node_t *node, data_t key, bool (*func)(data_t data));
+
+bool traverse_inorder(node_t *root, bool (*)(data_t data));
+bool traverse_inorder_backwards(node_t *node, bool (*func)(data_t data));
+bool traverse_right_excl(node_t *node, data_t key, bool (*func)(data_t data));
+bool traverse_left_excl(node_t *node, data_t key, bool (*func)(data_t data));
+
 void tree_destroy(node_t **root);
 
 node_t* tree_minimum(node_t *root);

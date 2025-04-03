@@ -370,8 +370,11 @@ void initList(ListItem** new_items, int new_item_count, int selection) {
   list_down_pressed = false;
   list_up_pressed = false;
   item_cursor = 0;
-  selection_pos = selection;
-  
+  if (selection >= lines_count) {
+    item_cursor = (selection - lines_count) + 1;
+  }
+  selection_pos = selection - item_cursor;
+
   //Initialize new list items (copy the items)
   list_items = duplicateItemList(new_items, new_item_count);
   list_item_count = new_item_count;

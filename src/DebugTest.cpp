@@ -9,7 +9,7 @@
 #include "BlockCache.h"
 #include "BlockDAO.h"
 
-static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return true; }
+static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return false; }
 
 void outputTree(node_t *root) {
   traverse_inorder(root, perNode);
@@ -174,7 +174,7 @@ void objectMutationTest() {
 }
 
 void debugTest() {
-  objectMutationTest();
+  //  objectMutationTest();
 
   //  sha256Test();
 

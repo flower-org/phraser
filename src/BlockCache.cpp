@@ -770,6 +770,10 @@ arraylist* getFolderContent(uint16_t parent_folder_id) {
   return ret_list;
 }
 
+PhraseFolderAndName* getPhrase(uint16_t phrase_id) {
+  return (PhraseFolderAndName*)hashtable_get(phrases, phrase_id);
+}
+
 Folder root_folder_obj = { 0, 0, "/" };
 extern Folder* getFolder(uint16_t folder_id) {
   if (folder_id == 0) {

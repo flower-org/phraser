@@ -465,52 +465,72 @@ void tree_delete_rec(node_t *n) {
 //
 // Traverse arbitrary binary tree in inorder fashion
 //
-void traverse_inorder(node_t *node, bool (*func)(data_t data)) {
+bool traverse_inorder(node_t *node, bool (*func)(data_t data)) {
   assert(func);
 
-  if (node == NULL) { return; }
-  traverse_inorder(node->left, func);
-  if (!func(get_data(node))) {
-    return;
+  if (node == NULL) { return false; }
+  if (traverse_inorder(node->left, func)) {
+    return true;
   }
-  traverse_inorder(node->right, func);
+  if (func(get_data(node))) {
+    return true;
+  }
+  if (traverse_inorder(node->right, func)) {
+    return true;
+  }
+  return false;
 }
 
-void traverse_inorder_backwards(node_t *node, bool (*func)(data_t data)) {
+bool traverse_inorder_backwards(node_t *node, bool (*func)(data_t data)) {
   assert(func);
 
-  if (node == NULL) { return; }
-  traverse_inorder_backwards(node->right, func);
-  if (!func(get_data(node))) {
-    return;
+  if (node == NULL) { return false; }
+  if (traverse_inorder_backwards(node->right, func)) {
+    return true;
   }
-  traverse_inorder_backwards(node->left, func);
+  if (func(get_data(node))) {
+    return true;
+  }
+  if (traverse_inorder_backwards(node->left, func)) {
+    return true;
+  }
+  return false;
 }
 
-void traverse_right_excl(node_t *node, data_t key, bool (*func)(data_t data)) {
+bool traverse_right_excl(node_t *node, data_t key, bool (*func)(data_t data)) {
   assert(func);
 
-  if (node == NULL) { return; }
+  if (node == NULL) { return false; }
   if (node->_data > key) { 
-    traverse_right_excl(node->left, key, func);
-    if (!func(get_data(node))) {
-      return;
+    if (traverse_right_excl(node->left, key, func)) {
+      return true;
+    }
+    if (func(get_data(node))) {
+      return true;
     }
   }
-  traverse_right_excl(node->right, key, func);
+  if (traverse_right_excl(node->right, key, func)) {
+    return true;
+  }
+  return false;
 }
 
-void traverse_left_excl(node_t *node, data_t key, bool (*func)(data_t data)) {
+bool traverse_left_excl(node_t *node, data_t key, bool (*func)(data_t data)) {
   assert(func);
 
-  if (node == NULL) { return; }
+  if (node == NULL) { return false; }
   if (node->_data < key) {
-    traverse_left_excl(node->right, key, func);
-    if (!func(get_data(node))) {
-      return;
+    if (traverse_left_excl(node->right, key, func)) {
+      return true;
+    }
+    if (func(get_data(node))) {
+      return true;
     }
   }
-  traverse_left_excl(node->left, key, func);
+  if (traverse_left_excl(node->left, key, func)) {
+    return true;
+  }
+  return false;
 }
 
 node_t* tree_minimum(node_t *root) {

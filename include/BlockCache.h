@@ -73,6 +73,7 @@ void startBlockCacheInit();
 void registerBlockInBlockCache(uint8_t* block, uint16_t block_number);
 void finalizeBlockCacheInit();
 
+PhraseFolderAndName* getPhrase(uint16_t phrase_id);
 extern Folder* getFolder(uint16_t folder_id);
 //  arraylist<FolderOrPhrase*>
 arraylist* getFolderContent(uint16_t parent_folder_id);
