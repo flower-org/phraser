@@ -863,7 +863,7 @@ arraylist* renameFolderMutation(phraser_Folder_vec_t* folders_vec) {
     DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
     daoFolder->folder_id = folder_id;
     daoFolder->parent_folder_id = phraser_Folder_parent_folder_id(folder_fb);
-    daoFolder->folder_name = ren_f_m_folder_id != folder_id ? ren_f_m_new_folder_name : (char*)phraser_Folder_folder_name(folder_fb);
+    daoFolder->folder_name = ren_f_m_folder_id == folder_id ? ren_f_m_new_folder_name : (char*)phraser_Folder_folder_name(folder_fb);
 
     arraylist_add(dao_folders, daoFolder);
   }
