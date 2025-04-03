@@ -26,16 +26,16 @@ enum MainUiPhase {
   EDIT_WORD,
 
   // BlockDAO Dialogs
+  DAO_OPERATION_ERROR_REPORT,
+
   CREATE_NEW_FOLDER_YES_NO,
   CREATE_NEW_FOLDER,
-  CREATE_NEW_FOLDER_REPORT,
   
   RENAME_FOLDER_YES_NO,
   ENTER_RENAME_FOLDER_NAME,
   RENAME_FOLDER,
   
   DELETE_FOLDER_YES_NO,
-  DELETE_FOLDER,
   
   CREATE_NEW_PHRASE_YES_NO,
   ENTER_NEW_PHRASE_NAME,
@@ -199,16 +199,16 @@ void folderBrowserMenuAction(int chosen_item, int code) {
     char* text = "Create new folder?";
     initTextAreaDialog(text, strlen(text), DLG_YES_NO);
     main_ui_phase = CREATE_NEW_FOLDER_YES_NO;
-    //CREATE_NEW_FOLDER_YES_NO,
-    //ENTER_NEW_FOLDER_NAME,
-    //CREATE_NEW_FOLDER
   } else if (FOLDER_MENU_RENAME_FOLDER == code) {
     //RENAME_FOLDER_YES_NO,
     //ENTER_RENAME_FOLDER_NAME,
     //RENAME_FOLDER
   } else if (FOLDER_MENU_DELETE_FOLDER == code) {
-    //DELETE_FOLDER_YES_NO,
-    //DELETE_FOLDER
+    char text[350];
+    Folder* selected_folder = getFolder(selected_folder_id);
+    sprintf(text, "Delete folder `%s`?", selected_folder->folderName);
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_ui_phase = DELETE_FOLDER_YES_NO;
   } else if (FOLDER_MENU_NEW_PHRASE == code) {
     //CREATE_NEW_PHRASE_YES_NO,
     //ENTER_NEW_PHRASE_NAME,
@@ -371,15 +371,42 @@ void dialogActionsLoop(Thumby* thumby) {
               char* text = "Block size exceeded - too many folders. Can't create";
               initTextAreaDialog(text, strlen(text), DLG_OK);
             }
-            main_ui_phase = CREATE_NEW_FOLDER_REPORT;
+            main_ui_phase = DAO_OPERATION_ERROR_REPORT;
           }
         }
       }
       break;
-    case CREATE_NEW_FOLDER_REPORT: {
+    case DAO_OPERATION_ERROR_REPORT: {
         DialogResult result = textAreaLoop(thumby);
         if (result == DLG_RES_OK) {
+          initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
           main_ui_phase = FOLDER_BROWSER;
+        }
+      }
+      break;
+
+    case DELETE_FOLDER_YES_NO: {
+        DialogResult result = textAreaLoop(thumby);
+        if (result == DLG_RES_YES) {
+          UpdateResponse delete_folder_response = deleteFolder(selected_folder_id);
+          if (delete_folder_response == OK) {
+            initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
+            main_ui_phase = FOLDER_BROWSER;
+          } else {
+            if (delete_folder_response == ERROR) {
+              char* text = "Delete folder ERROR.";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            } else if (delete_folder_response == DB_FULL) {
+              char* text = "Database full (probably something is really wrong since we're trying to delete)";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            } else if (delete_folder_response == BLOCK_SIZE_EXCEEDED) {
+              char* text = "Block size exceeded - too many folders. Can't delete? doesn't make sense.";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            }
+            main_ui_phase = DAO_OPERATION_ERROR_REPORT;
+          }
+        } else if (result == DLG_RES_NO) {
+          main_ui_phase = FOLDER_MENU;
         }
       }
       break;
@@ -393,9 +420,6 @@ void dialogActionsLoop(Thumby* thumby) {
   // RENAME_FOLDER_YES_NO,
   // ENTER_RENAME_FOLDER_NAME,
   // RENAME_FOLDER,
-  
-  // DELETE_FOLDER_YES_NO,
-  // DELETE_FOLDER,
   
   // CREATE_NEW_PHRASE_YES_NO,
   // ENTER_NEW_PHRASE_NAME,
