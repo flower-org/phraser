@@ -511,10 +511,10 @@ void throwBlockBack(uint8_t bank_number, uint16_t block_number_from, uint16_t bl
   // TODO: implement
 }
 
-uint32_t get_valid_block_number_on_the_right_of(uint32_t block_number) {
-  node_t* valid_block_node = tree_higherKey(occupied_block_numbers(), block_number);
+uint32_t get_valid_block_number_on_the_right_of(node_t* root, uint32_t block_number) {
+  node_t* valid_block_node = tree_higherKey(root, block_number);
   if (valid_block_node == NULL) {
-    valid_block_node = tree_minimum(occupied_block_numbers());
+    valid_block_node = tree_minimum(root);
   }  
   return valid_block_node->_data;
 }
@@ -530,17 +530,22 @@ bool left_lookup(data_t next_block_number) {
   return false;
 }
 
-uint32_t get_free_block_number_on_the_left_of(uint32_t block_number) {
+uint32_t get_free_block_number_on_the_left_of(node_t* root, uint32_t block_number, uint32_t db_block_count) {
   left_lookup_missing_block_number_found = false;
   left_lookup_missing_block_number = block_number;
-  traverse_left_excl(occupied_block_numbers(), block_number, left_lookup);
+  traverse_left_excl(root, block_number, left_lookup);
   if (left_lookup_missing_block_number_found) {
     return left_lookup_missing_block_number;
   }
 
+  if (left_lookup_missing_block_number > 0 && left_lookup_missing_block_number <= tree_minimum(root)->_data) {
+    // if we traversed all numbers, didn't find any gaps but still didn't reach 0, the untraversed part is all free blocks 
+    return left_lookup_missing_block_number-1;
+  }
+
   left_lookup_missing_block_number_found = false;
-  left_lookup_missing_block_number = db_block_count();
-  traverse_left_excl(occupied_block_numbers(), db_block_count(), left_lookup);
+  left_lookup_missing_block_number = db_block_count;
+  traverse_left_excl(root, db_block_count, left_lookup);
   if (left_lookup_missing_block_number_found) {
     return left_lookup_missing_block_number;
   }
@@ -633,9 +638,9 @@ uint16_t throwbackCopy(uint32_t b0_block_number, uint32_t new_version) {
   serialDebugPrintf("t1.\r\n");
   uint32_t border_block_number = last_block_number();
   serialDebugPrintf("t2 border_block_number %d.\r\n", border_block_number);
-  uint32_t b1_block_number = get_valid_block_number_on_the_right_of(border_block_number);
+  uint32_t b1_block_number = get_valid_block_number_on_the_right_of(occupied_block_numbers(), border_block_number);
   serialDebugPrintf("t3 b1_block_number %d.\r\n", b1_block_number);
-  uint32_t b2_block_number = get_free_block_number_on_the_left_of(border_block_number);
+  uint32_t b2_block_number = get_free_block_number_on_the_left_of(occupied_block_numbers(), border_block_number, db_block_count());
   serialDebugPrintf("t4 b2_block_number %d.\r\n", b2_block_number);
   uint32_t b3_block_number;
   serialDebugPrintf("t5.\r\n");
@@ -716,7 +721,7 @@ uint16_t throwbackCopy(uint32_t b0_block_number, uint32_t new_version) {
 
 // -------------------- FOLDERS --------------------
 
-UpdateResponse folderMutation(char* new_folder_name, uint16_t parent_folder_id, arraylist* (*func)(phraser_Folder_vec_t* folders_vec)) {
+UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_vec)) {
   initRandomIfNeeded();
   // 1. check that db capacity is enough to add new block
   serialDebugPrintf("1.\r\n");
@@ -840,23 +845,62 @@ arraylist* addFolderMutation(phraser_Folder_vec_t* folders_vec) {
 UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, uint16_t* out_new_folder_id) {
   add_f_m_new_folder_name = new_folder_name;
   add_f_m_parent_folder_id = parent_folder_id;
-  UpdateResponse update_response = folderMutation(new_folder_name, parent_folder_id, addFolderMutation);
+  UpdateResponse update_response = folderMutation(addFolderMutation);
 
   *out_new_folder_id = add_f_m_out_new_folder_id;
   return update_response;
 }
 
+uint16_t ren_f_m_folder_id;
+char* ren_f_m_new_folder_name;
+arraylist* renameFolderMutation(phraser_Folder_vec_t* folders_vec) {
+  arraylist* dao_folders = arraylist_create();
+  size_t folders_vec_length = flatbuffers_vec_len(*folders_vec);
+  for (int i = 0; i < folders_vec_length; i++) {
+    phraser_Folder_table_t folder_fb = phraser_Folder_vec_at(*folders_vec, i);
+
+    uint16_t folder_id = phraser_Folder_folder_id(folder_fb);
+    DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
+    daoFolder->folder_id = folder_id;
+    daoFolder->parent_folder_id = phraser_Folder_parent_folder_id(folder_fb);
+    daoFolder->folder_name = ren_f_m_folder_id != folder_id ? ren_f_m_new_folder_name : (char*)phraser_Folder_folder_name(folder_fb);
+
+    arraylist_add(dao_folders, daoFolder);
+  }
+
+  return dao_folders;
+}
 
 UpdateResponse renameFolder(uint16_t folder_id, char* new_folder_name) {
-  initRandomIfNeeded();
-  //
-  return ERROR;
+  ren_f_m_new_folder_name = new_folder_name;
+  ren_f_m_folder_id = folder_id;
+  return folderMutation(renameFolderMutation);
+}
+
+uint16_t del_f_m_folder_id;
+arraylist* deleteFolderMutation(phraser_Folder_vec_t* folders_vec) {
+  arraylist* dao_folders = arraylist_create();
+  size_t folders_vec_length = flatbuffers_vec_len(*folders_vec);
+  for (int i = 0; i < folders_vec_length; i++) {
+    phraser_Folder_table_t folder_fb = phraser_Folder_vec_at(*folders_vec, i);
+
+    uint16_t folder_id = phraser_Folder_folder_id(folder_fb);
+    if (del_f_m_folder_id != folder_id) {
+      DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
+      daoFolder->folder_id = folder_id;
+      daoFolder->parent_folder_id = phraser_Folder_parent_folder_id(folder_fb);
+      daoFolder->folder_name = (char*)phraser_Folder_folder_name(folder_fb);
+  
+      arraylist_add(dao_folders, daoFolder);
+    }
+  }
+
+  return dao_folders;
 }
 
 UpdateResponse deleteFolder(uint16_t folder_id) {
-  initRandomIfNeeded();
-  //
-  return ERROR;
+  del_f_m_folder_id = folder_id;
+  return folderMutation(deleteFolderMutation);
 }
 
 // -------------------- PHRASES -------------------- 

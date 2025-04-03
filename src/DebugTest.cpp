@@ -173,7 +173,33 @@ void objectMutationTest() {
   }
 }
 
+void rbtreeTest2() {
+  node_t *root = NULL;
+
+  serialDebugPrintf("START!\r\n");
+
+  int testKeys[] = {4, 8, 10, 11};
+  for (int i : testKeys) {
+    tree_insert(&root, i);
+  }
+  traverse_inorder(root, perNode);
+  serialDebugPrintf("\r\n");
+
+  uint32_t block_number = 4;
+  uint32_t db_block_count = 12;
+  uint32_t right = get_valid_block_number_on_the_right_of(root, block_number);
+  uint32_t left = get_free_block_number_on_the_left_of(root, block_number, db_block_count);
+
+  serialDebugPrintf("right %d \r\n", right);
+  serialDebugPrintf("left %d \r\n", left);
+
+  traverse_inorder(root, perNode);
+  tree_destroy(&root);
+}
+
 void debugTest() {
+  rbtreeTest2();
+
   //  objectMutationTest();
 
   //  sha256Test();

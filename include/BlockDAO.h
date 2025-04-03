@@ -2,6 +2,7 @@
 
 #include <Thumby.h>
 #include "Schema_builder.h"
+#include "rbtree.h"
 
 enum UpdateResponse {
   DB_FULL,
@@ -34,3 +35,6 @@ void phraseBlock_history(flatcc_builder_t* builder, uint16_t word_template_id, i
   char* name, char* word, int8_t permissions, phraser_Icon_enum_t icon);
   
 UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, uint16_t* out_new_folder_id);
+
+uint32_t get_valid_block_number_on_the_right_of(node_t* root, uint32_t block_number);
+uint32_t get_free_block_number_on_the_left_of(node_t* root, uint32_t block_number, uint32_t db_block_count);
