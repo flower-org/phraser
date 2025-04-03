@@ -716,7 +716,7 @@ uint16_t throwbackCopy(uint32_t b0_block_number, uint32_t new_version) {
 
 // -------------------- FOLDERS --------------------
 
-UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, uint16_t* out_new_folder_id) {
+UpdateResponse folderMutation(char* new_folder_name, uint16_t parent_folder_id, arraylist* (*func)(phraser_Folder_vec_t* folders_vec)) {
   initRandomIfNeeded();
   // 1. check that db capacity is enough to add new block
   serialDebugPrintf("1.\r\n");
@@ -743,34 +743,11 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, ui
   serialDebugPrintf("3.\r\n");
 
   // 4. Form arraylist of existing block folders
-  uint16_t max_folder_id = 0;
-  arraylist* dao_folders = arraylist_create();
   phraser_Folder_vec_t folders_vec = phraser_FoldersBlock_folders(folders_block);
-  size_t folders_vec_length = flatbuffers_vec_len(folders_vec);
-  for (int i = 0; i < folders_vec_length; i++) {
-    phraser_Folder_table_t folder_fb = phraser_Folder_vec_at(folders_vec, i);
 
-    DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
-    daoFolder->folder_id = phraser_Folder_folder_id(folder_fb);
-    daoFolder->parent_folder_id = phraser_Folder_parent_folder_id(folder_fb);
-    daoFolder->folder_name = (char*)phraser_Folder_folder_name(folder_fb);
+  arraylist* dao_folders = func(&folders_vec);
 
-    if (daoFolder->folder_id > max_folder_id) {
-      max_folder_id = daoFolder->folder_id;
-    }
-
-    arraylist_add(dao_folders, daoFolder);
-  }
   serialDebugPrintf("4.\r\n");
-
-  // 5. Add new folder to the arraylist
-  DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
-  daoFolder->folder_id = max_folder_id + 1;
-  *out_new_folder_id = max_folder_id + 1;
-  daoFolder->parent_folder_id = parent_folder_id;
-  daoFolder->folder_name = new_folder_name;
-
-  arraylist_add(dao_folders, daoFolder);
   serialDebugPrintf("5.\r\n");
 
   uint32_t throwback_copy_version = increment_and_get_next_block_version();//throwback version comes first
@@ -825,6 +802,50 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, ui
 
   return OK;
 }
+
+uint16_t add_f_m_out_new_folder_id;
+uint16_t add_f_m_parent_folder_id;
+char* add_f_m_new_folder_name;
+arraylist* addFolderMutation(phraser_Folder_vec_t* folders_vec) {
+  uint16_t max_folder_id = 0;
+  arraylist* dao_folders = arraylist_create();
+  size_t folders_vec_length = flatbuffers_vec_len(*folders_vec);
+  for (int i = 0; i < folders_vec_length; i++) {
+    phraser_Folder_table_t folder_fb = phraser_Folder_vec_at(*folders_vec, i);
+
+    DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
+    daoFolder->folder_id = phraser_Folder_folder_id(folder_fb);
+    daoFolder->parent_folder_id = phraser_Folder_parent_folder_id(folder_fb);
+    daoFolder->folder_name = (char*)phraser_Folder_folder_name(folder_fb);
+
+    if (daoFolder->folder_id > max_folder_id) {
+      max_folder_id = daoFolder->folder_id;
+    }
+
+    arraylist_add(dao_folders, daoFolder);
+  }
+
+  // 5. Add new folder to the arraylist
+  DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
+  daoFolder->folder_id = max_folder_id + 1;
+  add_f_m_out_new_folder_id = max_folder_id + 1;
+  daoFolder->parent_folder_id = add_f_m_parent_folder_id;
+  daoFolder->folder_name = add_f_m_new_folder_name;
+
+  arraylist_add(dao_folders, daoFolder);
+
+  return dao_folders;
+}
+
+UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, uint16_t* out_new_folder_id) {
+  add_f_m_new_folder_name = new_folder_name;
+  add_f_m_parent_folder_id = parent_folder_id;
+  UpdateResponse update_response = folderMutation(new_folder_name, parent_folder_id, addFolderMutation);
+
+  *out_new_folder_id = add_f_m_out_new_folder_id;
+  return update_response;
+}
+
 
 UpdateResponse renameFolder(uint16_t folder_id, char* new_folder_name) {
   initRandomIfNeeded();
