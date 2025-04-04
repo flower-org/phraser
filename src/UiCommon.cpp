@@ -10,7 +10,7 @@ void startupScreenInit() {
   startup_screen_items[0] = createListItem("Unseal", phraser_Icon_Lock);
   startup_screen_items[1] = createListItem("Backup DB", phraser_Icon_Download);
   startup_screen_items[2] = createListItem("Restore DB", phraser_Icon_Upload);
-  startup_screen_items[3] = createListItem("Test Keyboard", phraser_Icon_TextOut);
+  startup_screen_items[3] = createListItem("Test Keyboard", phraser_Icon_Aa);
   startup_screen_items[4] = createListItem("Unseal (show password)", phraser_Icon_Lock);
   startup_screen_items[5] = createListItem("Create New DB", phraser_Icon_Settings);
 

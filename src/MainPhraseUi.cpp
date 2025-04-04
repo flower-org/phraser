@@ -135,7 +135,7 @@ void runMainPhraseUiPhaseAction(int chosen_item, int code) {
 }
 
 // BlockDAO Dialogs
-void phraserPhraseUiLoop(Thumby* thumby) {
+bool phraserPhraseUiLoop(Thumby* thumby) {
   if (isPhraseMenuPhase()) {
     // Menu phase, all menus are ScreenList-based
     SelectionAndCode chosen = listLoopWithCode(thumby, true);
@@ -150,4 +150,6 @@ void phraserPhraseUiLoop(Thumby* thumby) {
     // Dialog phase
     phraseDialogActionsLoop(thumby);
   }
+  // TODO: return false to get back to folders menu
+  return true;
 }

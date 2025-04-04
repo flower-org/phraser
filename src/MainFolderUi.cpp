@@ -103,7 +103,7 @@ void initCurrentFolderScreenList(int select_folder_id, int select_phrase_id) {
         if (select_phrase_id == folderOrPhrase->phrase->phraseBlockId) {
           selection = screen_item_cursor;
         }
-        screen_items[screen_item_cursor++] = createListItem(folderOrPhrase->phrase->name, phraser_Icon_Ledger);
+        screen_items[screen_item_cursor++] = createListItem(folderOrPhrase->phrase->name, phraser_Icon_TextOut);
       }
 
       arraylist_add(folder_content, folder_phrase_id);
@@ -789,7 +789,11 @@ void phraserFolderUiLoop(Thumby* thumby) {
       }
     }
   } else if (main_folder_ui_phase == PHRASE_UI) {
-    // 
+    // Delegate control to Phrase View
+    if (!phraserPhraseUiLoop(thumby)) {
+      initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
+      main_folder_ui_phase = FOLDER_BROWSER;
+    }
   } else {
     // Dialog phase
     dialogActionsLoop(thumby);

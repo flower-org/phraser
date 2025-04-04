@@ -4,4 +4,4 @@
 #include "BlockDAO.h"
 
 void initPhrase(FullPhrase* phrase);
-void phraserPhraseUiLoop(Thumby* thumby);
+bool phraserPhraseUiLoop(Thumby* thumby);
