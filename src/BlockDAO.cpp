@@ -876,6 +876,32 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, ui
   return update_response;
 }
 
+uint16_t mov_f_m_folder_id;
+uint16_t mov_f_m_to_folder_id;
+arraylist* moveFolderMutation(phraser_Folder_vec_t* folders_vec) {
+  arraylist* dao_folders = arraylist_create();
+  size_t folders_vec_length = flatbuffers_vec_len(*folders_vec);
+  for (int i = 0; i < folders_vec_length; i++) {
+    phraser_Folder_table_t folder_fb = phraser_Folder_vec_at(*folders_vec, i);
+
+    uint16_t folder_id = phraser_Folder_folder_id(folder_fb);
+    DAOFolder* daoFolder = (DAOFolder*)malloc(sizeof(DAOFolder));
+    daoFolder->folder_id = folder_id;
+    daoFolder->parent_folder_id = mov_f_m_folder_id == folder_id ? mov_f_m_to_folder_id : phraser_Folder_parent_folder_id(folder_fb);
+    daoFolder->folder_name = (char*)phraser_Folder_folder_name(folder_fb);
+
+    arraylist_add(dao_folders, daoFolder);
+  }
+
+  return dao_folders;
+}
+
+UpdateResponse moveFolder(uint16_t move_folder_id, uint16_t to_folder_id) {
+  mov_f_m_folder_id = move_folder_id;
+  mov_f_m_to_folder_id = to_folder_id;
+  return folderMutation(moveFolderMutation);
+}
+
 uint16_t ren_f_m_folder_id;
 char* ren_f_m_new_folder_name;
 arraylist* renameFolderMutation(phraser_Folder_vec_t* folders_vec) {

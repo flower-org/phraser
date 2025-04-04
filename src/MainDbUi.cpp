@@ -228,9 +228,11 @@ void folderBrowserMenuAction(int chosen_item, int code) {
     //ENTER_RENAME_PHRASE_NAME,
     //RENAME_PHRASE
   } else if (FOLDER_MENU_MOVE_FOLDER == code) {
-    // MOVE_FOLDER_YES_NO,
-    // MOVE_FOLDER_SELECT_PARENT_FOLDER,
-    // MOVE_FOLDER,
+    char text[350];
+    Folder* selected_folder = getFolder(selected_folder_id);
+    sprintf(text, "Move folder `%s` to a different folder?", selected_folder->folderName);
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_ui_phase = MOVE_FOLDER_YES_NO;
   } else if (FOLDER_MENU_MOVE_PHRASE == code) {
     char text[350];
     PhraseFolderAndName* selected_phrase = getPhrase(selected_phrase_id);
@@ -317,10 +319,10 @@ void init_folder_menu(int chosen_item) {
   }
 
   Folder* folder = getFolder(folder_browser_folder_id);
-  sprintf(text, "New folder under `%s`", folder->folderName);
-  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_FOLDER);
   sprintf(text, "New phrase under `%s`", folder->folderName);
   screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_PHRASE);
+  sprintf(text, "New folder under `%s`", folder->folderName);
+  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_FOLDER);
   initList(screen_items, menu_items_count);
   freeItemList(screen_items, menu_items_count);
 }
@@ -374,8 +376,13 @@ void createRepeatedSlashes(int level, char* result) {
   result[level] = '\0';
 }
 
-void fillFolder(Folder* root_folder, arraylist* folder_list, int level) {
+void fillFolder(Folder* root_folder, arraylist* folder_list, int level, int exclude_folder_id) {
   if (root_folder == NULL) {
+    return;
+  }
+
+  if (root_folder->folderId == exclude_folder_id) {
+    // Can't move a folder into itself or into it's own child folder
     return;
   }
 
@@ -392,15 +399,15 @@ void fillFolder(Folder* root_folder, arraylist* folder_list, int level) {
     for (int i = 0; i < arraylist_size(subfolders); i++) {
       uint16_t child_folder_id = (uint32_t)arraylist_get(subfolders, i);
       Folder* child_folder = getFolder(child_folder_id);
-      fillFolder(child_folder, folder_list, level+1);
+      fillFolder(child_folder, folder_list, level+1, exclude_folder_id);
     }
   }
 }
 
-void initFoldersList() {
+void initFoldersList(int exclude_folder_id) {
   arraylist* folder_list = arraylist_create();
   Folder* root_folder = getFolder(0);
-  fillFolder(root_folder, folder_list, 0);
+  fillFolder(root_folder, folder_list, 0, exclude_folder_id);
 
   int screen_item_count = arraylist_size(folder_list);
   ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
@@ -416,7 +423,7 @@ void initFoldersList() {
 char* ui_new_phrase_name;
 uint16_t ui_new_phrase_phrase_template_id;
 uint16_t ui_new_phrase_folder_id;
-
+uint16_t ui_move_folder_to_folder_id;
 void dialogActionsLoop(Thumby* thumby) {
   switch (main_ui_phase) {
     case FOLDER_MENU_OPERATION_ERROR_REPORT: {
@@ -601,10 +608,10 @@ void dialogActionsLoop(Thumby* thumby) {
             char* text = "Phrase creation ERROR.";
             initTextAreaDialog(text, strlen(text), DLG_OK);
           } else if (new_phrase_response == DB_FULL) {
-            char* text = "Database full (probably something is really wrong since we're trying to rename)";
+            char* text = "Database full, can't create";
             initTextAreaDialog(text, strlen(text), DLG_OK);
           } else if (new_phrase_response == BLOCK_SIZE_EXCEEDED) {
-            char* text = "Block size exceeded - too many folders/name too long. Can't rename";
+            char* text = "Block size exceeded.";
             initTextAreaDialog(text, strlen(text), DLG_OK);
           }
           main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
@@ -642,7 +649,7 @@ void dialogActionsLoop(Thumby* thumby) {
     case MOVE_PHRASE_YES_NO: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_YES) {
-        initFoldersList();
+        initFoldersList(-1);
         main_ui_phase = MOVE_PHRASE;
       } else if (result == DLG_RES_NO) {
         main_ui_phase = FOLDER_MENU;
@@ -684,6 +691,55 @@ void dialogActionsLoop(Thumby* thumby) {
           main_ui_phase = FOLDER_BROWSER;
         } else if (result == DLG_RES_YES) {
           initFolder(ui_new_phrase_folder_id, -1, selected_phrase_id);
+          main_ui_phase = FOLDER_BROWSER;
+        }
+    }
+
+    case MOVE_FOLDER_YES_NO: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        initFoldersList(selected_folder_id);
+        main_ui_phase = MOVE_FOLDER;
+      } else if (result == DLG_RES_NO) {
+        main_ui_phase = FOLDER_MENU;
+      }
+    }
+    break;
+    case MOVE_FOLDER: {
+      SelectionAndCode chosen = listLoopWithCode(thumby, true);
+      if (chosen.selection != -1) {
+        ui_move_folder_to_folder_id = chosen.code;
+
+        UpdateResponse move_folder_response = moveFolder(selected_folder_id, ui_move_folder_to_folder_id);
+        if (move_folder_response == OK) {
+          char text[350];
+          Folder* moved_to_folder = getFolder(ui_move_folder_to_folder_id);
+          sprintf(text, "Folder moved. Switch folder to `%s`?", moved_to_folder->folderName);
+          initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+          main_ui_phase = MOVE_FOLDER_SELECT_PARENT_FOLDER;
+        } else {
+          if (move_folder_response == ERROR) {
+            char* text = "Folder move ERROR.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (move_folder_response == DB_FULL) {
+            char* text = "Database full (probably something is really wrong since we're trying to move)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (move_folder_response == BLOCK_SIZE_EXCEEDED) {
+            char* text = "Block size exceeded. Can't move? doesn't make sense.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          }
+          main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+        }
+      }
+    }
+    break;
+    case MOVE_FOLDER_SELECT_PARENT_FOLDER: {
+        DialogResult result = textAreaLoop(thumby);
+        if (result == DLG_RES_NO) {
+          initFolder(folder_browser_folder_id, selected_folder_id, -1);
+          main_ui_phase = FOLDER_BROWSER;
+        } else if (result == DLG_RES_YES) {
+          initFolder(ui_move_folder_to_folder_id, selected_folder_id, -1);
           main_ui_phase = FOLDER_BROWSER;
         }
     }

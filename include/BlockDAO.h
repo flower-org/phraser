@@ -37,6 +37,7 @@ void phraseBlock_history(flatcc_builder_t* builder, uint16_t word_template_id, i
 UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, uint16_t* out_new_folder_id);
 UpdateResponse renameFolder(uint16_t folder_id, char* new_folder_name);
 UpdateResponse deleteFolder(uint16_t folder_id);
+UpdateResponse moveFolder(uint16_t move_folder_id, uint16_t to_folder_id);
 
 UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint16_t folder_id, uint16_t* created_phrase_id);
 UpdateResponse deletePhrase(uint16_t phrase_block_id);
