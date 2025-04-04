@@ -26,7 +26,7 @@ enum MainUiPhase {
   EDIT_WORD,
 
   // BlockDAO Dialogs
-  FOLDER_OPERATION_ERROR_REPORT,
+  FOLDER_MENU_OPERATION_ERROR_REPORT,
 
   CREATE_NEW_FOLDER_YES_NO,
   CREATE_NEW_FOLDER,
@@ -212,11 +212,9 @@ void folderBrowserMenuAction(int chosen_item, int code) {
     initTextAreaDialog(text, strlen(text), DLG_YES_NO);
     main_ui_phase = DELETE_FOLDER_YES_NO;
   } else if (FOLDER_MENU_NEW_PHRASE == code) {
-    //CREATE_NEW_PHRASE_YES_NO,
-    //ENTER_NEW_PHRASE_NAME,
-    //SELECT_NEW_PHRASE_TEMPLATE_OK,
-    //SELECT_NEW_PHRASE_TEMPLATE,
-    //CREATE_NEW_PHRASE
+    char* text = "Create new phrase?";
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_ui_phase = CREATE_NEW_PHRASE_YES_NO;
   } else if (FOLDER_MENU_DELETE_PHRASE == code) {
     //DELETE_PHRASE_YES_NO,
     //DELETE_PHRASE
@@ -342,9 +340,21 @@ void menuSwitch(int chosen_item) {
   }
 }
 
+ListItem** tmp_screen_items;
+int tmp_screen_item_cursor;
+void build_phrase_template_entries(hashtable *t, uint32_t key, void* value) {
+  PhraseTemplate* phrase_template = (PhraseTemplate*)value;
+  tmp_screen_items[tmp_screen_item_cursor++] = createListItemWithCode(phrase_template->phraseTemplateName, phraser_Icon_Copy, phrase_template->phraseTemplateId);
+}
+
+void build_folder_entries(hashtable *t, uint32_t key, void* value) {
+  Folder* folder = (Folder*)value;
+  tmp_screen_items[tmp_screen_item_cursor++] = createListItemWithCode(folder->folderName, phraser_Icon_Folder, folder->folderId);
+}
+
 void dialogActionsLoop(Thumby* thumby) {
   switch (main_ui_phase) {
-    case FOLDER_OPERATION_ERROR_REPORT: {
+    case FOLDER_MENU_OPERATION_ERROR_REPORT: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_OK) {
         initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
@@ -369,7 +379,7 @@ void dialogActionsLoop(Thumby* thumby) {
           if (strlen(new_folder_name) == 0) {
             char* text = "Folder name can't be empty.";
             initTextAreaDialog(text, strlen(text), DLG_OK);
-            main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+            main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
           } else {
             uint16_t new_folder_id;
             UpdateResponse new_folder_response = addNewFolder(new_folder_name, folder_browser_folder_id, &new_folder_id);
@@ -387,7 +397,7 @@ void dialogActionsLoop(Thumby* thumby) {
                 char* text = "Block size exceeded - too many folders. Can't create";
                 initTextAreaDialog(text, strlen(text), DLG_OK);
               }
-              main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+              main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
             }
           }
         }
@@ -401,7 +411,7 @@ void dialogActionsLoop(Thumby* thumby) {
           if (child_count > 0) {
             char* text = "Folder's not empty, can't delete.";
             initTextAreaDialog(text, strlen(text), DLG_OK);
-            main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+            main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
           } else {
             UpdateResponse delete_folder_response = deleteFolder(selected_folder_id);
             if (delete_folder_response == OK) {
@@ -418,7 +428,7 @@ void dialogActionsLoop(Thumby* thumby) {
                 char* text = "Block size exceeded - too many folders. Can't delete? doesn't make sense.";
                 initTextAreaDialog(text, strlen(text), DLG_OK);
               }
-              main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+              main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
             }
           }
         } else if (result == DLG_RES_NO) {
@@ -444,7 +454,7 @@ void dialogActionsLoop(Thumby* thumby) {
           if (strlen(new_folder_name) == 0) {
             char* text = "Folder name can't be empty.";
             initTextAreaDialog(text, strlen(text), DLG_OK);
-            main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+            main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
           } else {
             UpdateResponse new_folder_response = renameFolder(selected_folder_id, new_folder_name);
             if (new_folder_response == OK) {
@@ -461,24 +471,86 @@ void dialogActionsLoop(Thumby* thumby) {
                 char* text = "Block size exceeded - too many folders/name too long. Can't rename";
                 initTextAreaDialog(text, strlen(text), DLG_OK);
               }
-              main_ui_phase = FOLDER_OPERATION_ERROR_REPORT;
+              main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
             }
           }
         }
       }
       break;
+
+    case CREATE_NEW_PHRASE_YES_NO: { 
+        DialogResult result = textAreaLoop(thumby);
+        if (result == DLG_RES_YES) {
+          main_ui_phase = ENTER_NEW_PHRASE_NAME;
+          initOnScreenKeyboard(false, false);
+        } else if (result == DLG_RES_NO) {
+          main_ui_phase = FOLDER_MENU;
+        }
+      }
+      break;
+    case ENTER_NEW_PHRASE_NAME: {
+        char* new_folder_name = keyboardLoop(thumby);
+        if (new_folder_name != NULL) {
+          //initialize phrase template list
+          hashtable* phrase_templates = getPhraseTemplates();
+
+          int screen_item_count = phrase_templates->size;
+          ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
+          serialDebugPrintf("screen_item_count %d\r\n", screen_item_count);
+
+          serialDebugPrintf("111");
+          tmp_screen_items = screen_items;
+          tmp_screen_item_cursor = 0;
+          hashtable_iterate_entries(phrase_templates, build_phrase_template_entries);
+          tmp_screen_items = NULL;
+          tmp_screen_item_cursor = 0;
+          serialDebugPrintf("222");
+
+          initList(screen_items, screen_item_count);
+          serialDebugPrintf("333");
+          freeItemList(screen_items, screen_item_count);
+          serialDebugPrintf("444");
+          main_ui_phase = SELECT_NEW_PHRASE_TEMPLATE;
+          serialDebugPrintf("555");
+        }
+      }
+      break;
+    case SELECT_NEW_PHRASE_TEMPLATE: {
+      serialDebugPrintf("666");
+      SelectionAndCode chosen = listLoopWithCode(thumby, true);
+        if (chosen.selection != -1) {
+            //initialize phrase template list
+            hashtable* phrase_templates = getFolders();
+
+            int screen_item_count = phrase_templates->size;
+
+            ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
+            tmp_screen_items = screen_items;
+            tmp_screen_item_cursor = 0;
+            hashtable_iterate_entries(phrase_templates, build_folder_entries);
+            tmp_screen_items = NULL;
+            tmp_screen_item_cursor = 0;
+
+            initList(screen_items, screen_item_count);
+            freeItemList(screen_items, screen_item_count);
+            main_ui_phase = CREATE_NEW_PHRASE;
+        }
+      }
+      break;
+    case CREATE_NEW_PHRASE: {
+      SelectionAndCode chosen = listLoopWithCode(thumby, true);
+      if (chosen.selection != -1) {
+        initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
+        main_ui_phase = FOLDER_BROWSER;
+      }
+    }
+    break;
   }
 
   // BlockDAO Dialogs
 
   // TODO: CHANGE PARENT FOLDER for Folder?
 
-  // CREATE_NEW_PHRASE_YES_NO,
-  // ENTER_NEW_PHRASE_NAME,
-  // SELECT_NEW_PHRASE_TEMPLATE_OK,
-  // SELECT_NEW_PHRASE_TEMPLATE,
-  // CREATE_NEW_PHRASE,
-  
   // RENAME_PHRASE_YES_NO,
   // ENTER_RENAME_PHRASE_NAME,
   // RENAME_PHRASE,

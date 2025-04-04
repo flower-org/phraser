@@ -78,13 +78,13 @@
 		 t->body[index].value = value;
 		 return old_val;
 	 } else {
-		 t->size++;
-		 if ((float)t->size / t->capacity > 0.8) {
+		 if ((float)(t->size+1) / t->capacity > 0.8) {
 			 /* Resize the hash table if we reached 80% capacity */
 			 hashtable_resize(t, t->capacity * 2);
 			 index = hashtable_find_slot(t, key);
 		 }
 		 /* Create a new  entry */
+		 t->size++;
 		 t->body[index].key = key;
 		 t->body[index].value = value;
 		 return NULL;
@@ -143,6 +143,7 @@
 	 hashtable_entry* old_body = t->body;
 	 t->body = hashtable_body_allocate(capacity);
 	 t->capacity = capacity;
+	 t->size = 0;
  
 	 // Copy all the old values into the newly allocated body
 	 for (int i = 0; i < old_capacity; i++) {
@@ -150,6 +151,8 @@
 			 hashtable_set(t, old_body[i].key, old_body[i].value);
 		 }
 	 }
+
+	 free(old_body);
  }
  
  /**

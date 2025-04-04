@@ -491,7 +491,7 @@ UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block
     phraser_PhraseHistory_vec_t phrase_history_vec = phraser_PhraseBlock_history(phrase_block);
     phraseBlock_historyVec(&builder, phrase_history_vec);
   } else {
-
+    // TODO: design and implement history mutations
   }
   phraser_PhraseBlock_history_end(&builder);
 
@@ -1204,10 +1204,33 @@ UpdateResponse phraseMutation(int phrase_block_id,
   return OK;
 }
 
-UpdateResponse addNewPhrase(char* new_phrase_name, uint16_t phrase_template_id, uint16_t folder_id) {
-  initRandomIfNeeded();
-  //
-  return ERROR;
+uint16_t new_phrase_template_id;
+uint16_t phrase_template_id_mutation(uint16_t _phrase_template_id) {
+  return new_phrase_template_id;
+} 
+
+uint16_t new_folder_id;
+uint16_t folder_id_mutation(uint16_t _folder_id) {
+  return new_folder_id;
+}
+
+char* new_phrase_name;
+char* phrase_name_mutation(flatbuffers_string_t _phraseName) {
+  return new_phrase_name;
+}
+
+UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint16_t folder_id) {
+  char* new_phrase_name = phrase_name;
+  uint16_t new_phrase_template_id = phrase_template_id;
+  uint16_t new_folder_id = folder_id;
+
+  return phraseMutation(-1, 
+    phrase_template_id_mutation,
+    folder_id_mutation,
+    phrase_name_mutation,
+    NULL,
+    NULL
+  );
 }
 
 UpdateResponse deletePhrase(uint16_t phrase_block_id) {

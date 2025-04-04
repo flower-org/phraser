@@ -383,13 +383,6 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
       size_t word_templates_vec_length = flatbuffers_vec_len(word_templates_vec);
       serialDebugPrintf("word_templates_vec_length %d\r\n", word_templates_vec_length);
 
-      if (word_templates == NULL) {
-        word_templates = hashtable_create();
-      }
-      if (phrase_templates == NULL) {
-        phrase_templates = hashtable_create();
-      }
-
       serialDebugPrintf("phrase_templates of phrase_templates_block_id %d\r\n", phrase_templates_block_id);
       for (int i = 0; i < phrase_templates_vec_length; i++) {
         phraser_PhraseTemplate_table_t phrase_template_fb = phraser_PhraseTemplate_vec_at(phrase_templates_vec, i);
@@ -596,6 +589,11 @@ void startBlockCacheInit() {
   blockInfos = hashtable_create();
   tombstonedBlockIds = hashtable_create();
 
+  symbol_sets = hashtable_create();
+  folders = hashtable_create();
+  sub_folders_by_folder = hashtable_create();
+  phrase_templates = hashtable_create();
+  word_templates = hashtable_create();
   phrases = hashtable_create();
   phrases_by_folder = hashtable_create();
 
@@ -847,4 +845,14 @@ WordTemplate* getWordTemplate(uint16_t word_template_id) {
 
 SymbolSet* getSymbolSet(uint16_t symbol_set_id) {
   return (SymbolSet*)hashtable_get(symbol_sets, symbol_set_id);
+}
+
+//uint32_t, PhraseTemplate
+hashtable* getPhraseTemplates() {
+  return phrase_templates;
+}
+
+//uint32_t, Folder
+hashtable* getFolders() {
+  return folders;
 }

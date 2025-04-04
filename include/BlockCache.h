@@ -103,6 +103,9 @@ extern Folder* getFolder(uint16_t folder_id);
 arraylist* getFolderContent(uint16_t parent_folder_id);
 int getFolderChildCount(uint16_t parent_folder_id);
 
+//uint32_t, Folder
+hashtable* getFolders();
+
 uint16_t db_block_count();
 uint16_t valid_block_count();
 uint16_t free_block_count();
@@ -126,3 +129,5 @@ uint32_t get_phrase_block_number(uint16_t phrase_block_id);
 PhraseTemplate* getPhraseTemplate(uint16_t phrase_template_id);
 WordTemplate* getWordTemplate(uint16_t word_template_id);
 SymbolSet* getSymbolSet(uint16_t symbol_set_id);
+
+hashtable* getPhraseTemplates();
