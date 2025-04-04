@@ -1058,12 +1058,6 @@ UpdateResponse phraseMutation(int phrase_block_id,
   initRandomIfNeeded();
   bool is_new_phrase = phrase_block_id <= -1;
 
-  // 1. check that db capacity is enough to add new block
-  serialDebugPrintf("1.\r\n");
-  if (last_block_left()) {
-    return DB_FULL;
-  }
-
   // 2. if not a new phrase, load phrase block
   uint32_t throwback_copy_version;
 
@@ -1072,6 +1066,12 @@ UpdateResponse phraseMutation(int phrase_block_id,
   uint32_t old_phrase_block_number;
 
   if (is_new_phrase) {
+    // 1. check that db capacity is enough to add new block
+    serialDebugPrintf("1.\r\n");
+    if (last_block_left()) {
+      return DB_FULL;
+    }
+
     // Create new PhraseBlock
     uint16_t phrase_template_id = phraseTemplateIdMutation(-1);
     uint16_t folder_id = folderIdMutation(-1);
@@ -1224,18 +1224,20 @@ bool tombstone_mutation(bool tombstone) {
   return new_prase_tombstone;
 }
 
-UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint16_t folder_id) {
+UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint16_t folder_id, uint16_t* created_phrase_id) {
   new_phrase_name = phrase_name;
   new_phrase_template_id = phrase_template_id;
   new_folder_id = folder_id;
 
-  return phraseMutation(-1, 
+  UpdateResponse update_response = phraseMutation(-1, 
     phrase_template_id_mutation,
     folder_id_mutation,
     phrase_name_mutation,
     NULL,
     NULL
   );
+  *created_phrase_id = last_block_id(); 
+  return update_response;
 }
 
 UpdateResponse deletePhrase(uint16_t phrase_block_id) {

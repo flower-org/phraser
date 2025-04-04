@@ -121,6 +121,7 @@ void removeFromOccupiedBlockNumbers(uint32_t key);
 void addToOccupiedBlockNumbers(uint32_t key);
 
 uint32_t last_block_number();
+uint32_t last_block_id();
 
 uint32_t key_block_number();
 uint32_t get_folders_block_number();

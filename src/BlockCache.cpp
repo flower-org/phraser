@@ -809,6 +809,10 @@ uint32_t last_block_number() {
   return lastBlockNumber;
 }
 
+uint32_t last_block_id() {
+  return lastBlockId;
+}
+
 uint32_t last_block_version() {
   return lastBlockVersion;
 }

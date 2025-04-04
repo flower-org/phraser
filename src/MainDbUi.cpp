@@ -45,10 +45,9 @@ enum MainUiPhase {
   ENTER_RENAME_PHRASE_NAME,
   RENAME_PHRASE,
   
-  CHANGE_PHRASE_FOLDER_YES_NO,
-  SELECT_NEW_FOLDER,
-  CHANGE_PHRASE_FOLDER,
-  SWITCH_FOLDER_YES_NO,
+  MOVE_PHRASE_YES_NO,
+  MOVE_PHRASE_SELECT_NEW_FOLDER,
+  MOVE_PHRASE,
   
   DELETE_PHRASE_YES_NO,
   DELETE_PHRASE
@@ -79,7 +78,7 @@ void initCurrentFolderScreenList(int select_folder_id, int select_phrase_id) {
     folder_content = NULL;
   }
 
-  serialDebugPrintf("getFolderContent %d\r\n", folder_browser_folder_id);
+  serialDebugPrintf("getFolderContent %d select_folder_id %d select_phrase_id %d\r\n", folder_browser_folder_id, select_folder_id, select_phrase_id);
   folder_content = arraylist_create();
   arraylist* current_list_content = getFolderContent(folder_browser_folder_id);
   if (current_list_content != NULL) {
@@ -117,7 +116,7 @@ void initCurrentFolderScreenList(int select_folder_id, int select_phrase_id) {
       arraylist_add(folder_content, folder_phrase_id);
     }
 
-    serialDebugPrintf("Selection %d", selection);
+    serialDebugPrintf("Selection %d\r\n", selection);
 
     initList(screen_items, screen_item_count, selection);
     freeItemList(screen_items, screen_item_count);
@@ -222,12 +221,11 @@ void folderBrowserMenuAction(int chosen_item, int code) {
   } else if (FOLDER_MENU_RENAME_PHRASE == code) {
     //RENAME_PHRASE_YES_NO,
     //ENTER_RENAME_PHRASE_NAME,
-    //RENAME_PHRASE/
+    //RENAME_PHRASE
   } else if (FOLDER_MENU_CHANGE_PHRASE_FOLDER == code) {
-    //CHANGE_PHRASE_FOLDER_YES_NO,
-    //SELECT_NEW_FOLDER,
-    //CHANGE_PHRASE_FOLDER
-    //SWITCH_FOLDER_YES_NO
+    //MOVE_PHRASE_YES_NO,
+    //MOVE_PHRASE_SELECT_NEW_FOLDER,
+    //MOVE_PHRASE,
   }
 }
 
@@ -530,9 +528,10 @@ void dialogActionsLoop(Thumby* thumby) {
         serialDebugPrintf("About to create new phrase: new_phrase_name %s, new_phrase_folder_id %d, new_phrase_phrase_template_id %d\r\n", 
           ui_new_phrase_name, ui_new_phrase_folder_id, ui_new_phrase_phrase_template_id);
 
-        UpdateResponse new_phrase_response = addNewPhrase(ui_new_phrase_name, ui_new_phrase_phrase_template_id, ui_new_phrase_folder_id);
+        uint16_t created_phrase_id;
+        UpdateResponse new_phrase_response = addNewPhrase(ui_new_phrase_name, ui_new_phrase_phrase_template_id, ui_new_phrase_folder_id, &created_phrase_id);
         if (new_phrase_response == OK) {
-          initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
+          initFolder(folder_browser_folder_id, -1, created_phrase_id);
           main_ui_phase = FOLDER_BROWSER;
         } else {
           if (new_phrase_response == ERROR) {
