@@ -213,9 +213,15 @@ void folderBrowserMenuAction(int chosen_item, int code) {
     initTextAreaDialog(text, strlen(text), DLG_YES_NO);
     main_ui_phase = DELETE_FOLDER_YES_NO;
   } else if (FOLDER_MENU_NEW_PHRASE == code) {
-    char* text = "Create new phrase?";
-    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
-    main_ui_phase = CREATE_NEW_PHRASE_YES_NO;
+    if (last_block_left()) {
+      char* text = "Database full, can't create";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+    } else {
+      char* text = "Create new phrase?";
+      initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+      main_ui_phase = CREATE_NEW_PHRASE_YES_NO;
+    }
   } else if (FOLDER_MENU_DELETE_PHRASE == code) {
     char text[350];
     PhraseFolderAndName* selected_phrase = getPhrase(selected_phrase_id);
@@ -482,7 +488,7 @@ void dialogActionsLoop(Thumby* thumby) {
         if (result == DLG_RES_YES) {
           int child_count = getFolderChildCount(selected_folder_id);
           if (child_count > 0) {
-            char* text = "Folder's not empty, can't delete.";
+            char* text = "Folder not empty, can't delete.";
             initTextAreaDialog(text, strlen(text), DLG_OK);
             main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
           } else {
