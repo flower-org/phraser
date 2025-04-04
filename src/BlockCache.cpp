@@ -718,6 +718,11 @@ int getFolderChildCount(uint16_t parent_folder_id) {
   return count;
 }
 
+//  arraylist<uint32_t>
+arraylist* getSubFolders(uint16_t parent_folder_id) {
+  return (arraylist*)hashtable_get(sub_folders_by_folder, parent_folder_id);
+}
+
 //  arraylist<FolderOrPhrase*>
 arraylist* getFolderContent(uint16_t parent_folder_id) {
   arraylist* ret_list = arraylist_create();

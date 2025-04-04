@@ -367,19 +367,47 @@ void build_folder_entries(hashtable *t, uint32_t key, void* value) {
   tmp_screen_items[tmp_screen_item_cursor++] = createListItemWithCode(folder->folderName, phraser_Icon_Folder, folder->folderId);
 }
 
-//TODO: initialize list properly
+void createRepeatedSlashes(int level, char* result) {
+  for (int i = 0; i < level; i++) {
+      result[i] = '/';
+  }
+  result[level] = '\0';
+}
+
+void fillFolder(Folder* root_folder, arraylist* folder_list, int level) {
+  if (root_folder == NULL) {
+    return;
+  }
+
+  char slashes[level+1];
+  createRepeatedSlashes(level, slashes);
+
+  char text[350];
+  sprintf(text, "%s%s", slashes, root_folder->folderName);
+
+  arraylist_add(folder_list, createListItemWithCode(text, phraser_Icon_Folder, root_folder->folderId));
+
+  arraylist* subfolders = getSubFolders(root_folder->folderId);
+  if (subfolders != NULL) {
+    for (int i = 0; i < arraylist_size(subfolders); i++) {
+      uint16_t child_folder_id = (uint32_t)arraylist_get(subfolders, i);
+      Folder* child_folder = getFolder(child_folder_id);
+      fillFolder(child_folder, folder_list, level+1);
+    }
+  }
+}
+
 void initFoldersList() {
-  //initialize phrase template list
-  hashtable* folders = getFolders();
+  arraylist* folder_list = arraylist_create();
+  Folder* root_folder = getFolder(0);
+  fillFolder(root_folder, folder_list, 0);
 
-  int screen_item_count = folders->size;
-
+  int screen_item_count = arraylist_size(folder_list);
   ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
-  tmp_screen_items = screen_items;
-  tmp_screen_item_cursor = 0;
-  hashtable_iterate_entries(folders, build_folder_entries);
-  tmp_screen_items = NULL;
-  tmp_screen_item_cursor = 0;
+  for (int i = 0; i < screen_item_count; i++) {
+    screen_items[i] = (ListItem*)arraylist_get(folder_list, i);
+  }
+  arraylist_destroy(folder_list);
 
   initList(screen_items, screen_item_count);
   freeItemList(screen_items, screen_item_count);
