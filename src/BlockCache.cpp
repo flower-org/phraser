@@ -539,15 +539,15 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
         if (removed_phrase_folder_and_name != NULL) {
           serialDebugPrintf("Tombstoning phrase %s\r\n", removed_phrase_folder_and_name->name);
 
+          // remove previous association with folder
+          deleteFromPhraseByFolderList(removed_phrase_folder_and_name->folderId, phrase_block_id);
+
           free(removed_phrase_folder_and_name->name);
           free(removed_phrase_folder_and_name);
         }
-
-        deleteFromPhraseByFolderList(folder_id, phrase_block_id);
       } else {
         PhraseFolderAndName* phrase_folder_and_name = (PhraseFolderAndName*)hashtable_get(phrases, phrase_block_id);
         if (phrase_folder_and_name == NULL) {
-          // New block or blockInfo->isTombstoned
           // Add to `phrases` and `phrases_by_folder`
           phrase_folder_and_name = (PhraseFolderAndName*)malloc(sizeof(PhraseFolderAndName));
           phrase_folder_and_name->phraseBlockId = phrase_block_id;
@@ -557,9 +557,9 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
           serialDebugPrintf("New phrase %s\r\n", phrase_folder_and_name->name);
 
           addToPhraseByFolderList(folder_id, phrase_block_id);
-        } else if (!(blockInfo->isTombstoned)) {
+        } else {
           // Update `phrases` and `phrases_by_folder`
-          if (phrase_folder_and_name->folderId == folder_id) {
+          if (phrase_folder_and_name->folderId != folder_id) {
             deleteFromPhraseByFolderList(phrase_folder_and_name->folderId, phrase_block_id);
             addToPhraseByFolderList(folder_id, phrase_block_id);
           }

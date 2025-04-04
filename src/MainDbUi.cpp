@@ -46,8 +46,12 @@ enum MainUiPhase {
   RENAME_PHRASE,
   
   MOVE_PHRASE_YES_NO,
-  MOVE_PHRASE_SELECT_NEW_FOLDER,
+  MOVE_PHRASE_SELECT_PARENT_FOLDER,
   MOVE_PHRASE,
+  
+  MOVE_FOLDER_YES_NO,
+  MOVE_FOLDER_SELECT_PARENT_FOLDER,
+  MOVE_FOLDER,
   
   DELETE_PHRASE_YES_NO,
   DELETE_PHRASE
@@ -186,10 +190,11 @@ void folderBrowserAction(int chosen_item) {
 const int FOLDER_MENU_NEW_FOLDER = 1;
 const int FOLDER_MENU_RENAME_FOLDER = 2;
 const int FOLDER_MENU_DELETE_FOLDER = 3;
-const int FOLDER_MENU_NEW_PHRASE = 4;
-const int FOLDER_MENU_DELETE_PHRASE = 5;
-const int FOLDER_MENU_RENAME_PHRASE = 6;
-const int FOLDER_MENU_CHANGE_PHRASE_FOLDER = 7;
+const int FOLDER_MENU_MOVE_FOLDER = 4;
+const int FOLDER_MENU_NEW_PHRASE = 5;
+const int FOLDER_MENU_DELETE_PHRASE = 6;
+const int FOLDER_MENU_RENAME_PHRASE = 7;
+const int FOLDER_MENU_MOVE_PHRASE = 8;
 void folderBrowserMenuAction(int chosen_item, int code) {
   serialDebugPrintf("%d %d \r\n", chosen_item, code);
   if (FOLDER_MENU_NEW_FOLDER == code) {
@@ -222,10 +227,16 @@ void folderBrowserMenuAction(int chosen_item, int code) {
     //RENAME_PHRASE_YES_NO,
     //ENTER_RENAME_PHRASE_NAME,
     //RENAME_PHRASE
-  } else if (FOLDER_MENU_CHANGE_PHRASE_FOLDER == code) {
-    //MOVE_PHRASE_YES_NO,
-    //MOVE_PHRASE_SELECT_NEW_FOLDER,
-    //MOVE_PHRASE,
+  } else if (FOLDER_MENU_MOVE_FOLDER == code) {
+    // MOVE_FOLDER_YES_NO,
+    // MOVE_FOLDER_SELECT_PARENT_FOLDER,
+    // MOVE_FOLDER,
+  } else if (FOLDER_MENU_MOVE_PHRASE == code) {
+    char text[350];
+    PhraseFolderAndName* selected_phrase = getPhrase(selected_phrase_id);
+    sprintf(text, "Move phrase `%s` to a different folder?", selected_phrase->name);
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_ui_phase = MOVE_PHRASE_YES_NO;
   }
 }
 
@@ -277,11 +288,11 @@ void init_folder_menu(int chosen_item) {
   int menu_items_count = 2;//new folder, new phrase
   Folder* selected_folder = getFolder(selected_folder_id);
   if (selected_folder != NULL) {
-    menu_items_count += 2;
+    menu_items_count += 3;
   } 
   PhraseFolderAndName* selected_phrase = getPhrase(selected_phrase_id);
   if (selected_phrase != NULL) {
-    menu_items_count += 1;
+    menu_items_count += 3;
   }
 
   int menu_item_cursor = 0;
@@ -293,10 +304,16 @@ void init_folder_menu(int chosen_item) {
     screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Check, FOLDER_MENU_RENAME_FOLDER);
     sprintf(text, "Delete folder `%s`", selected_folder->folderName);
     screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, FOLDER_MENU_DELETE_FOLDER);
+    sprintf(text, "Move folder `%s`", selected_folder->folderName);
+    screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Login, FOLDER_MENU_MOVE_FOLDER);
   }
   if (selected_phrase != NULL) {
+    sprintf(text, "Rename phrase `%s`", selected_phrase->name);
+    screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Check, FOLDER_MENU_RENAME_PHRASE);
     sprintf(text, "Delete phrase `%s`", selected_phrase->name);
     screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, FOLDER_MENU_DELETE_PHRASE);
+    sprintf(text, "Move phrase `%s`", selected_phrase->name);
+    screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Login, FOLDER_MENU_MOVE_PHRASE);
   }
 
   Folder* folder = getFolder(folder_browser_folder_id);
@@ -348,6 +365,24 @@ void build_phrase_template_entries(hashtable *t, uint32_t key, void* value) {
 void build_folder_entries(hashtable *t, uint32_t key, void* value) {
   Folder* folder = (Folder*)value;
   tmp_screen_items[tmp_screen_item_cursor++] = createListItemWithCode(folder->folderName, phraser_Icon_Folder, folder->folderId);
+}
+
+//TODO: initialize list properly
+void initFoldersList() {
+  //initialize phrase template list
+  hashtable* folders = getFolders();
+
+  int screen_item_count = folders->size;
+
+  ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
+  tmp_screen_items = screen_items;
+  tmp_screen_item_cursor = 0;
+  hashtable_iterate_entries(folders, build_folder_entries);
+  tmp_screen_items = NULL;
+  tmp_screen_item_cursor = 0;
+
+  initList(screen_items, screen_item_count);
+  freeItemList(screen_items, screen_item_count);
 }
 
 char* ui_new_phrase_name;
@@ -575,7 +610,58 @@ void dialogActionsLoop(Thumby* thumby) {
       }
     }
     break;
+
+    case MOVE_PHRASE_YES_NO: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        initFoldersList();
+        main_ui_phase = MOVE_PHRASE;
+      } else if (result == DLG_RES_NO) {
+        main_ui_phase = FOLDER_MENU;
+      }
+    }
+    break;
+    case MOVE_PHRASE: {
+      SelectionAndCode chosen = listLoopWithCode(thumby, true);
+      if (chosen.selection != -1) {
+        ui_new_phrase_folder_id = chosen.code;
+
+        UpdateResponse new_phrase_response = movePhrase(selected_phrase_id, ui_new_phrase_folder_id);
+        if (new_phrase_response == OK) {
+          char text[350];
+          Folder* moved_to_folder = getFolder(ui_new_phrase_folder_id);
+          sprintf(text, "Phrase moved. Switch folder to `%s`?", moved_to_folder->folderName);
+          initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+          main_ui_phase = MOVE_PHRASE_SELECT_PARENT_FOLDER;
+        } else {
+          if (new_phrase_response == ERROR) {
+            char* text = "Phrase move ERROR.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (new_phrase_response == DB_FULL) {
+            char* text = "Database full (probably something is really wrong since we're trying to move)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (new_phrase_response == BLOCK_SIZE_EXCEEDED) {
+            char* text = "Block size exceeded. Can't move? doesn't make sense.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          }
+          main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+        }
+      }
+    }
+    break;
+    case MOVE_PHRASE_SELECT_PARENT_FOLDER: {
+        DialogResult result = textAreaLoop(thumby);
+        if (result == DLG_RES_NO) {
+          initFolder(folder_browser_folder_id, -1, selected_phrase_id);
+          main_ui_phase = FOLDER_BROWSER;
+        } else if (result == DLG_RES_YES) {
+          initFolder(ui_new_phrase_folder_id, -1, selected_phrase_id);
+          main_ui_phase = FOLDER_BROWSER;
+        }
+    }
+  }
 }
+
 
   // BlockDAO Dialogs
 
@@ -585,14 +671,12 @@ void dialogActionsLoop(Thumby* thumby) {
   // ENTER_RENAME_PHRASE_NAME,
   // RENAME_PHRASE,
   
-  // CHANGE_PHRASE_FOLDER_YES_NO,
-  // SELECT_NEW_FOLDER,
-  // CHANGE_PHRASE_FOLDER,
-  // SWITCH_FOLDER_YES_NO,
-  
+  // MOVE_FOLDER_YES_NO,
+  // MOVE_FOLDER_SELECT_PARENT_FOLDER,
+  // MOVE_FOLDER,
+
   // DELETE_PHRASE_YES_NO,
   // DELETE_PHRASE
-}
 
 void phraserDbUiLoop(Thumby* thumby) {
   if (isMenuPhase()) {
@@ -610,27 +694,3 @@ void phraserDbUiLoop(Thumby* thumby) {
     dialogActionsLoop(thumby);
   }
 }
-
-/*
-Folder
-
-        SelectionAndCode chosen = listLoopWithCode(thumby, true);
-        if (chosen.selection != -1) {
-          ui_new_phrase_phrase_template_id = chosen.code;
-          //initialize phrase template list
-          hashtable* folders = getFolders();
-
-          int screen_item_count = folders->size;
-
-          ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
-          tmp_screen_items = screen_items;
-          tmp_screen_item_cursor = 0;
-          hashtable_iterate_entries(folders, build_folder_entries);
-          tmp_screen_items = NULL;
-          tmp_screen_item_cursor = 0;
-
-          initList(screen_items, screen_item_count);
-          freeItemList(screen_items, screen_item_count);
-          main_ui_phase = CREATE_NEW_PHRASE;
-        }
-*/

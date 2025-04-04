@@ -1253,6 +1253,18 @@ UpdateResponse deletePhrase(uint16_t phrase_block_id) {
   return OK;
 }
 
+UpdateResponse movePhrase(uint16_t phrase_block_id, uint16_t move_to_folder_id) {
+  new_folder_id = move_to_folder_id;
+
+  return phraseMutation(phrase_block_id, 
+    NULL,
+    folder_id_mutation,
+    NULL,
+    NULL,
+    NULL
+  );
+}
+
 UpdateResponse renamePhrase(uint16_t phrase_block_id, char* new_phrase_name) {
   initRandomIfNeeded();
   //
@@ -1260,12 +1272,6 @@ UpdateResponse renamePhrase(uint16_t phrase_block_id, char* new_phrase_name) {
 }
 
 UpdateResponse changePhraseTemplate(uint16_t phrase_block_id, uint16_t new_phrase_template_id) {
-  initRandomIfNeeded();
-  //
-  return ERROR;
-}
-
-UpdateResponse changePhraseFolder(uint16_t phrase_block_id, uint16_t new_folder_id) {
   initRandomIfNeeded();
   //
   return ERROR;
