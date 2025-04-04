@@ -39,8 +39,6 @@ enum MainUiPhase {
   
   CREATE_NEW_PHRASE_YES_NO,
   ENTER_NEW_PHRASE_NAME,
-  SELECT_NEW_PHRASE_TEMPLATE_OK,
-  SELECT_NEW_PHRASE_TEMPLATE,
   CREATE_NEW_PHRASE,
   
   RENAME_PHRASE_YES_NO,
@@ -276,10 +274,12 @@ void init_folder_menu(int chosen_item) {
   }
 
   int menu_items_count = 2;//new folder, new phrase
-  if (selected_folder_id != -1) {
+  Folder* selected_folder = getFolder(selected_folder_id);
+  if (selected_folder != NULL) {
     menu_items_count += 2;
   } 
-  if (selected_phrase_id != -1) {
+  PhraseFolderAndName* selected_phrase = getPhrase(selected_phrase_id);
+  if (selected_phrase != NULL) {
     menu_items_count += 1;
   }
 
@@ -287,18 +287,15 @@ void init_folder_menu(int chosen_item) {
   ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
 
   char text[350];
-  if (selected_folder_id != -1) {
-    Folder* selected_folder = getFolder(selected_folder_id);
+  if (selected_folder != NULL) {
     sprintf(text, "Rename folder `%s`", selected_folder->folderName);
     screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Check, FOLDER_MENU_RENAME_FOLDER);
     sprintf(text, "Delete folder `%s`", selected_folder->folderName);
     screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, FOLDER_MENU_DELETE_FOLDER);
   }
-  if (selected_phrase_id != -1) {
-    PhraseFolderAndName* selected_phrase = getPhrase(selected_folder_id);
+  if (selected_phrase != NULL) {
     sprintf(text, "Delete phrase `%s`", selected_phrase->name);
     screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, FOLDER_MENU_DELETE_PHRASE);
-    menu_items_count += 1;
   }
 
   Folder* folder = getFolder(folder_browser_folder_id);
@@ -554,7 +551,7 @@ void dialogActionsLoop(Thumby* thumby) {
 
   // BlockDAO Dialogs
 
-  // TODO: CHANGE PARENT FOLDER for Folder?
+  // TODO: CHANGE PARENT FOLDER for Folder? Not sure about that.
 
   // RENAME_PHRASE_YES_NO,
   // ENTER_RENAME_PHRASE_NAME,
@@ -608,6 +605,4 @@ Folder
           freeItemList(screen_items, screen_item_count);
           main_ui_phase = CREATE_NEW_PHRASE;
         }
-
-
 */
