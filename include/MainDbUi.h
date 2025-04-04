@@ -2,5 +2,5 @@
 
 #include <Thumby.h>
 
-void phraserDbUiInit();
-void phraserDbUiLoop(Thumby* thumby);
+void phraserFolderUiInit();
+void phraserFolderUiLoop(Thumby* thumby);

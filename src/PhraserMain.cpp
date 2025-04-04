@@ -118,7 +118,7 @@ void loop() {
     case RESTORE: restoreLoop(thumby); break;
     case TEST_KEYBOARD: testKeyboardLoop(); break;
     case CREATE_NEW_DB: createNewDbLoop(thumby); break;
-    case MAIN_DB_UI: phraserDbUiLoop(thumby); break;
+    case MAIN_DB_UI: phraserFolderUiLoop(thumby); break;
   }
 
   // Update the screen

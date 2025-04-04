@@ -24,7 +24,7 @@ void switchToStartupScreen() {
 }
 
 void mainDbUiInit() {
-  phraserDbUiInit();
+  phraserFolderUiInit();
 }
 
 void switchToMainDbUi() {
