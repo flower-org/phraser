@@ -214,8 +214,11 @@ void folderBrowserMenuAction(int chosen_item, int code) {
     initTextAreaDialog(text, strlen(text), DLG_YES_NO);
     main_ui_phase = CREATE_NEW_PHRASE_YES_NO;
   } else if (FOLDER_MENU_DELETE_PHRASE == code) {
-    //DELETE_PHRASE_YES_NO,
-    //DELETE_PHRASE
+    char text[350];
+    PhraseFolderAndName* selected_phrase = getPhrase(selected_phrase_id);
+    sprintf(text, "Delete phrase `%s`?", selected_phrase->name);
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_ui_phase = DELETE_PHRASE_YES_NO;
   } else if (FOLDER_MENU_RENAME_PHRASE == code) {
     //RENAME_PHRASE_YES_NO,
     //ENTER_RENAME_PHRASE_NAME,
@@ -547,7 +550,33 @@ void dialogActionsLoop(Thumby* thumby) {
       }
     }
     break;
-  }
+
+    case DELETE_PHRASE_YES_NO: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        UpdateResponse delete_phrase_response = deletePhrase(selected_phrase_id);
+        if (delete_phrase_response == OK) {
+          initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
+          main_ui_phase = FOLDER_BROWSER;
+        } else {
+          if (delete_phrase_response == ERROR) {
+            char* text = "Delete phrase ERROR.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (delete_phrase_response == DB_FULL) {
+            char* text = "Database full (probably something is really wrong since we're trying to delete)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (delete_phrase_response == BLOCK_SIZE_EXCEEDED) {
+            char* text = "Block size exceeded. Can't delete? doesn't make sense.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          }
+          main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+        }
+      } else if (result == DLG_RES_NO) {
+        main_ui_phase = FOLDER_MENU;
+      }
+    }
+    break;
+}
 
   // BlockDAO Dialogs
 

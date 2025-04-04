@@ -1219,6 +1219,11 @@ char* phrase_name_mutation(flatbuffers_string_t _phraseName) {
   return new_phrase_name;
 }
 
+bool new_prase_tombstone;
+bool tombstone_mutation(bool tombstone) {
+  return new_prase_tombstone;
+}
+
 UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint16_t folder_id) {
   new_phrase_name = phrase_name;
   new_phrase_template_id = phrase_template_id;
@@ -1234,9 +1239,16 @@ UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint
 }
 
 UpdateResponse deletePhrase(uint16_t phrase_block_id) {
-  initRandomIfNeeded();
-  //
-  return ERROR;
+  new_prase_tombstone = true;
+
+  return phraseMutation(phrase_block_id, 
+    NULL,
+    NULL,
+    NULL,
+    tombstone_mutation,
+    NULL
+  );
+  return OK;
 }
 
 UpdateResponse renamePhrase(uint16_t phrase_block_id, char* new_phrase_name) {
