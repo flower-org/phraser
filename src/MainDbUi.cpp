@@ -352,6 +352,10 @@ void build_folder_entries(hashtable *t, uint32_t key, void* value) {
   tmp_screen_items[tmp_screen_item_cursor++] = createListItemWithCode(folder->folderName, phraser_Icon_Folder, folder->folderId);
 }
 
+char* ui_new_phrase_name;
+uint16_t ui_new_phrase_phrase_template_id;
+uint16_t ui_new_phrase_folder_id;
+
 void dialogActionsLoop(Thumby* thumby) {
   switch (main_ui_phase) {
     case FOLDER_MENU_OPERATION_ERROR_REPORT: {
@@ -489,59 +493,60 @@ void dialogActionsLoop(Thumby* thumby) {
       }
       break;
     case ENTER_NEW_PHRASE_NAME: {
-        char* new_folder_name = keyboardLoop(thumby);
-        if (new_folder_name != NULL) {
-          //initialize phrase template list
-          hashtable* phrase_templates = getPhraseTemplates();
+        char* text = keyboardLoop(thumby);
+        if (text != NULL) {
+          if (strlen(text) == 0) {
+            char* text = "Phrase name can't be empty.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+            main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+          } else {
+            ui_new_phrase_name = text;
 
-          int screen_item_count = phrase_templates->size;
-          ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
-          serialDebugPrintf("screen_item_count %d\r\n", screen_item_count);
-
-          serialDebugPrintf("111");
-          tmp_screen_items = screen_items;
-          tmp_screen_item_cursor = 0;
-          hashtable_iterate_entries(phrase_templates, build_phrase_template_entries);
-          tmp_screen_items = NULL;
-          tmp_screen_item_cursor = 0;
-          serialDebugPrintf("222");
-
-          initList(screen_items, screen_item_count);
-          serialDebugPrintf("333");
-          freeItemList(screen_items, screen_item_count);
-          serialDebugPrintf("444");
-          main_ui_phase = SELECT_NEW_PHRASE_TEMPLATE;
-          serialDebugPrintf("555");
-        }
-      }
-      break;
-    case SELECT_NEW_PHRASE_TEMPLATE: {
-      serialDebugPrintf("666");
-      SelectionAndCode chosen = listLoopWithCode(thumby, true);
-        if (chosen.selection != -1) {
             //initialize phrase template list
-            hashtable* phrase_templates = getFolders();
+            hashtable* phrase_templates = getPhraseTemplates();
 
             int screen_item_count = phrase_templates->size;
-
             ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
             tmp_screen_items = screen_items;
             tmp_screen_item_cursor = 0;
-            hashtable_iterate_entries(phrase_templates, build_folder_entries);
+            hashtable_iterate_entries(phrase_templates, build_phrase_template_entries);
             tmp_screen_items = NULL;
             tmp_screen_item_cursor = 0;
 
             initList(screen_items, screen_item_count);
             freeItemList(screen_items, screen_item_count);
             main_ui_phase = CREATE_NEW_PHRASE;
+          }
         }
       }
       break;
     case CREATE_NEW_PHRASE: {
       SelectionAndCode chosen = listLoopWithCode(thumby, true);
       if (chosen.selection != -1) {
-        initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
-        main_ui_phase = FOLDER_BROWSER;
+        ui_new_phrase_phrase_template_id = chosen.code;
+        ui_new_phrase_folder_id = folder_browser_folder_id;
+
+        // TODO: remove debug output
+        serialDebugPrintf("About to create new phrase: new_phrase_name %s, new_phrase_folder_id %d, new_phrase_phrase_template_id %d\r\n", 
+          ui_new_phrase_name, ui_new_phrase_folder_id, ui_new_phrase_phrase_template_id);
+
+        UpdateResponse new_phrase_response = addNewPhrase(ui_new_phrase_name, ui_new_phrase_phrase_template_id, ui_new_phrase_folder_id);
+        if (new_phrase_response == OK) {
+          initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
+          main_ui_phase = FOLDER_BROWSER;
+        } else {
+          if (new_phrase_response == ERROR) {
+            char* text = "Phrase creation ERROR.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (new_phrase_response == DB_FULL) {
+            char* text = "Database full (probably something is really wrong since we're trying to rename)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (new_phrase_response == BLOCK_SIZE_EXCEEDED) {
+            char* text = "Block size exceeded - too many folders/name too long. Can't rename";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          }
+          main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+        }
       }
     }
     break;
@@ -580,3 +585,29 @@ void phraserDbUiLoop(Thumby* thumby) {
     dialogActionsLoop(thumby);
   }
 }
+
+/*
+Folder
+
+        SelectionAndCode chosen = listLoopWithCode(thumby, true);
+        if (chosen.selection != -1) {
+          ui_new_phrase_phrase_template_id = chosen.code;
+          //initialize phrase template list
+          hashtable* folders = getFolders();
+
+          int screen_item_count = folders->size;
+
+          ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
+          tmp_screen_items = screen_items;
+          tmp_screen_item_cursor = 0;
+          hashtable_iterate_entries(folders, build_folder_entries);
+          tmp_screen_items = NULL;
+          tmp_screen_item_cursor = 0;
+
+          initList(screen_items, screen_item_count);
+          freeItemList(screen_items, screen_item_count);
+          main_ui_phase = CREATE_NEW_PHRASE;
+        }
+
+
+*/

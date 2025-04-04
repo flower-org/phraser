@@ -38,5 +38,7 @@ UpdateResponse addNewFolder(char* new_folder_name, uint16_t parent_folder_id, ui
 UpdateResponse renameFolder(uint16_t folder_id, char* new_folder_name);
 UpdateResponse deleteFolder(uint16_t folder_id);
 
+UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint16_t folder_id);
+
 uint32_t get_valid_block_number_on_the_right_of(node_t* root, uint32_t block_number);
 uint32_t get_free_block_number_on_the_left_of(node_t* root, uint32_t block_number, uint32_t db_block_count);

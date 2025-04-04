@@ -1220,9 +1220,9 @@ char* phrase_name_mutation(flatbuffers_string_t _phraseName) {
 }
 
 UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint16_t folder_id) {
-  char* new_phrase_name = phrase_name;
-  uint16_t new_phrase_template_id = phrase_template_id;
-  uint16_t new_folder_id = folder_id;
+  new_phrase_name = phrase_name;
+  new_phrase_template_id = phrase_template_id;
+  new_folder_id = folder_id;
 
   return phraseMutation(-1, 
     phrase_template_id_mutation,
