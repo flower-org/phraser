@@ -135,11 +135,11 @@ void initDefaultPhraseTemplatesBlock(uint8_t* buffer, const uint8_t* aes_key, co
   uint16_t answer_symbol_sets[] = {1,2,8};
   phraseTemplatesBlock_wordTemplate(&builder, 4, getWordPermissions(true, true, true, true), phraser_Icon_Message, 24, 64, "answer", answer_symbol_sets, 3);
   uint16_t drive_password_symbol_sets[] = {1,2,5};
-  phraseTemplatesBlock_wordTemplate(&builder, 5, getWordPermissions(true, true, true, true), phraser_Icon_Lock, 24, 64, "drive password", drive_password_symbol_sets, 3);
+  phraseTemplatesBlock_wordTemplate(&builder, 5, getWordPermissions(true, true, true, true), phraser_Icon_Lock, 8, 12, "drive password", drive_password_symbol_sets, 3);
   uint16_t generated_login_symbol_sets[] = {1,2};
   phraseTemplatesBlock_wordTemplate(&builder, 6, getWordPermissions(true, true, true, true), phraser_Icon_Login, 8, 24, "generated login", generated_login_symbol_sets, 2);
   uint16_t bios_password_symbol_sets[] = {1,2,6};
-  phraseTemplatesBlock_wordTemplate(&builder, 7, getWordPermissions(true, true, true, true), phraser_Icon_Settings, 8, 10, "bios password", bios_password_symbol_sets, 3);
+  phraseTemplatesBlock_wordTemplate(&builder, 7, getWordPermissions(true, true, true, true), phraser_Icon_Settings, 6, 10, "bios password", bios_password_symbol_sets, 3);
   phraseTemplatesBlock_wordTemplate(&builder, 8, getWordPermissions(false, true, true, true), phraser_Icon_Email, 5, 255, "email", {}, 0);
   phraseTemplatesBlock_wordTemplate(&builder, 9, getWordPermissions(false, true, true, true), phraser_Icon_Key, 1, 4000, "key", {}, 0);
   phraseTemplatesBlock_wordTemplate(&builder, 10, getWordPermissions(false, true, true, true), phraser_Icon_Asterisk, 1, 4000, "private key", {}, 0);
