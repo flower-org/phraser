@@ -1,5 +1,6 @@
 #include "MainFolderUi.h"
 
+#include "MainPhraseUi.h"
 #include "TextAreaDialog.h"
 #include "ScreenList.h"
 #include "ScreenKeyboard.h"
@@ -11,19 +12,6 @@ enum MainFolderUiPhase {
   // Menus
   FOLDER_BROWSER,
   FOLDER_MENU,
-  PHRASE,
-  PHRASE_MENU,
-  PHRASE_HISTORY,
-  PHRASE_HISTORY_MENU,
-  PHRASE_HISTORY_ENTRY,
-  PHRASE_HISTORY_ENTRY_MENU,
-
-  // Word Actions
-  VIEW_WORD,
-
-  EDIT_WORD_YES_NO,
-  ENTER_NEW_WORD,
-  EDIT_WORD,
 
   // BlockDAO Dialogs
   FOLDER_MENU_OPERATION_ERROR_REPORT,
@@ -53,7 +41,9 @@ enum MainFolderUiPhase {
   MOVE_FOLDER,
   
   DELETE_PHRASE_YES_NO,
-  DELETE_PHRASE
+  DELETE_PHRASE,
+
+  PHRASE_UI
 };
 
 MainFolderUiPhase main_folder_ui_phase = FOLDER_BROWSER;
@@ -151,37 +141,24 @@ void phraserFolderUiInit() {
   initFolder(0, -1, -1);
 }
 
-FullPhrase* current_phrase = NULL;
-void initPhrase(int phrase_block_id) {
+FullPhrase* chosen_phrase = NULL;
+void initPhraseUi(int phrase_block_id) {
   // don't reuse loaded phrase, aways free and re-load (in case it's updated from folder menus)
-  if (current_phrase != NULL) {
-    releaseFullPhrase(current_phrase);
-    current_phrase = NULL;
+  if (chosen_phrase != NULL) {
+    releaseFullPhrase(chosen_phrase);
+    chosen_phrase = NULL;
   }
 
-  current_phrase = getFullPhrase(phrase_block_id);
-  if (current_phrase == NULL) {
+  chosen_phrase = getFullPhrase(phrase_block_id);
+  if (chosen_phrase == NULL) {
     char text[350];
     sprintf(text, "Failed to load phrase `%d`?", phrase_block_id);
     initTextAreaDialog(text, strlen(text), DLG_OK);
     main_folder_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
   } else {
-    // TODO: init main phrase view
-    char text[350];
-    sprintf(text, "Successfully loaded phrase `%d` %s?", current_phrase->phrase_block_id, current_phrase->phrase_name);
-    initTextAreaDialog(text, strlen(text), DLG_OK);
-    main_folder_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+    initPhrase(chosen_phrase);
+    main_folder_ui_phase = PHRASE_UI;
   }
-}
-
-// ----------------------------------------------------------------------------
-
-void mainPhraseViewAction(int chosen_item) {
-  // TODO: implement
-}
-
-void mainPhraseViewMenuAction(int chosen_item, int code) {
-  // TODO: implement
 }
 
 // ----------------------------------------------------------------------------
@@ -206,7 +183,7 @@ void folderBrowserAction(int chosen_item) {
     if (new_selected_folder->folder_id != -1) {
       initFolder(new_selected_folder->folder_id, -1, -1);
     } else {
-      initPhrase(new_selected_folder->phrase_id);
+      initPhraseUi(new_selected_folder->phrase_id);
     }
   } else {
     selected_folder_id = -1;
@@ -285,29 +262,9 @@ void folderBrowserMenuAction(int chosen_item, int code) {
 bool isMenuPhase() {
   switch (main_folder_ui_phase) {
     case FOLDER_BROWSER:
-    case FOLDER_MENU:
-    case PHRASE:
-    case PHRASE_MENU:
-    case PHRASE_HISTORY:
-    case PHRASE_HISTORY_MENU:
-    case PHRASE_HISTORY_ENTRY:
-    case PHRASE_HISTORY_ENTRY_MENU: return true;
+    case FOLDER_MENU: return true;
   }
   return false;
-}
-
-void runMainFolderUiPhaseAction(int chosen_item, int code) {
-  switch (main_folder_ui_phase) {
-    case FOLDER_BROWSER: folderBrowserAction(chosen_item); break;
-    case FOLDER_MENU: folderBrowserMenuAction(chosen_item, code); break;
-    case PHRASE: mainPhraseViewAction(chosen_item); break;
-    case PHRASE_MENU: mainPhraseViewMenuAction(chosen_item, code); break;
-    case PHRASE_HISTORY:
-    case PHRASE_HISTORY_MENU:
-    case PHRASE_HISTORY_ENTRY:
-    case PHRASE_HISTORY_ENTRY_MENU:
-    default: return;
-  }
 }
 
 void init_folder_browser(int chosen_item) {
@@ -365,36 +322,6 @@ void init_folder_menu(int chosen_item) {
   screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_FOLDER);
   initList(screen_items, menu_items_count);
   freeItemList(screen_items, menu_items_count);
-}
-
-void menuSwitch(int chosen_item) {
-  // Switch phases that support menu screens to correspoding menu screen and back
-  switch (main_folder_ui_phase) {
-    case FOLDER_BROWSER: 
-        init_folder_menu(chosen_item);
-        break;
-    case FOLDER_MENU: 
-        init_folder_browser(chosen_item);
-        break;
-    case PHRASE: 
-        main_folder_ui_phase = PHRASE_MENU; 
-        break;
-    case PHRASE_MENU: 
-        main_folder_ui_phase = PHRASE; 
-        break;
-    case PHRASE_HISTORY: 
-        main_folder_ui_phase = PHRASE_HISTORY_MENU; 
-        break;
-    case PHRASE_HISTORY_MENU: 
-        main_folder_ui_phase = PHRASE_HISTORY; 
-        break;
-    case PHRASE_HISTORY_ENTRY: 
-        main_folder_ui_phase = PHRASE_HISTORY_ENTRY_MENU; 
-        break;
-    case PHRASE_HISTORY_ENTRY_MENU: 
-        main_folder_ui_phase = PHRASE_HISTORY_ENTRY; 
-        break;
-  }
 }
 
 ListItem** tmp_screen_items;
@@ -459,6 +386,8 @@ void initFoldersList(int exclude_folder_id) {
   initList(screen_items, screen_item_count);
   freeItemList(screen_items, screen_item_count);
 }
+
+// -------------------------------------------------------------------------------
 
 char* ui_new_phrase_name;
 uint16_t ui_new_phrase_phrase_template_id;
@@ -827,6 +756,26 @@ void dialogActionsLoop(Thumby* thumby) {
   }
 }
 
+void menuSwitch(int chosen_item) {
+  // Switch phases that support menu screens to correspoding menu screen and back
+  switch (main_folder_ui_phase) {
+    case FOLDER_BROWSER: 
+        init_folder_menu(chosen_item);
+        break;
+    case FOLDER_MENU: 
+        init_folder_browser(chosen_item);
+        break;
+  }
+}
+
+void runMainFolderUiPhaseAction(int chosen_item, int code) {
+  switch (main_folder_ui_phase) {
+    case FOLDER_BROWSER: folderBrowserAction(chosen_item); break;
+    case FOLDER_MENU: folderBrowserMenuAction(chosen_item, code); break;
+    default: return;
+  }
+}
+
 // BlockDAO Dialogs
 void phraserFolderUiLoop(Thumby* thumby) {
   if (isMenuPhase()) {
@@ -839,6 +788,8 @@ void phraserFolderUiLoop(Thumby* thumby) {
         menuSwitch(chosen.selection);
       }
     }
+  } else if (main_folder_ui_phase == PHRASE_UI) {
+    // 
   } else {
     // Dialog phase
     dialogActionsLoop(thumby);
