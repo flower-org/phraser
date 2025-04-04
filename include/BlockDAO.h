@@ -40,6 +40,7 @@ UpdateResponse deleteFolder(uint16_t folder_id);
 UpdateResponse moveFolder(uint16_t move_folder_id, uint16_t to_folder_id);
 
 UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint16_t folder_id, uint16_t* created_phrase_id);
+UpdateResponse renamePhrase(uint16_t phrase_block_id, char* update_phrase_name);
 UpdateResponse deletePhrase(uint16_t phrase_block_id);
 UpdateResponse movePhrase(uint16_t phrase_block_id, uint16_t new_folder_id);
 

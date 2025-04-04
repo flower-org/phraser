@@ -42,7 +42,6 @@ enum MainUiPhase {
   CREATE_NEW_PHRASE,
   
   RENAME_PHRASE_YES_NO,
-  ENTER_RENAME_PHRASE_NAME,
   RENAME_PHRASE,
   
   MOVE_PHRASE_YES_NO,
@@ -224,9 +223,11 @@ void folderBrowserMenuAction(int chosen_item, int code) {
     initTextAreaDialog(text, strlen(text), DLG_YES_NO);
     main_ui_phase = DELETE_PHRASE_YES_NO;
   } else if (FOLDER_MENU_RENAME_PHRASE == code) {
-    //RENAME_PHRASE_YES_NO,
-    //ENTER_RENAME_PHRASE_NAME,
-    //RENAME_PHRASE
+    char text[350];
+    PhraseFolderAndName* selected_phrase = getPhrase(selected_phrase_id);
+    sprintf(text, "Rename phrase `%s`?", selected_phrase->name);
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_ui_phase = RENAME_PHRASE_YES_NO;
   } else if (FOLDER_MENU_MOVE_FOLDER == code) {
     char text[350];
     Folder* selected_folder = getFolder(selected_folder_id);
@@ -743,6 +744,47 @@ void dialogActionsLoop(Thumby* thumby) {
           main_ui_phase = FOLDER_BROWSER;
         }
     }
+
+    case RENAME_PHRASE_YES_NO: { 
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        main_ui_phase = RENAME_PHRASE;
+        PhraseFolderAndName* selected_phrase = getPhrase(selected_phrase_id);
+        initOnScreenKeyboard(selected_phrase->name, strlen(selected_phrase->name), false, false, false);
+      } else if (result == DLG_RES_NO) {
+        main_ui_phase = FOLDER_MENU;
+      }
+    }
+    break;
+    case RENAME_PHRASE: {
+      char* new_phrase_name = keyboardLoop(thumby);
+      if (new_phrase_name != NULL) {
+        if (strlen(new_phrase_name) == 0) {
+          char* text = "Phrase name can't be empty.";
+          initTextAreaDialog(text, strlen(text), DLG_OK);
+          main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+        } else {
+          UpdateResponse rename_phrase_response = renamePhrase(selected_phrase_id, new_phrase_name);
+          if (rename_phrase_response == OK) {
+            initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
+            main_ui_phase = FOLDER_BROWSER;
+          } else {
+            if (rename_phrase_response == ERROR) {
+              char* text = "Rename phrase ERROR.";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            } else if (rename_phrase_response == DB_FULL) {
+              char* text = "Database full (probably something is really wrong since we're trying to rename)";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            } else if (rename_phrase_response == BLOCK_SIZE_EXCEEDED) {
+              char* text = "Block size exceeded. Can't rename";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            }
+            main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+          }
+        }
+      }
+    }
+    break;
   }
 }
 
@@ -751,10 +793,6 @@ void dialogActionsLoop(Thumby* thumby) {
 
   // TODO: CHANGE PARENT FOLDER for Folder? Not sure about that.
 
-  // RENAME_PHRASE_YES_NO,
-  // ENTER_RENAME_PHRASE_NAME,
-  // RENAME_PHRASE,
-  
   // MOVE_FOLDER_YES_NO,
   // MOVE_FOLDER_SELECT_PARENT_FOLDER,
   // MOVE_FOLDER,
