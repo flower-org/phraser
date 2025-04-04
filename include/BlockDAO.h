@@ -3,6 +3,31 @@
 #include <Thumby.h>
 #include "Schema_builder.h"
 #include "rbtree.h"
+#include "arraylist.h"
+
+struct Word {
+  uint16_t word_template_id;
+  uint8_t word_template_ordinal;
+  char* name;
+  char* word;
+  uint8_t permissions;
+  phraser_Icon_enum_t icon;
+};
+
+struct PhraseHistory {
+  uint16_t phrase_template_id;
+  arraylist* phrase; //arraylist<Word>
+};
+
+struct FullPhrase {
+  uint16_t phrase_block_id;
+  uint16_t phrase_template_id;
+  uint16_t folder_id;
+  uint8_t is_tombstone;
+  char* phrase_name;
+  //history[0] - current value (eg. current password), 1 - previous, 2 - the one before that, etc.
+  arraylist* history; //arraylist<PhraseHistory>
+};
 
 enum UpdateResponse {
   DB_FULL,
@@ -46,3 +71,6 @@ UpdateResponse movePhrase(uint16_t phrase_block_id, uint16_t new_folder_id);
 
 uint32_t get_valid_block_number_on_the_right_of(node_t* root, uint32_t block_number);
 uint32_t get_free_block_number_on_the_left_of(node_t* root, uint32_t block_number, uint32_t db_block_count);
+
+FullPhrase* getFullPhrase(uint16_t full_phrase_id);
+void releaseFullPhrase(FullPhrase* full_phrase);

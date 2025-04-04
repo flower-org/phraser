@@ -1332,3 +1332,94 @@ UpdateResponse makePhraseHistoryCurrent(uint16_t phrase_block_id, uint16_t phras
   //
   return ERROR;
 }
+
+// ------------------------------------------------------
+
+FullPhrase* getFullPhrase(uint16_t full_phrase_id) {
+  uint32_t block_number = get_phrase_block_number(full_phrase_id);
+  uint16_t block_size = FLASH_SECTOR_SIZE;
+  uint8_t block[block_size];
+
+  if (!loadBlockFromFlash(bank_number, block_number, block_size, main_key, main_iv_mask, block)) {
+    return NULL;
+  }
+
+  // 3. deserialize phrase flatbuf block
+  phraser_PhraseBlock_table_t phrase_block;
+  if (!(phrase_block = phraser_PhraseBlock_as_root(block + DATA_OFFSET))) {
+    return NULL;
+  }
+
+  phraser_StoreBlock_struct_t old_store_block = phraser_PhraseBlock_block(phrase_block);
+  uint16_t phrase_id = phraser_StoreBlock_block_id(old_store_block);
+  if (phrase_id != full_phrase_id) {
+    return NULL;
+  }
+
+  FullPhrase* full_phrase = (FullPhrase*)malloc(sizeof(FullPhrase));
+  full_phrase->phrase_block_id = phrase_id;
+  full_phrase->phrase_template_id = phraser_PhraseBlock_phrase_template_id(phrase_block);
+  full_phrase->folder_id = phraser_PhraseBlock_folder_id(phrase_block);
+  full_phrase->is_tombstone = phraser_PhraseBlock_is_tombstone(phrase_block);
+  flatbuffers_string_t phrase_name = phraser_PhraseBlock_phrase_name(phrase_block);
+  size_t phrase_name_length = flatbuffers_string_len(phrase_name);
+  full_phrase->phrase_name = copyString((char*)phrase_name, phrase_name_length);
+  full_phrase->history = arraylist_create();
+
+  phraser_PhraseHistory_vec_t phrase_history_vec = phraser_PhraseBlock_history(phrase_block);
+
+  size_t old_phrase_history_vec_length = flatbuffers_vec_len(phrase_history_vec);
+  for (int i = 0; i < old_phrase_history_vec_length; i++) {
+    phraser_PhraseHistory_table_t history = phraser_PhraseHistory_vec_at(phrase_history_vec, i);
+
+    PhraseHistory* phrase_history = (PhraseHistory*)malloc(sizeof(PhraseHistory));
+    phrase_history->phrase_template_id = phraser_PhraseHistory_phrase_template_id(history);
+    phrase_history->phrase = arraylist_create();
+
+    phraser_Word_vec_t words_vec = phraser_PhraseHistory_phrase(history);
+    size_t words_vec_length = flatbuffers_vec_len(words_vec);
+  
+    for (int i = 0; i < words_vec_length; i++) {
+      phraser_Word_table_t word_fb = phraser_Word_vec_at(words_vec, i);
+
+      Word* word = (Word*)malloc(sizeof(Word));
+
+      word->word_template_id = phraser_Word_word_template_id(word_fb);
+      word->word_template_ordinal = phraser_Word_word_template_ordinal(word_fb);
+      flatbuffers_string_t word_name = phraser_Word_name(word_fb);
+      size_t word_name_length = flatbuffers_string_len(word_name);
+      word->name = copyString((char*)word_name, word_name_length);
+      flatbuffers_string_t word_word = phraser_Word_word(word_fb);
+      size_t word_word_length = flatbuffers_string_len(word_word);
+      word->word = copyString((char*)word_word, word_word_length);
+      word->permissions = phraser_Word_permissions(word_fb);
+      word->icon = phraser_Word_icon(word_fb);
+
+      arraylist_add(phrase_history->phrase, word);
+    }
+
+    arraylist_add(full_phrase->history, phrase_history);
+  }
+
+  return full_phrase;
+}
+
+void releaseFullPhraseWord(Word* word) {
+  // free all related memory
+  free(word->name);
+  free(word->word);
+  free(word);
+}
+
+void releaseFullPhraseHistory(PhraseHistory* phrase_history) {
+  for (int i = 0; i < arraylist_size(phrase_history->phrase); i++) {
+    releaseFullPhraseWord((Word*)arraylist_get(phrase_history->phrase, i));
+  }
+}
+
+void releaseFullPhrase(FullPhrase* full_phrase) {
+  free(full_phrase->phrase_name);
+  for (int i = 0; i < arraylist_size(full_phrase->history); i++) {
+    releaseFullPhraseHistory((PhraseHistory*)arraylist_get(full_phrase->history, i));
+  }
+}

@@ -151,7 +151,36 @@ void phraserDbUiInit() {
   initFolder(0, -1, -1);
 }
 
+FullPhrase* current_phrase = NULL;
 void initPhrase(int phrase_block_id) {
+  // don't reuse loaded phrase, aways free and re-load (in case it's updated from folder menus)
+  if (current_phrase != NULL) {
+    releaseFullPhrase(current_phrase);
+    current_phrase = NULL;
+  }
+
+  current_phrase = getFullPhrase(phrase_block_id);
+  if (current_phrase == NULL) {
+    char text[350];
+    sprintf(text, "Failed to load phrase `%d`?", phrase_block_id);
+    initTextAreaDialog(text, strlen(text), DLG_OK);
+    main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+  } else {
+    // TODO: init main phrase view
+    char text[350];
+    sprintf(text, "Successfully loaded phrase `%d` %s?", current_phrase->phrase_block_id, current_phrase->phrase_name);
+    initTextAreaDialog(text, strlen(text), DLG_OK);
+    main_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
+  }
+}
+
+// ----------------------------------------------------------------------------
+
+void mainPhraseViewAction(int chosen_item) {
+  // TODO: implement
+}
+
+void mainPhraseViewMenuAction(int chosen_item, int code) {
   // TODO: implement
 }
 
@@ -172,12 +201,16 @@ FolderPhraseId* getFolderBrowserSelection(int chosen_item) {
 void folderBrowserAction(int chosen_item) {
   FolderPhraseId* new_selected_folder = getFolderBrowserSelection(chosen_item);
   if (new_selected_folder != NULL) {
+    selected_folder_id = new_selected_folder->folder_id;
+    selected_phrase_id = new_selected_folder->phrase_id;
     if (new_selected_folder->folder_id != -1) {
       initFolder(new_selected_folder->folder_id, -1, -1);
     } else {
       initPhrase(new_selected_folder->phrase_id);
     }
   } else {
+    selected_folder_id = -1;
+    selected_phrase_id = -1;
     // Up one level
     int select_folder_id = folder_browser_folder_id;
     Folder* select_folder = getFolder(select_folder_id);
@@ -267,8 +300,8 @@ void runMainUiPhaseAction(int chosen_item, int code) {
   switch (main_ui_phase) {
     case FOLDER_BROWSER: folderBrowserAction(chosen_item); break;
     case FOLDER_MENU: folderBrowserMenuAction(chosen_item, code); break;
-    case PHRASE:
-    case PHRASE_MENU:
+    case PHRASE: mainPhraseViewAction(chosen_item); break;
+    case PHRASE_MENU: mainPhraseViewMenuAction(chosen_item, code); break;
     case PHRASE_HISTORY:
     case PHRASE_HISTORY_MENU:
     case PHRASE_HISTORY_ENTRY:
@@ -794,18 +827,7 @@ void dialogActionsLoop(Thumby* thumby) {
   }
 }
 
-
-  // BlockDAO Dialogs
-
-  // TODO: CHANGE PARENT FOLDER for Folder? Not sure about that.
-
-  // MOVE_FOLDER_YES_NO,
-  // MOVE_FOLDER_SELECT_PARENT_FOLDER,
-  // MOVE_FOLDER,
-
-  // DELETE_PHRASE_YES_NO,
-  // DELETE_PHRASE
-
+// BlockDAO Dialogs
 void phraserDbUiLoop(Thumby* thumby) {
   if (isMenuPhase()) {
     // Menu phase, all menus are ScreenList-based
