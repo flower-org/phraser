@@ -95,7 +95,7 @@ void setLoginData(uint8_t* key, uint32_t key_length);
 
 void startBlockCacheInit();
 void registerBlockInBlockCache(uint8_t* block, uint16_t block_number);
-void finalizeBlockCacheInit();
+void dbCacheLoadReport();
 
 PhraseFolderAndName* getPhrase(uint16_t phrase_id);
 extern Folder* getFolder(uint16_t folder_id);

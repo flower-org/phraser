@@ -193,7 +193,7 @@ void unsealLoop(Thumby* thumby) {
     if (ui_draw_cycle) { ui_draw_cycle = false; return; }
 
     if (key_block_decrypt_cursor >= max_key_blocks) {
-      finalizeBlockCacheInit();
+      dbCacheLoadReport();
 
       //random seed is initialized in BlockDAO at the time of first session's CUD
 

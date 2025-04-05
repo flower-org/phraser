@@ -575,91 +575,6 @@ uint32_t get_free_block_number_on_the_left_of(node_t* root, uint32_t block_numbe
   return -1;
 }
 
-void invalidateBlockIndices(uint32_t b1_block_number, uint32_t b2_block_number) {
-  serialDebugPrintf("invalidateBlockIndices b1_block_number %d b2_block_number %d\r\n", b1_block_number, b2_block_number);
-  // ---- B2-related logic, it was replaced at B2 block_number by B1 blockId ----
-  uint32_t b1_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, b1_block_number);
-
-  if (hashtable_exists(blockIdByBlockNumber, b2_block_number)) {
-    // Remove B2 block number from blockIdByBlockNumber, since we've just replaced it with B1
-    uint32_t b2_block_id = (uint32_t)hashtable_remove(blockIdByBlockNumber, b2_block_number);
-    serialDebugPrintf("invalidateBlockIndices b1_block_id %d b2_block_id %d\r\n", b1_block_id, b2_block_id);
-    
-    // Get B2 block info and decrement copy count, since 1 copy of B2 blockId was just destroyed
-    BlockNumberAndVersionAndCount* b2_info = 
-      (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, b2_block_id);
-    b2_info->copyCount--;
-
-    if (b2_info->isTombstoned && b2_info->copyCount <= 1 && b2_block_id != b1_block_id) {
-      // If we discover that B2 is Tombstoned and now has only 1 copy left,
-      // and as long as B2 is not the same blockId as B1 (a copy of which we've just created)  
-      // we can safely assume that disposing of that last copy of B2 won't result in incorect 
-      // tombstone revival, due to the fact that it's the last and only copy left.
-      // Therefore, it's safe to remove B2 from the indexes entirely and dispose of B2 blockId.
-      hashtable_remove(blockInfos, b2_block_id);
-      hashtable_remove(tombstonedBlockIds, b2_block_id);
-    }
-    // In the context of B2 removal, B2 is no longer occupied
-    removeFromOccupiedBlockNumbers(b2_block_number);
-  }
-}
-
-void updateBlockIndicesPostThrowbackMove(uint32_t b1_block_number, uint32_t b2_block_number) {
-  serialDebugPrintf("updateBlockIndicesPostMove b1_block_number %d b2_block_number %d\r\n", b1_block_number, b2_block_number);
-  // ---- B1-related logic, new version of which replaced B2 ---
-  uint32_t b1_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, b1_block_number);
-  uint32_t b1_block_new_version = last_block_version();
-  serialDebugPrintf("updateBlockIndicesPostMove b1_block_id %d\r\n", b1_block_id);
-
-  // B2 block number now holds block with B1 blockId
-  hashtable_set(blockIdByBlockNumber, b2_block_number, (void*)b1_block_id);
-  
-  // We've just created a new copy of B1 blockId, so we increment copyCount
-  // And we also update version to the new one, and block number to B2 block number
-  BlockNumberAndVersionAndCount* b1_info = 
-    (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, b1_block_id);
-  b1_info->copyCount++;
-  b1_info->blockVersion = b1_block_new_version;
-  b1_info->blockNumber = b2_block_number;
-
-  // Since B1 was essentially copied with a version bump, there is no need to update
-  // tombstone stats, they didn't change. 
-
-  // In the context of B1 creation, B2 block number is now occupied by B1 blockId.
-  addToOccupiedBlockNumbers(b2_block_number);
-
-  // B1 block number becomes "free", since the latest version of B1 blockId 
-  // was moved to B2 block number
-  removeFromOccupiedBlockNumbers(b1_block_number);
-}
-
-void updateBlockIndicesPostNewBlock(uint32_t b3_block_id, uint32_t b3_block_number, bool b3_tombstoned) {
-  // Tombstone indices 
-  if (b3_tombstoned) {
-    hashtable_set(tombstonedBlockIds, b3_block_id, (void*)b3_block_id);
-  }
-
-  addToOccupiedBlockNumbers(b3_block_number);
-}
-
-void updateBlockIndicesPostBlockMove(uint32_t b1_block_number, bool b1_tombstoned, uint32_t b2_block_number) {
-  // Only update what's not going to be updated by `registerBlockInBlockCache` call
-
-  uint32_t b1_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, b1_block_number);
-  // Tombstone indices 
-  if (b1_tombstoned) {
-    hashtable_set(tombstonedBlockIds, b1_block_id, (void*)b1_block_id);
-  }
-
-  // In the context of B1 creation, B2 block number is now occupied by B1 blockId.
-  addToOccupiedBlockNumbers(b2_block_number);
-
-  // B1 block number becomes "free", since the latest version of B1 blockId 
-  // was moved to B2 block number
-  removeFromOccupiedBlockNumbers(b1_block_number);
-}
-
-//static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return false; }
 // returns block_number to which the main update shold go
 uint16_t throwbackCopy(uint32_t new_version) {
   serialDebugPrintf("t1.\r\n");
@@ -724,7 +639,7 @@ uint16_t throwbackCopy(uint32_t new_version) {
     return -1;
   }
 
-  // 2. Update B1 version
+  // 2. Update B1 version - block getting encrypted here
   serialDebugPrintf("t9.\r\n");
   UpdateResponse update_response = updateVersionAndEntropyBlock(block, block_size, aes_key, aes_iv_mask, new_version, false);
   if (update_response != OK) {
@@ -739,10 +654,17 @@ uint16_t throwbackCopy(uint32_t new_version) {
 
   // B2-related logic, it was replaced at B2 block_number by B1 blockId
   serialDebugPrintf("t11.\r\n");
-  invalidateBlockIndices(b1_block_number, b2_block_number);
   // B1-related logic, new version of which replaced B2
   serialDebugPrintf("t12.\r\n");
-  updateBlockIndicesPostThrowbackMove(b1_block_number, b2_block_number);
+
+  // 5. Re-Load new block version from flash, to make sure our cache is consistent with persisted content
+  if (!loadBlockFromFlash(bank_number, b2_block_number, block_size, aes_key, aes_iv_mask, block)) {
+    return ERROR;
+  }
+  serialDebugPrintf("5.\r\n");
+
+  // 6. Register new version in cache
+  registerBlockInBlockCache(block, b2_block_number);
 
   // ---- Return block_number to which Main Update shold go ----
   serialDebugPrintf("t13 b3_block_number %d.\r\n", b3_block_number);
@@ -809,7 +731,7 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
   saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
   serialDebugPrintf("9.\r\n");
 
-  // 8. Re-Load new block version from flash
+  // 8. Re-Load new block version from flash, to make sure our cache is consistent with persisted content
   if (!loadBlockFromFlash(bank_number, b3_block_number, block_size,
     main_key, main_iv_mask, 
     block)) {
@@ -820,12 +742,6 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
   // 9. Update DB indices
 
   // B3-related logic, it was replaced at B3 block_number by B0 blockId
-  invalidateBlockIndices(folder_block_number, b3_block_number);
-  // B0-related logic, new version of which replaced B3 (only partial index update, 
-  //  to avoid interfering with subsequent registerBlockInBlockCache() call)
-  updateBlockIndicesPostBlockMove(folder_block_number, false, b3_block_number);
-  serialDebugPrintf("11.\r\n");
-
   // 10. Register new version in cache
   registerBlockInBlockCache(block, b3_block_number);
   serialDebugPrintf("12.\r\n");
@@ -1201,7 +1117,7 @@ UpdateResponse phraseMutation(int phrase_block_id,
   saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
   serialDebugPrintf("9.\r\n");
 
-  // 10. Re-Load new block version from flash
+  // 10. Re-Load new block version from flash, to make sure our cache is consistent with persisted content
   if (!loadBlockFromFlash(bank_number, b3_block_number, block_size,
     main_key, main_iv_mask, 
     block)) {
@@ -1209,23 +1125,9 @@ UpdateResponse phraseMutation(int phrase_block_id,
   }
   serialDebugPrintf("10.\r\n");
 
-  // 11. Update DB indices
-  if (is_new_phrase) {
-    // - since there was no B0 we don't need to call invalidateBlockIndices
-    // - and updateBlockIndicesPostBlockMove needs to be adjusted to accomodate for the absense of B0
-    updateBlockIndicesPostNewBlock(phrase_block_id, b3_block_number, false);
-  } else {
-    // B3-related logic, it was replaced at B3 block_number by B0 blockId
-    invalidateBlockIndices(old_phrase_block_number, b3_block_number);
-    // B0-related logic, new version of which replaced B3 (only partial index update, 
-    //  to avoid interfering with subsequent registerBlockInBlockCache() call)
-    updateBlockIndicesPostBlockMove(old_phrase_block_number, false, b3_block_number);
-    serialDebugPrintf("11.\r\n");
-  }
-
-  // 12. Register new version in cache
+  // 11. Register new version in cache
   registerBlockInBlockCache(block, b3_block_number);
-  serialDebugPrintf("12.\r\n");
+  serialDebugPrintf("11.\r\n");
 
   return OK;
 }

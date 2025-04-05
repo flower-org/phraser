@@ -622,8 +622,7 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
   }
 
   // 2. Update DB structures
-  serialDebugPrintf("2. Update DB structures! %d \r\n", block[0]);
-  serialDebugPrintf("blockAndVersion.blockId %d\r\n", blockAndVersion.blockId);
+  serialDebugPrintf("2. Update DB structures! blockType %d blockAndVersion.blockId %d\r\n", block[0], blockAndVersion.blockId);
   if (blockAndVersion.blockId > 0) {
     serialDebugPrintf("2.1. Update holders of last values / counters\r\n");
     // 2.1. Update holders of last values / counters
@@ -645,12 +644,32 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
       lastEntropy = blockAndVersion.entropy;
     }
 
-    serialDebugPrintf("2.2. Add BlockNumber to BlockId mapping\r\n");
-    // 2.2. Add BlockNumber to BlockId mapping
+    // 2.2 Invalidate the previous block copy stationed at this block number, if exists
+    if (hashtable_exists(blockIdByBlockNumber, block_number)) {
+      // remove old block id from blockIdByBlockNumber, since it's replaced by the new block id 
+      uint32_t old_block_id = (uint32_t)hashtable_remove(blockIdByBlockNumber, block_number);
+      
+      BlockNumberAndVersionAndCount* old_block_info = 
+        (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, old_block_id);
+      old_block_info->copyCount--;
+      if (old_block_info->copyCount == 0) {
+        //If we destroyed the last copy of the block, we remove it from all the indices
+        hashtable_remove(tombstonedBlockIds, old_block_id);
+        old_block_info = (BlockNumberAndVersionAndCount*)hashtable_remove(blockInfos, old_block_id);
+        free(old_block_info);
+      }
+      // at this point block number is no longer occupied
+      removeFromOccupiedBlockNumbers(block_number);
+    }
+
+    // 2.3 Add/update the new block information 
+    // 2.3.1 Add BlockNumber to BlockId mapping
+    serialDebugPrintf("2.3.1 Add BlockNumber to BlockId mapping\r\n");
     hashtable_set(blockIdByBlockNumber, block_number, (void*)blockAndVersion.blockId);
 
-    serialDebugPrintf("2.3. Update BlockId to BlockNumberAndVersionAndCount mapping\r\n");
-    // 2.3. Update BlockId to BlockNumberAndVersionAndCount mapping
+    // 2.3.2 Update BlockId to BlockNumberAndVersionAndCount mapping
+    bool version_updated = false;
+    serialDebugPrintf("2.3.2 Update BlockId %d to BlockNumberAndVersionAndCount mapping\r\n", blockAndVersion.blockId);
     BlockNumberAndVersionAndCount* blockInfo = 
             (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, blockAndVersion.blockId);
     if (blockInfo == NULL) {
@@ -660,25 +679,32 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
       blockInfo->copyCount = 1;
       blockInfo->isTombstoned = blockAndVersion.isTombstoned;
       hashtable_set(blockInfos, blockAndVersion.blockId, blockInfo);
+
+      version_updated = true;
     } else {
-      if (blockInfo->blockVersion < blockAndVersion.blockVersion) {
+      if (blockAndVersion.blockVersion > blockInfo->blockVersion) {
+        // Previous version of the block is no longer considered occupied (can be overwritten)
+        removeFromOccupiedBlockNumbers(blockInfo->blockNumber);
+
         blockInfo->blockNumber = block_number;
         blockInfo->blockVersion = blockAndVersion.blockVersion;
         blockInfo->isTombstoned = blockAndVersion.isTombstoned;
+
+        version_updated = true;
       }
       blockInfo->copyCount++;
     }
-  }
-}
 
-void processTombstonedBlocks(hashtable *t, uint32_t key, void* value) {
-  BlockNumberAndVersionAndCount* blockInfo = (BlockNumberAndVersionAndCount*)value;
-  if (blockInfo->isTombstoned) {
-    if (blockInfo->copyCount == 1) {
-      void* removed_value = hashtable_remove(t, key);
-      free(removed_value);//should be the same as parameter value;
-    } else {
-      hashtable_set(tombstonedBlockIds, key, (void*)key);
+    if (version_updated) {
+      // 2.3.3 If we got a new version of a block, update tombstoned index
+      if (blockInfo->isTombstoned) {
+        hashtable_set(tombstonedBlockIds, blockAndVersion.blockId, (void*)blockAndVersion.blockId);
+      } else {
+        hashtable_remove(tombstonedBlockIds, blockAndVersion.blockId);
+      }
+
+      // 2.3.4 And occupied block numbers index
+      addToOccupiedBlockNumbers(block_number);
     }
   }
 }
@@ -689,19 +715,6 @@ void removeFromOccupiedBlockNumbers(uint32_t key) {
 
 void addToOccupiedBlockNumbers(uint32_t key) {
   tree_insert(&occupiedBlockNumbers, key);
-}
-
-void formOccupiedBlockNumbers(hashtable *t, uint32_t key, void* value) {
-  BlockNumberAndVersionAndCount* block_info = (BlockNumberAndVersionAndCount*)value;
-  tree_insert(&occupiedBlockNumbers, block_info->blockNumber);
-}
-
-void finalizeBlockCacheInit() {
-  // 3. Invalidate all Tombstoned blocks with a single copy, add those with multiple copies to `tombstoneBlockIds`.
-  hashtable_iterate_entries(blockInfos, processTombstonedBlocks);
-
-  // 4. Use blockInfos to add all actual block numbers to `occupiedBlockNumbers`
-  hashtable_iterate_entries(blockInfos, formOccupiedBlockNumbers);
 }
 
 int getFolderChildCount(uint16_t parent_folder_id) {
@@ -864,4 +877,33 @@ hashtable* getPhraseTemplates() {
 //uint32_t, Folder
 hashtable* getFolders() {
   return folders;
+}
+
+static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return false; }
+static void perKey(hashtable *t, uint32_t key, void* value) { serialDebugPrintf("%u, ", key); }
+static void perKeyValue(hashtable *t, uint32_t key, void* value) { serialDebugPrintf("%u - %u, ", key, (uint32_t)value); }
+void dbCacheLoadReport() {
+  serialDebugPrintf("---------------- DB Cache Load Report ----------------\r\n");
+  serialDebugPrintf("lastBlockId %d\r\n", lastBlockId);
+  serialDebugPrintf("lastBlockVersion %d\r\n", lastBlockVersion);
+  serialDebugPrintf("lastBlockNumber %d\r\n", lastBlockNumber);
+  serialDebugPrintf("lastEntropy %d\r\n", lastEntropy);
+
+  serialDebugPrintf("occupiedBlockNumbers: \r\n");
+  traverse_inorder(occupied_block_numbers(), perNode);
+  serialDebugPrintf("\r\n");
+
+  serialDebugPrintf("blockIdByBlockNumber: \r\n");
+  hashtable_iterate_entries(blockIdByBlockNumber, perKeyValue);
+  serialDebugPrintf("\r\n");
+
+  serialDebugPrintf("blockInfos contain blockIds: \r\n");
+  hashtable_iterate_entries(blockInfos, perKey);
+  serialDebugPrintf("\r\n");
+
+  serialDebugPrintf("tombstonedBlockIds: \r\n");
+  hashtable_iterate_entries(tombstonedBlockIds, perKeyValue);
+  serialDebugPrintf("\r\n");
+  
+  serialDebugPrintf("-------------- DB Cache Load Report END --------------\r\n");
 }
