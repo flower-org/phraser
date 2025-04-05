@@ -40,7 +40,7 @@ const int PHRASE_VIEW_VIEW_WORD = 3;
 const int PHRASE_VIEW_EDIT_WORD = 4;
 const int PHRASE_VIEW_TYPE_WORD = 5;
 const int PHRASE_VIEW_CHANGE_PHRASE_TEMPLATE = 6;
-void initPhraseViewMenuScreenList(FullPhrase* phrase, WordAndTemplate* word_and_template) {
+void initPhraseViewMenuScreenList(FullPhrase* phrase, WordAndTemplate* word_and_template, int selection) {
   int menu_items_count = 2;
 
   if (word_and_template != NULL) {
@@ -78,7 +78,9 @@ void initPhraseViewMenuScreenList(FullPhrase* phrase, WordAndTemplate* word_and_
   
   sprintf(text, "Change phrase template for `%s`", phrase->phrase_name);
   screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Copy, PHRASE_VIEW_CHANGE_PHRASE_TEMPLATE);
-  initList(screen_items, menu_items_count);
+  
+  if (selection >= menu_items_count) { selection = 0; }
+  initList(screen_items, menu_items_count, selection);
   freeItemList(screen_items, menu_items_count);
 }
 
@@ -179,14 +181,43 @@ void initPhrase(FullPhrase* phrase) {
 
 // ----------------------------------------------------------------------------
 
+void typeWord(char* word, int word_length) {
+  for (int i = 0; i < word_length; i++) {
+    char c = word[i];
+    setChar(c);
+    Keyboard.print(c);
+  }
+}
+
+int init_phrase_view_menu_selection;
 bool mainPhraseViewAction(int chosen_item, int code) {
   if (code == UP_TO_PARENT_LEVEL) {
     // Returning false from here moves back to Folders UI
     return false;
   } else if (code == DOWN_TO_HISTORY) {
     // TODO: switch to History View
-  } else {
-    // Phrase Action - if typeable - type, if not typeable and viewable - view
+  } else if (code == WORD_AND_TEMPLATE) {
+    WordAndTemplate* word_and_template = NULL;
+    init_phrase_view_menu_selection = chosen_item;
+    if (chosen_item > 0) {
+      int index = chosen_item - 1;
+      if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+        word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+      }
+    }
+
+    if (word_and_template == NULL) {
+      // ERROR: word and template not chosen
+    } else if (word_and_template->word == NULL) {
+      // ERROR: word has no value, generate or edit
+    } else {
+      if (isTypeable(word_and_template->word->permissions)) {
+        // Type word
+        typeWord(word_and_template->word->word, strlen(word_and_template->word->word));
+      } else if (isViewable(word_and_template->word->permissions)) {
+        //TODO: view
+      }
+    }
   }
 
   return true;
@@ -225,7 +256,7 @@ void init_phrase_view_menu(int chosen_item) {
   }
 
   main_phrase_ui_phase = PHRASE_VIEW_MENU;
-  initPhraseViewMenuScreenList(current_phrase, word_and_template);
+  initPhraseViewMenuScreenList(current_phrase, word_and_template, 0);
 }
 
 // -------------------------------------------------------------------------------
