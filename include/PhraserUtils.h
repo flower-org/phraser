@@ -14,6 +14,7 @@ extern "C" {
 
 #include <Thumby.h>
 #include "aes.hpp"
+#include "rbtree.h"
 
 void drawRect(Thumby* thumby, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 void drawLetter(Thumby* thumby, char letter, int16_t x0, int16_t y0, uint16_t color, byte isSelected);
@@ -81,3 +82,6 @@ bool isGenerateable(uint8_t permissions);
 bool isUserEditable(uint8_t permissions);
 bool isTypeable(uint8_t permissions);
 bool isViewable(uint8_t permissions);
+
+uint32_t get_valid_block_number_on_the_right_of(node_t* root, uint32_t block_number);
+uint32_t get_free_block_number_on_the_left_of(node_t* root, uint32_t block_number, uint32_t db_block_count);

@@ -223,7 +223,7 @@ void folderBrowserMenuAction(int chosen_item, int code) {
     initTextAreaDialog(text, strlen(text), DLG_YES_NO);
     main_folder_ui_phase = DELETE_FOLDER_YES_NO;
   } else if (FOLDER_MENU_NEW_PHRASE == code) {
-    if (last_block_left()) {
+    if (db_full()) {
       char* text = "Database full, can't create";
       initTextAreaDialog(text, strlen(text), DLG_OK);
       main_folder_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;

@@ -5,7 +5,10 @@
 #include "arraylist.h"
 #include "SerialUtils.h"
 
-//TODO: comment out debug Serial output in this file
+// debug iterators
+static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return false; }
+static void perKey(hashtable *t, uint32_t key, void* value) { serialDebugPrintf("%u, ", key); }
+static void perKeyValue(hashtable *t, uint32_t key, void* value) { serialDebugPrintf("%u - %u, ", key, (uint32_t)value); }
 
 //SHA256 of string "PhraserPasswordManager"
 uint8_t HARDCODED_SALT[] = {
@@ -799,12 +802,88 @@ uint16_t valid_block_count() {
   return blockInfos->size;
 }
 
-uint16_t free_block_count() {
+uint16_t free_block_count_with_tombstones() {
+  return db_block_count() - (valid_block_count() - tombstonedBlockIds->size);
+}
+
+uint16_t free_block_count_without_tombstones() {
   return db_block_count() - valid_block_count();
 }
 
-bool last_block_left() {
-  return free_block_count() <= 1;
+bool db_has_non_tombstoned_space() {
+  return free_block_count_without_tombstones() > 1;
+}
+
+bool db_full() {
+  return free_block_count_with_tombstones() <= 1;
+}
+
+void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value) {
+  // Check and invalidate block if it's tombstoned and with 1 copy only
+  uint16_t ts_block_id = key;
+  BlockNumberAndVersionAndCount* ts_block_info = 
+    (BlockNumberAndVersionAndCount*)hashtable_get(blockInfos, ts_block_id);
+  if (ts_block_info != NULL) {
+    serialDebugPrintf("Trying to nuke block_id %d block_number %d isTombstoned %d copyCount %d db_has_non_tombstoned_space() %d \r\n", 
+      ts_block_id, ts_block_info->blockNumber, ts_block_info->isTombstoned, ts_block_info->copyCount, db_has_non_tombstoned_space());
+    bool can_remove = false;
+    if (ts_block_info->isTombstoned && ts_block_info->copyCount <= 1) {
+        can_remove = true;
+    } else if (ts_block_info->isTombstoned && ts_block_info->copyCount == 2) {
+      if (!db_has_non_tombstoned_space()) {
+        // DB full, which means we only have 1 free block. If that's the second copy of our tombstone 
+        //  blockId, we can safely nuke it
+
+        // find the only free block number
+        uint32_t free_block_number = get_free_block_number_on_the_left_of(occupied_block_numbers(), db_block_count(), db_block_count());
+
+        // get its blockId from blockIdByBlockNumber and compare with ts_block_id.
+        // If they match, we can invalidate this tombstone.
+        uint32_t free_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, free_block_number);
+
+        serialDebugPrintf("Trying to nuke block_id %d - free block lookup: free_block_number %d free_block_id %d\r\n", 
+          ts_block_id, free_block_number, free_block_id);
+
+        can_remove = (free_block_id == ts_block_id);
+      }
+    }
+
+    if (can_remove) {
+      uint32_t block_number = ts_block_info->blockNumber;
+
+      // 1. since the block isn't overwritten yet, we don't remove it from blockIdByBlockNumber, 
+      //  which holds free blocks info as well
+
+      // 2. remove invalidated block id from tombstonedBlockIds
+      hashtable_remove(tombstonedBlockIds, ts_block_id);
+
+      // 3. remove invalidated blockInfo from blockInfos
+      ts_block_info = (BlockNumberAndVersionAndCount*)hashtable_remove(blockInfos, ts_block_id);
+      free(ts_block_info);
+
+      // 4. at this point block number is no longer considered occupied
+      removeFromOccupiedBlockNumbers(block_number);
+    }
+  } else {
+    // Looks like we have a blockId in tombstonedBlockIds, but not in blockInfos, which indicates a bad state
+    serialDebugPrintf("WARNING: DB structural discrepancy - BlockId %d found in tombstonedBlockIds, but not in blockInfos \r\n", ts_block_id);
+    // Best we can do at this point is to remove invalidated block id from tombstonedBlockIds
+    hashtable_remove(tombstonedBlockIds, ts_block_id);
+  }
+}
+
+void nuke_tombstone_blocks() {
+  serialDebugPrintf("NUKING TOMBSTONES!!! \r\n");
+  serialDebugPrintf("tombstonedBlockIds BEFORE: \r\n");
+  hashtable_iterate_entries(tombstonedBlockIds, perKeyValue);
+  serialDebugPrintf("\r\n");
+
+  // iterate over tombstones, nuke those with 1 copy
+  hashtable_iterate_entries(tombstonedBlockIds, nukeTombstoneBlock);
+
+  serialDebugPrintf("tombstonedBlockIds AFTER: \r\n");
+  hashtable_iterate_entries(tombstonedBlockIds, perKeyValue);
+  serialDebugPrintf("\r\n");
 }
 
 uint32_t get_last_entropy() {
@@ -879,9 +958,6 @@ hashtable* getFolders() {
   return folders;
 }
 
-static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return false; }
-static void perKey(hashtable *t, uint32_t key, void* value) { serialDebugPrintf("%u, ", key); }
-static void perKeyValue(hashtable *t, uint32_t key, void* value) { serialDebugPrintf("%u - %u, ", key, (uint32_t)value); }
 void dbCacheLoadReport() {
   serialDebugPrintf("---------------- DB Cache Load Report ----------------\r\n");
   serialDebugPrintf("lastBlockId %d\r\n", lastBlockId);
@@ -903,6 +979,14 @@ void dbCacheLoadReport() {
 
   serialDebugPrintf("tombstonedBlockIds: \r\n");
   hashtable_iterate_entries(tombstonedBlockIds, perKeyValue);
+  serialDebugPrintf("\r\n");
+  
+  serialDebugPrintf("db_block_count: %d \r\n", db_block_count());
+  serialDebugPrintf("valid_block_count %d \r\n", valid_block_count());
+  serialDebugPrintf("tombstonedBlockIds->size %d \r\n", tombstonedBlockIds->size);
+  serialDebugPrintf("free_block_count %d \r\n", free_block_count_with_tombstones());
+  serialDebugPrintf("DbFull? %s \r\n", db_full() ? "TRUE" : "FALSE");
+  serialDebugPrintf("DB_has_non_tombstoned_space? %s \r\n", db_has_non_tombstoned_space() ? "TRUE" : "FALSE");
   serialDebugPrintf("\r\n");
   
   serialDebugPrintf("-------------- DB Cache Load Report END --------------\r\n");

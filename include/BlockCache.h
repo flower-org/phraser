@@ -110,8 +110,9 @@ hashtable* getFolders();
 
 uint16_t db_block_count();
 uint16_t valid_block_count();
-uint16_t free_block_count();
-bool last_block_left();
+uint16_t free_block_count_with_tombstones();
+bool db_full();
+bool db_has_non_tombstoned_space();
 
 uint32_t get_last_entropy();
 uint16_t increment_and_get_next_block_id();
@@ -134,3 +135,4 @@ WordTemplate* getWordTemplate(uint16_t word_template_id);
 SymbolSet* getSymbolSet(uint16_t symbol_set_id);
 
 hashtable* getPhraseTemplates();
+void nuke_tombstone_blocks();

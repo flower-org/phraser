@@ -517,3 +517,46 @@ bool isTypeable(uint8_t permissions) {
 bool isViewable(uint8_t permissions) {
   return (permissions & VIEWABLE) != 0;
 }
+
+uint32_t get_valid_block_number_on_the_right_of(node_t* root, uint32_t block_number) {
+  node_t* valid_block_node = tree_higherKey(root, block_number);
+  if (valid_block_node == NULL) {
+    valid_block_node = tree_minimum(root);
+  }  
+  return valid_block_node->_data;
+}
+
+bool left_lookup_missing_block_number_found;
+uint32_t left_lookup_missing_block_number;
+bool left_lookup(data_t next_block_number) {
+  left_lookup_missing_block_number = left_lookup_missing_block_number - 1;
+  if (next_block_number < left_lookup_missing_block_number) {
+    left_lookup_missing_block_number_found = true;
+    return true;
+  }
+  return false;
+}
+
+uint32_t get_free_block_number_on_the_left_of(node_t* root, uint32_t block_number, uint32_t db_block_count) {
+  left_lookup_missing_block_number_found = false;
+  left_lookup_missing_block_number = block_number;
+  traverse_left_excl(root, block_number, left_lookup);
+  if (left_lookup_missing_block_number_found) {
+    return left_lookup_missing_block_number;
+  }
+
+  if (left_lookup_missing_block_number > 0 && left_lookup_missing_block_number <= tree_minimum(root)->_data) {
+    // if we traversed all numbers, didn't find any gaps but still didn't reach 0, the untraversed part is all free blocks 
+    return left_lookup_missing_block_number-1;
+  }
+
+  left_lookup_missing_block_number_found = false;
+  left_lookup_missing_block_number = db_block_count;
+  traverse_left_excl(root, db_block_count, left_lookup);
+  if (left_lookup_missing_block_number_found) {
+    return left_lookup_missing_block_number;
+  }
+
+  // If there are no free blocks, DB is in a bad state, offline repair needed.
+  return -1;
+}

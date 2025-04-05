@@ -532,49 +532,6 @@ UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size,
   return ERROR;
 }
 
-uint32_t get_valid_block_number_on_the_right_of(node_t* root, uint32_t block_number) {
-  node_t* valid_block_node = tree_higherKey(root, block_number);
-  if (valid_block_node == NULL) {
-    valid_block_node = tree_minimum(root);
-  }  
-  return valid_block_node->_data;
-}
-
-bool left_lookup_missing_block_number_found;
-uint32_t left_lookup_missing_block_number;
-bool left_lookup(data_t next_block_number) {
-  left_lookup_missing_block_number = left_lookup_missing_block_number - 1;
-  if (next_block_number < left_lookup_missing_block_number) {
-    left_lookup_missing_block_number_found = true;
-    return true;
-  }
-  return false;
-}
-
-uint32_t get_free_block_number_on_the_left_of(node_t* root, uint32_t block_number, uint32_t db_block_count) {
-  left_lookup_missing_block_number_found = false;
-  left_lookup_missing_block_number = block_number;
-  traverse_left_excl(root, block_number, left_lookup);
-  if (left_lookup_missing_block_number_found) {
-    return left_lookup_missing_block_number;
-  }
-
-  if (left_lookup_missing_block_number > 0 && left_lookup_missing_block_number <= tree_minimum(root)->_data) {
-    // if we traversed all numbers, didn't find any gaps but still didn't reach 0, the untraversed part is all free blocks 
-    return left_lookup_missing_block_number-1;
-  }
-
-  left_lookup_missing_block_number_found = false;
-  left_lookup_missing_block_number = db_block_count;
-  traverse_left_excl(root, db_block_count, left_lookup);
-  if (left_lookup_missing_block_number_found) {
-    return left_lookup_missing_block_number;
-  }
-
-  // If there are no free blocks, DB is in a bad state, offline repair needed.
-  return -1;
-}
-
 // returns block_number to which the main update shold go
 uint16_t throwbackCopy(uint32_t new_version) {
   serialDebugPrintf("t1.\r\n");
@@ -589,8 +546,8 @@ uint16_t throwbackCopy(uint32_t new_version) {
   serialDebugPrintf("t4 b2_block_number %d.\r\n", b2_block_number);
   uint32_t b3_block_number;
   serialDebugPrintf("t5.\r\n");
-
-  if (last_block_left()) {
+  
+  if (db_full()) {
     // In case we have only 1 free block, initially the only free block is B2.
     // Since B1 overwrites B2, after Throwback Copy B1 becomes the only free block.
     // Therefore the only place the main update can go to is B1
@@ -1010,8 +967,21 @@ UpdateResponse phraseMutation(int phrase_block_id,
   if (is_new_phrase) {
     // 1. check that db capacity is enough to add new block
     serialDebugPrintf("1.\r\n");
-    if (last_block_left()) {
+    if (db_full()) {
       return DB_FULL;
+    }
+    if (!db_has_non_tombstoned_space()) {
+      nuke_tombstone_blocks();
+    }
+    if (!db_has_non_tombstoned_space()) {
+      // Would indicate DB integrity issue, since
+      // 1. there have to be be tombstones (db_full()==TRUE; db_has_non_tombstoned_space()==FALSE)
+      // 2. (db_full()==TRUE) suggests that all tombstone blocks have exactly 1 copy
+      // 3. therefore a call to `nuke_tombstone_blocks()` which removes tombstone blocks with 1 or 
+      //    less copies from indices must create free blocks
+      // 4. And the fact that after that call `db_has_non_tombstoned_space()` still returns false, 
+      //    indicates an issue with our DB/cache/indices.
+      return ERROR;
     }
 
     // Create new PhraseBlock
@@ -1090,6 +1060,7 @@ UpdateResponse phraseMutation(int phrase_block_id,
     // 7. Free arraylists and else
     if (phrase_name != NULL) {
       // TODO: free if needed
+      // TODO: name comes from ScreenKeyboard so not needed
     }
 
     if (new_history != NULL) {
