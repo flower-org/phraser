@@ -818,6 +818,10 @@ bool db_full() {
   return free_block_count_with_tombstones() <= 1;
 }
 
+bool db_has_free_blocks() {
+  return free_block_count_without_tombstones() > 0;
+}
+
 void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value) {
   // Check and invalidate block if it's tombstoned and with 1 copy only
   uint16_t ts_block_id = key;
@@ -984,7 +988,9 @@ void dbCacheLoadReport() {
   serialDebugPrintf("db_block_count: %d \r\n", db_block_count());
   serialDebugPrintf("valid_block_count %d \r\n", valid_block_count());
   serialDebugPrintf("tombstonedBlockIds->size %d \r\n", tombstonedBlockIds->size);
-  serialDebugPrintf("free_block_count %d \r\n", free_block_count_with_tombstones());
+  serialDebugPrintf("free_block_count_with_tombstones %d \r\n", free_block_count_with_tombstones());
+  serialDebugPrintf("free_block_count_without_tombstones %d \r\n", free_block_count_without_tombstones());
+  serialDebugPrintf("db_has_free_blocks %s \r\n", db_has_free_blocks() ? "TRUE" : "FALSE");
   serialDebugPrintf("DbFull? %s \r\n", db_full() ? "TRUE" : "FALSE");
   serialDebugPrintf("DB_has_non_tombstoned_space? %s \r\n", db_has_non_tombstoned_space() ? "TRUE" : "FALSE");
   serialDebugPrintf("\r\n");

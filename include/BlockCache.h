@@ -136,3 +136,4 @@ SymbolSet* getSymbolSet(uint16_t symbol_set_id);
 
 hashtable* getPhraseTemplates();
 void nuke_tombstone_blocks();
+bool db_has_free_blocks();

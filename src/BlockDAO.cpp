@@ -964,6 +964,15 @@ UpdateResponse phraseMutation(int phrase_block_id,
   uint8_t block[block_size];
   uint32_t old_phrase_block_number;
 
+  if (!db_has_free_blocks()) {
+    // turn tombstoned blocks into free blocks
+    nuke_tombstone_blocks();
+  }
+  if (!db_has_free_blocks()) {
+    // DB integriy Error - at least one free or tombstoned block should be present at all times
+    return ERROR;
+  }
+
   if (is_new_phrase) {
     // 1. check that db capacity is enough to add new block
     serialDebugPrintf("1.\r\n");
