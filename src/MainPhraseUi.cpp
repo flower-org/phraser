@@ -31,14 +31,62 @@ MainPhraseUiPhase main_phrase_ui_phase = PHRASE_VIEW;
 
 struct WordAndTemplate {
   Word* word;
-  WordTemplate* word_template;
+  uint16_t word_template_id;
 };
+
+const int PHRASE_VIEW_RENAME_PHRASE = 1;
+const int PHRASE_VIEW_GENERATE_WORD = 2;
+const int PHRASE_VIEW_VIEW_WORD = 3;
+const int PHRASE_VIEW_EDIT_WORD = 4;
+const int PHRASE_VIEW_TYPE_WORD = 5;
+const int PHRASE_VIEW_CHANGE_PHRASE_TEMPLATE = 6;
+void initPhraseViewMenuScreenList(FullPhrase* phrase, WordAndTemplate* word_and_template) {
+  int menu_items_count = 2;
+
+  if (word_and_template != NULL) {
+    if (isGenerateable(word_and_template->word->permissions)) { menu_items_count++; }
+    if (isUserEditable(word_and_template->word->permissions)) { menu_items_count++; }
+    if (isTypeable(word_and_template->word->permissions)) { menu_items_count++; }
+    if (isViewable(word_and_template->word->permissions)) { menu_items_count++; }
+  }
+
+  int menu_item_cursor = 0;
+  ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
+
+  char text[350];
+  sprintf(text, "Rename phrase `%s`", phrase->phrase_name);
+  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Check, PHRASE_VIEW_RENAME_PHRASE);
+
+  if (word_and_template != NULL) {
+    if (isGenerateable(word_and_template->word->permissions)) {
+      sprintf(text, "Generate `%s`", word_and_template->word->name);
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Stars, PHRASE_VIEW_GENERATE_WORD);
+    }
+    if (isViewable(word_and_template->word->permissions)) {
+      sprintf(text, "View `%s`", word_and_template->word->name);
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_LookingGlass, PHRASE_VIEW_VIEW_WORD);
+    }
+    if (isUserEditable(word_and_template->word->permissions)) {
+      sprintf(text, "Edit `%s`", word_and_template->word->name);
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Check, PHRASE_VIEW_EDIT_WORD);
+    }
+    if (isTypeable(word_and_template->word->permissions)) {
+      sprintf(text, "Type `%s`", word_and_template->word->name);
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_TextOut, PHRASE_VIEW_TYPE_WORD);
+    }
+  }
+  
+  sprintf(text, "Change phrase template for `%s`", phrase->phrase_name);
+  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Copy, PHRASE_VIEW_CHANGE_PHRASE_TEMPLATE);
+  initList(screen_items, menu_items_count);
+  freeItemList(screen_items, menu_items_count);
+}
 
 const int UP_TO_PARENT_LEVEL = 101;
 const int DOWN_TO_HISTORY = 102;
 const int WORD_AND_TEMPLATE = 103;
 arraylist* words_and_templates = NULL;// arraylist<WordAndTemplate>
-void initCurrentPhraseScreenList(FullPhrase* phrase) {
+void initCurrentPhraseScreenList(FullPhrase* phrase, int selection) {
   if (words_and_templates != NULL) {
     for (int i = 0; i < arraylist_size(words_and_templates); i++) {
       WordAndTemplate* word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, i);  
@@ -76,7 +124,7 @@ void initCurrentPhraseScreenList(FullPhrase* phrase) {
     if (matching_word_id != -1) { matching_word = (Word*)arraylist_remove(words, matching_word_id); }
     WordAndTemplate* word_and_template = (WordAndTemplate*)malloc(sizeof(WordAndTemplate));
     word_and_template->word = matching_word;
-    word_and_template->word_template = word_template;
+    word_and_template->word_template_id = word_template->wordTemplateId;
 
     arraylist_add(words_and_templates, word_and_template);
   }
@@ -85,7 +133,7 @@ void initCurrentPhraseScreenList(FullPhrase* phrase) {
     Word* word = (Word*)arraylist_get(words, i);
     WordAndTemplate* word_and_template = (WordAndTemplate*)malloc(sizeof(WordAndTemplate));
     word_and_template->word = word;
-    word_and_template->word_template = NULL;
+    word_and_template->word_template_id = -1;
 
     arraylist_add(words_and_templates, word_and_template);
   }
@@ -99,12 +147,14 @@ void initCurrentPhraseScreenList(FullPhrase* phrase) {
 
   for (int i = 0; i < arraylist_size(words_and_templates); i++) {
     WordAndTemplate* word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, i);
+    WordTemplate* word_template = getWordTemplate(word_and_template->word_template_id);
 
-    char* text = word_and_template->word_template == NULL ? word_and_template->word->name : word_and_template->word_template->wordTemplateName;
+
+    char* text = word_template == NULL ? word_and_template->word->name : word_template->wordTemplateName;
     phraser_Icon_enum_t icon;
-    if (word_and_template->word_template != NULL && word_and_template->word != NULL) {
-      icon = word_and_template->word_template->icon;
-    } else if (word_and_template->word_template == NULL) {
+    if (word_template != NULL && word_and_template->word != NULL) {
+      icon = word_template->icon;
+    } else if (word_template == NULL) {
       icon = phraser_Icon_Question;
     } else if (word_and_template->word == NULL) {
       icon = phraser_Icon_X;
@@ -115,7 +165,8 @@ void initCurrentPhraseScreenList(FullPhrase* phrase) {
   screen_items[menu_item_cursor++] = createListItemWithCode("->History", phraser_Icon_Ledger, DOWN_TO_HISTORY);
 
   //initialize Screen List
-  initList(screen_items, menu_items_count);
+  if (selection >= menu_items_count) { selection = 0; }
+  initList(screen_items, menu_items_count, selection);
   freeItemList(screen_items, menu_items_count);
 }
 
@@ -123,25 +174,24 @@ FullPhrase* current_phrase = NULL;
 void initPhrase(FullPhrase* phrase) {
   current_phrase = phrase; 
   main_phrase_ui_phase = PHRASE_VIEW;
-  initCurrentPhraseScreenList(current_phrase);
+  initCurrentPhraseScreenList(current_phrase, 0);
 }
 
 // ----------------------------------------------------------------------------
 
 bool mainPhraseViewAction(int chosen_item, int code) {
   if (code == UP_TO_PARENT_LEVEL) {
+    // Returning false from here moves back to Folders UI
     return false;
+  } else if (code == DOWN_TO_HISTORY) {
+    // TODO: switch to History View
+  } else {
+    // Phrase Action - if typeable - type, if not typeable and viewable - view
   }
 
   return true;
 }
 
-const int PHRASE_VIEW_RENAME_PHRASE = 1;
-const int PHRASE_VIEW_GENERATE_WORD = 2;
-const int PHRASE_VIEW_VIEW_WORD = 3;
-const int PHRASE_VIEW_EDIT_WORD = 4;
-const int PHRASE_VIEW_TYPE_WORD = 5;
-const int PHRASE_VIEW_CHANGE_PHRASE_TEMPLATE = 6;
 void mainPhraseViewMenuAction(int chosen_item, int code) {
   //
 }
@@ -158,24 +208,24 @@ bool isPhraseMenuPhase() {
   return false;
 }
 
-
+int init_phrase_view_selection = 0;
 void init_phrase_view(int chosen_item) {
   main_phrase_ui_phase = PHRASE_VIEW;
-  initCurrentPhraseScreenList(current_phrase);
+  initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
 }
 
 void init_phrase_view_menu(int chosen_item) {
-  main_phrase_ui_phase = PHRASE_VIEW_MENU;
-
-/*  FolderPhraseId* selection = getFolderBrowserSelection(chosen_item);
-  if (selection != NULL) {
-    selected_folder_id = selection->folder_id;
-    selected_phrase_id = selection->phrase_id;
-  } else {
-    selected_folder_id = -1;
-    selected_phrase_id = -1;
+  WordAndTemplate* word_and_template = NULL;
+  init_phrase_view_selection = chosen_item;
+  if (chosen_item > 0) {
+    int index = chosen_item - 1;
+    if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+      word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+    }
   }
-*/
+
+  main_phrase_ui_phase = PHRASE_VIEW_MENU;
+  initPhraseViewMenuScreenList(current_phrase, word_and_template);
 }
 
 // -------------------------------------------------------------------------------

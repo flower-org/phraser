@@ -298,6 +298,10 @@ void init_folder_menu(int chosen_item) {
   ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
 
   char text[350];
+  Folder* folder = getFolder(folder_browser_folder_id);
+  sprintf(text, "New phrase under `%s`", folder->folderName);
+  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_PHRASE);
+
   if (selected_folder != NULL) {
     sprintf(text, "Rename folder `%s`", selected_folder->folderName);
     screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Check, FOLDER_MENU_RENAME_FOLDER);
@@ -315,9 +319,6 @@ void init_folder_menu(int chosen_item) {
     screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Login, FOLDER_MENU_MOVE_PHRASE);
   }
 
-  Folder* folder = getFolder(folder_browser_folder_id);
-  sprintf(text, "New phrase under `%s`", folder->folderName);
-  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_PHRASE);
   sprintf(text, "New folder under `%s`", folder->folderName);
   screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_FOLDER);
   initList(screen_items, menu_items_count);
