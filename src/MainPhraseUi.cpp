@@ -295,7 +295,7 @@ void initCurrentPhraseScreenList(FullPhrase* phrase, int selection) {
 }
 
 FullPhrase* current_phrase = NULL;
-bool initPhraseView(int phrase_block_id) {
+void reloadCurrentPhrase(int phrase_block_id) {
   // don't reuse loaded phrase, aways free and re-load (in case it's updated from folder menus)
   if (current_phrase != NULL) {
     releaseFullPhrase(current_phrase);
@@ -303,6 +303,10 @@ bool initPhraseView(int phrase_block_id) {
   }
 
   current_phrase = getFullPhrase(phrase_block_id);
+}
+
+bool initPhraseView(int phrase_block_id) {
+  reloadCurrentPhrase(phrase_block_id);
   if (current_phrase == NULL) {
     return false;
   }
@@ -596,9 +600,7 @@ void init_phrase_history_entry_view_menu(int chosen_item) {
 
 // -------------------------------------------------------------------------------
 
-
-
-void phraseDialogActionsLoop(Thumby* thumby) {
+bool phraseDialogActionsLoop(Thumby* thumby) {
   switch (main_phrase_ui_phase) {
     case PHRASE_VIEW_OPERATION_ERROR_REPORT:
     case VIEW_WORD: {
@@ -697,6 +699,10 @@ void phraseDialogActionsLoop(Thumby* thumby) {
         UpdateResponse phrase_template_change_response = changePhraseTemplate(current_phrase->phrase_block_id, new_phrase_template_id);
 
         if (phrase_template_change_response == OK) {
+          reloadCurrentPhrase(current_phrase->phrase_block_id);
+          if (current_phrase == NULL) {
+            return false;
+          }
           initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
           main_phrase_ui_phase = PHRASE_VIEW;
         } else {
@@ -716,6 +722,7 @@ void phraseDialogActionsLoop(Thumby* thumby) {
     }
     break;
   }
+  return true;
 }
 
 void phraseMenuSwitch(int chosen_item) {
@@ -769,7 +776,7 @@ bool phraserPhraseUiLoop(Thumby* thumby) {
     }
   } else {
     // Dialog phase
-    phraseDialogActionsLoop(thumby);
+    return phraseDialogActionsLoop(thumby);
   }
   // TODO: return false to get back to folders menu
   return true;
