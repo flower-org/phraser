@@ -763,7 +763,40 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
     case GENERATE_WORD_YES_NO: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_YES) {
-        // TODO: implement
+        UpdateResponse generate_word_response = ERROR;
+        if (init_phrase_view_selection > 0) {
+          int index = init_phrase_view_selection - 1;
+
+          PhraseTemplate* phrase_template = getPhraseTemplate(current_phrase->phrase_template_id);
+          if (index >= 0 && index < arraylist_size(phrase_template->wordTemplateIds)) {
+            uint16_t word_template_id = (uint32_t)arraylist_get(phrase_template->wordTemplateIds, index);
+            uint8_t word_template_ordinal = (uint32_t)arraylist_get(phrase_template->wordTemplateOrdinals, index);
+        
+            generate_word_response = generatePhraseWord(current_phrase->phrase_block_id, current_phrase->phrase_template_id,
+              word_template_id, word_template_ordinal);
+          }
+        }
+
+        if (generate_word_response == OK) {
+          reloadCurrentPhrase(current_phrase->phrase_block_id);
+          if (current_phrase == NULL) {
+            return false;
+          }
+          initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
+          main_phrase_ui_phase = PHRASE_VIEW;
+        } else {
+          if (generate_word_response == ERROR) {
+            char* text = "Generate word ERROR.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (generate_word_response == DB_FULL) {
+            char* text = "Database full. (Likely an issue, we updating word)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (generate_word_response == BLOCK_SIZE_EXCEEDED) {
+            char* text = "Block size exceeded.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          }
+          main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+        }
       } else if (result == DLG_RES_NO) {
         WordAndTemplate* word_and_template = NULL;
         if (init_phrase_view_selection > 0) {

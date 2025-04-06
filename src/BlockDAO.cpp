@@ -394,8 +394,7 @@ UpdateResponse updateVersionAndEntropyKeyBlock(uint8_t* block, uint16_t block_si
 
   phraser_KeyBlock_end_as_root(&builder);
 
-  wrapUpBlock(phraser_BlockType_KeyBlock, &builder, block, key_block_key, key_block_mask);
-  return OK;
+  return wrapUpBlock(phraser_BlockType_KeyBlock, &builder, block, key_block_key, key_block_mask);
 }
 
 UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version) {
@@ -424,8 +423,7 @@ UpdateResponse updateVersionAndEntropySymbolSetsBlock(uint8_t* block, uint16_t b
 
   phraser_SymbolSetsBlock_end_as_root(&builder);
 
-  wrapUpBlock(phraser_BlockType_SymbolSetsBlock, &builder, block, aes_key, aes_iv_mask);
-  return OK;
+  return wrapUpBlock(phraser_BlockType_SymbolSetsBlock, &builder, block, aes_key, aes_iv_mask);
 }
 
 //arraylist<DAOFolder> new_folders
@@ -463,8 +461,7 @@ UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t bloc
 
   phraser_FoldersBlock_end_as_root(&builder);
 
-  wrapUpBlock(phraser_BlockType_FoldersBlock, &builder, block, aes_key, aes_iv_mask);
-  return OK;
+  return wrapUpBlock(phraser_BlockType_FoldersBlock, &builder, block, aes_key, aes_iv_mask);
 }
 
 UpdateResponse updateVersionAndEntropyFoldersBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version) {
@@ -502,8 +499,7 @@ UpdateResponse updateVersionAndEntropyPhraseTemplatesBlock(uint8_t* block, uint1
 
   phraser_PhraseTemplatesBlock_end_as_root(&builder);
 
-  wrapUpBlock(phraser_BlockType_PhraseTemplatesBlock, &builder, block, aes_key, aes_iv_mask);
-  return OK;
+  return wrapUpBlock(phraser_BlockType_PhraseTemplatesBlock, &builder, block, aes_key, aes_iv_mask);
 }
 
 UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version,
@@ -559,8 +555,7 @@ UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block
 
   phraser_PhraseBlock_end_as_root(&builder);
 
-  wrapUpBlock(phraser_BlockType_PhraseBlock, &builder, block, aes_key, aes_iv_mask);
-  return OK;
+  return wrapUpBlock(phraser_BlockType_PhraseBlock, &builder, block, aes_key, aes_iv_mask);
 }
 
 UpdateResponse updateVersionAndEntropyPhraseBlock(uint8_t* block, uint16_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask, uint32_t new_version) {
