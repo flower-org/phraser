@@ -12,6 +12,7 @@
  
  #define HASHTABLE_INITIAL_CAPACITY 4
  uint32_t HASHTABLE_NULL_KEY = -1;
+ uint32_t HASHTABLE_TS_KEY = -2;
 
  /** Mega hash function check it out */
  unsigned long hashtable_hash(uint32_t key)
@@ -29,16 +30,29 @@
  unsigned int hashtable_find_slot(hashtable* t, uint32_t key)
  {
 	int index = hashtable_hash(key) % t->capacity;
-	//This won't infinite loop, because we pre-emptively resize on "set" on 80% capacity reached.
-	while (t->body[index].key != HASHTABLE_NULL_KEY && key_cmp(t->body[index].key, key) != 0) {
+	int iter = 0;//Keep track of iterations so we don't go into infinite loop
+	int first_ts_index = -1;//Keep track of first TS found along the way
+
+	while (t->body[index].key != HASHTABLE_NULL_KEY && key_cmp(t->body[index].key, key) != 0 && iter < t->capacity) {
+		if (first_ts_index == -1 && t->body[index].key == HASHTABLE_TS_KEY) {
+			first_ts_index = index;
+		}
 		index = (index + 1) % t->capacity;
+		iter++;
+	}
+
+	// We prioritize overwriting tombstones over NULL_KEYs whenever possible.
+	// because NULL_KEYs help to terminate traversal early so we'd like to preserve 
+	// them for as long as possible.
+	if (iter >= t->capacity || (t->body[index].key == HASHTABLE_NULL_KEY && first_ts_index != -1)) {
+		index = first_ts_index;
 	}
 	return index;
  }
  
  void hashtable_iterate_entries(hashtable *t, void (*func)(hashtable *t, uint32_t key, void* value)) {
 		for (int i = 0; i < t->capacity; i++) {
-			if (t->body[i].key != HASHTABLE_NULL_KEY) {
+			if (t->body[i].key != HASHTABLE_NULL_KEY && t->body[i].key != HASHTABLE_TS_KEY) {
 				func(t, t->body[i].key, t->body[i].value);
 			}
 		}	
@@ -46,7 +60,7 @@
 
  bool hashtable_exists(hashtable *t,uint32_t key) {
 		int index = hashtable_find_slot(t, key);
-		if (t->body[index].key != HASHTABLE_NULL_KEY) {
+		if (t->body[index].key != HASHTABLE_NULL_KEY && t->body[index].key != HASHTABLE_TS_KEY) {
 			return true;
 		} else {
 			return false;
@@ -58,8 +72,8 @@
 	*/
  void* hashtable_get(hashtable* t, uint32_t key)
  {
-	 int index = hashtable_find_slot(t, key);
-	 if (t->body[index].key != HASHTABLE_NULL_KEY) {
+   int index = hashtable_find_slot(t, key);
+	 if (t->body[index].key != HASHTABLE_NULL_KEY && t->body[index].key != HASHTABLE_TS_KEY) {
 		 return t->body[index].value;
 	 } else {
 		 return NULL;
@@ -72,9 +86,10 @@
  void* hashtable_set(hashtable* t, uint32_t key, void* value)
  {
 	 int index = hashtable_find_slot(t, key);
-	 if (t->body[index].key != HASHTABLE_NULL_KEY) {
+	 if (t->body[index].key != HASHTABLE_NULL_KEY && t->body[index].key != HASHTABLE_TS_KEY) {
 		 /* Entry exists; update it. */
 		 void* old_val = t->body[index].value;
+		 t->body[index].key = key;
 		 t->body[index].value = value;
 		 return old_val;
 	 } else {
@@ -97,8 +112,8 @@
  void* hashtable_remove(hashtable* t, uint32_t key)
  {
 	 int index = hashtable_find_slot(t, key);
-	 if (t->body[index].key != HASHTABLE_NULL_KEY) {
-		 t->body[index].key = HASHTABLE_NULL_KEY;
+	 if (t->body[index].key != HASHTABLE_NULL_KEY && t->body[index].key != HASHTABLE_TS_KEY) {
+		 t->body[index].key = HASHTABLE_TS_KEY;
 		 void* old_val = t->body[index].value;
 		 t->body[index].value = NULL;
 		 t->size--;
@@ -147,7 +162,7 @@
  
 	 // Copy all the old values into the newly allocated body
 	 for (int i = 0; i < old_capacity; i++) {
-		 if (old_body[i].key != HASHTABLE_NULL_KEY) {
+		 if (old_body[i].key != HASHTABLE_NULL_KEY && old_body[i].key != HASHTABLE_TS_KEY) {
 			 hashtable_set(t, old_body[i].key, old_body[i].value);
 		 }
 	 }
