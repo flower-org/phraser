@@ -18,6 +18,7 @@ enum MainPhraseUiPhase {
 
   // Word Actions
   VIEW_WORD,
+  VIEW_HISTORY_ENTRY_WORD,
 
   EDIT_WORD_YES_NO,
   ENTER_NEW_WORD,
@@ -134,6 +135,27 @@ void initPhraseHistoryMenuScreenList(PhraseHistory* phrase_history, int history_
   freeItemList(screen_items, menu_items_count);
 }
 
+const int UP_TO_PHRASE_HISTORY_LEVEL = 401;
+const int HISTORY_ENTRY_WORD = 402;
+void initPhraseHistoryEntryScreenList(PhraseHistory* history_entry, int selection) {
+  int menu_items_count = arraylist_size(history_entry->phrase) + 1;
+  
+  int menu_item_cursor = 0;
+  ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
+
+  screen_items[menu_item_cursor++] = createListItemWithCode("..", phraser_Icon_ToParentFolder, UP_TO_PHRASE_HISTORY_LEVEL);
+
+  for (int i = 0; i < arraylist_size(history_entry->phrase); i++) {
+    Word* word = (Word*)arraylist_get(history_entry->phrase, i);
+    screen_items[menu_item_cursor++] = createListItemWithCode(word->name, word->icon, HISTORY_ENTRY_WORD);
+  }
+
+  //initialize Screen List
+  if (selection >= menu_items_count) { selection = 0; }
+  initList(screen_items, menu_items_count, selection);
+  freeItemList(screen_items, menu_items_count);
+}
+
 const int UP_TO_PARENT_LEVEL = 101;
 const int DOWN_TO_HISTORY = 102;
 const int WORD_AND_TEMPLATE = 103;
@@ -238,11 +260,61 @@ void typeWord(char* word, int word_length) {
   }
 }
 
+PhraseHistory* current_history_entry;
+int init_phrase_history_view_selection = 0;
+int init_phrase_history_entry_view_selection = 0;
+void phraseHistoryEntryViewAction(int chosen_item, int code) {
+  if (code == UP_TO_PHRASE_HISTORY_LEVEL) {
+    initCurrentPhraseHistoryScreenList(current_phrase, init_phrase_history_view_selection);
+    main_phrase_ui_phase = PHRASE_HISTORY;
+  } else if (code == HISTORY_ENTRY_WORD) {
+    Word* word = NULL;
+    init_phrase_history_entry_view_selection = chosen_item;
+    if (chosen_item > 0) {
+      int index = chosen_item - 1;
+      if (current_history_entry != NULL && current_history_entry->phrase != NULL && index < arraylist_size(current_history_entry->phrase)) {
+        word = (Word*)arraylist_get(current_history_entry->phrase, index);
+      }
+    }
+
+    if (word != NULL) {
+      if (isTypeable(word->permissions)) {
+        // Type word
+        typeWord(word->word, strlen(word->word));
+      } else if (isViewable(word->permissions)) {
+        // View word
+        initTextAreaDialog(word->word, strlen(word->word), TEXT_AREA);
+        main_phrase_ui_phase = VIEW_HISTORY_ENTRY_WORD;
+      }
+    }
+  }
+}
+
+void phraseHistoryEntryViewMenuAction(int chosen_item, int code) {
+  //
+}
+
 int init_phrase_view_selection = 0;
+
 void phraseHistoryViewAction(int chosen_item, int code) {
   if (code == UP_TO_PHRASE_LEVEL) {
     initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
     main_phrase_ui_phase = PHRASE_VIEW;
+  } else if (code == HISTORY_ENTRY) {
+    // switch to History Entry View
+    init_phrase_history_view_selection = chosen_item;
+    if (chosen_item > 0) {
+      int index = chosen_item - 1;
+
+      if (current_phrase != NULL && current_phrase->history != NULL && index < arraylist_size(current_phrase->history)) {
+        current_history_entry = (PhraseHistory*)arraylist_get(current_phrase->history, index);
+      }
+
+      if (current_history_entry != NULL) {
+        main_phrase_ui_phase = PHRASE_HISTORY_ENTRY;
+        initPhraseHistoryEntryScreenList(current_history_entry/*, index*/, 0);
+      }
+    }
   }
 }
 
@@ -366,7 +438,6 @@ void init_phrase_view_menu(int chosen_item) {
   initPhraseViewMenuScreenList(current_phrase, word_and_template, 0);
 }
 
-int init_phrase_history_view_selection = 0;
 void init_phrase_history_view(int chosen_item) {
   main_phrase_ui_phase = PHRASE_HISTORY;
   initCurrentPhraseHistoryScreenList(current_phrase, init_phrase_history_view_selection);
@@ -382,9 +453,20 @@ void init_phrase_history_view_menu(int chosen_item) {
       phrase_history = (PhraseHistory*)arraylist_get(current_phrase->history, index);
     }
 
-    main_phrase_ui_phase = PHRASE_HISTORY_MENU;
-    initPhraseHistoryMenuScreenList(phrase_history, index, 0);
+    if (phrase_history == NULL) {
+      main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+      initPhraseHistoryMenuScreenList(phrase_history, index, 0);
+    }
   }
+}
+
+void init_phrase_history_entry_view(int chosen_item) {
+  main_phrase_ui_phase = PHRASE_HISTORY;
+  initPhraseHistoryEntryScreenList(current_history_entry, init_phrase_history_entry_view_selection);
+}
+
+void init_phrase_history_entry_view_menu(int chosen_item) {
+  //
 }
 
 // -------------------------------------------------------------------------------
@@ -399,11 +481,12 @@ void phraseDialogActionsLoop(Thumby* thumby) {
       }
     }
     break;
+    case VIEW_HISTORY_ENTRY_WORD:
     case VIEW_WORD: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_OK) {
         initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
-        main_phrase_ui_phase = PHRASE_VIEW;
+        main_phrase_ui_phase = main_phrase_ui_phase == VIEW_WORD ? PHRASE_VIEW : PHRASE_HISTORY_ENTRY;
       }
     }
     break;
@@ -426,9 +509,11 @@ void phraseMenuSwitch(int chosen_item) {
         init_phrase_history_view(chosen_item);
         break;
     case PHRASE_HISTORY_ENTRY: 
+        init_phrase_history_entry_view_menu(chosen_item);
         main_phrase_ui_phase = PHRASE_HISTORY_ENTRY_MENU; 
         break;
     case PHRASE_HISTORY_ENTRY_MENU: 
+        init_phrase_history_entry_view(chosen_item);
         main_phrase_ui_phase = PHRASE_HISTORY_ENTRY; 
         break;
   }
@@ -440,8 +525,8 @@ bool runMainPhraseUiPhaseAction(int chosen_item, int code) {
     case PHRASE_VIEW_MENU: mainPhraseViewMenuAction(chosen_item, code); break;
     case PHRASE_HISTORY: phraseHistoryViewAction(chosen_item, code); break;
     case PHRASE_HISTORY_MENU: phraseHistoryViewMenuAction(chosen_item, code); break;
-    case PHRASE_HISTORY_ENTRY:
-    case PHRASE_HISTORY_ENTRY_MENU:
+    case PHRASE_HISTORY_ENTRY: phraseHistoryEntryViewAction(chosen_item, code); break;
+    case PHRASE_HISTORY_ENTRY_MENU: phraseHistoryEntryViewMenuAction(chosen_item, code); break;
     default: return true;
   }
   return true;
