@@ -61,7 +61,7 @@ void initPhraseViewMenuScreenList(FullPhrase* phrase, WordAndTemplate* word_and_
   ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
 
   char text[350];
-  sprintf(text, "Rename phrase `%s`", phrase->phrase_name);
+  sprintf(text, "`%s` Rename phrase", phrase->phrase_name);
   screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Check, PHRASE_VIEW_RENAME_PHRASE);
 
   if (word_and_template != NULL) {
