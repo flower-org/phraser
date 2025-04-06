@@ -1011,7 +1011,7 @@ UpdateResponse phraseMutation(int phrase_block_id,
                               char* (*phraseNameMutation)(flatbuffers_string_t phraseName),
                               bool (*tombstoneMutation)(bool tombstone),
                               //arraylist<PhraseHistory>
-                              arraylist* (*phraseHistoryMutation)(phraser_PhraseHistory_vec_t* history_vec)
+                              arraylist* (*phraseHistoryMutation)(phraser_PhraseHistory_vec_t history_vec)
                             ) {
   initRandomIfNeeded();
   bool is_new_phrase = phrase_block_id <= -1;
@@ -1112,7 +1112,7 @@ UpdateResponse phraseMutation(int phrase_block_id,
     }
     if (phraseHistoryMutation != NULL) {
       phraser_PhraseHistory_vec_t phrase_history_vec = phraser_PhraseBlock_history(phrase_block);
-      new_history = phraseHistoryMutation(&phrase_history_vec);
+      new_history = phraseHistoryMutation(phrase_history_vec);
     }
 
     // 4.1 Form versions
@@ -1253,18 +1253,110 @@ UpdateResponse changePhraseTemplate(uint16_t phrase_block_id, uint16_t phrase_te
   return update_response;
 }
 
+PhraseHistory* convertPhraseHistory(phraser_PhraseHistory_table_t *history);
+Word* createWord(uint16_t word_template_id, uint8_t word_template_ordinal, 
+  char* name, int name_length,  char* word, int word_length, uint8_t permissions, phraser_Icon_enum_t icon);
+
+PhraseHistory* createNewPhraseHistory(phraser_PhraseHistory_table_t *history,
+  uint16_t new_phrase_template_id, uint16_t new_word_template_id, uint8_t new_word_template_ordinal, char* new_word, uint16_t new_word_length) {
+  // Deserialize supplied history
+  PhraseHistory* old_history0 = convertPhraseHistory(history);
+
+  PhraseHistory* new_history = (PhraseHistory*)malloc(sizeof(PhraseHistory));
+  new_history->phrase_template_id = new_phrase_template_id;
+  new_history->phrase = arraylist_create();
+
+  PhraseTemplate* phrase_template = getPhraseTemplate(new_phrase_template_id);
+  for (int i = 0; i < arraylist_size(phrase_template->wordTemplateIds); i++) {
+    uint16_t word_template_id = (uint32_t)arraylist_get(phrase_template->wordTemplateIds, i);
+    uint8_t word_template_ordinal = (uint32_t)arraylist_get(phrase_template->wordTemplateOrdinals, i);
+    WordTemplate* word_template = getWordTemplate(word_template_id);
+    if (word_template == NULL) {
+      //TODO: error handling
+      continue;
+    }
+
+    Word* matching_word = NULL;
+    if (word_template_id == new_word_template_id && word_template_ordinal == new_word_template_ordinal) {
+      matching_word = createWord(word_template_id, word_template_ordinal, word_template->wordTemplateName, strlen(word_template->wordTemplateName),
+        new_word, new_word_length, word_template->permissions, word_template->icon);
+    } else {
+      //TODO: optimizable with hashtable
+      int matching_word_id = -1;
+      for (int j = 0; j < arraylist_size(old_history0->phrase); j++) {
+        Word* word = (Word*)arraylist_get(old_history0->phrase, j);
+        if (word->word_template_id == word_template_id && word->word_template_ordinal == word_template_ordinal) {
+          matching_word_id = j;
+        }
+      }
+
+      if (matching_word_id != -1) { matching_word = (Word*)arraylist_remove(old_history0->phrase, matching_word_id); }
+    }
+
+    if (matching_word == NULL) {
+      // generate generateable words, create non-generateable words empty
+      char* word_value = generateWordOrReturnEmptyStr(word_template);
+      matching_word = createWord(word_template_id, word_template_ordinal, word_template->wordTemplateName, strlen(word_template->wordTemplateName),
+        word_value, strlen(word_value), word_template->permissions, word_template->icon);
+      free(word_value);
+    }
+
+    arraylist_add(new_history->phrase, matching_word);
+  }
+
+  releaseFullPhraseHistory(old_history0);
+
+  return new_history;
+}
+
+uint16_t new_history_phrase_template_id;
+uint16_t new_history_word_template_id;
+uint8_t new_history_word_template_ordinal;
+char* new_history_new_word;
+uint16_t new_history_new_word_length;
 //arraylist<PhraseHistory>
-arraylist* new_phrase_history_mutation(phraser_PhraseHistory_vec_t* history_vec) {
-  return NULL;
+arraylist* new_phrase_history_mutation(phraser_PhraseHistory_vec_t phrase_history_vec) {
+  arraylist* full_phrase_history = arraylist_create();
+
+  // TODO: add truncate logic
+  size_t old_phrase_history_vec_length = flatbuffers_vec_len(phrase_history_vec);
+  for (int i = 0; i < old_phrase_history_vec_length; i++) {
+    phraser_PhraseHistory_table_t history = phraser_PhraseHistory_vec_at(phrase_history_vec, i);
+
+    if (i == 0) {
+      // add new history first
+      PhraseHistory* new_phrase_history = createNewPhraseHistory(&history, new_history_phrase_template_id, new_history_word_template_id, new_history_word_template_ordinal, 
+        new_history_new_word, new_history_new_word_length);
+      arraylist_add(full_phrase_history, new_phrase_history);
+    }
+
+    PhraseHistory* phrase_history = convertPhraseHistory(&history);
+    arraylist_add(full_phrase_history, phrase_history);
+  }
+
+  return full_phrase_history;
 }
 
-UpdateResponse updatePhraseWord(uint16_t phrase_block_id, uint16_t word_template_id, uint8_t word_template_ordinal, char* new_word, uint16_t new_word_length) {
+UpdateResponse updatePhraseWord(uint16_t phrase_block_id, uint16_t phrase_template_id, uint16_t word_template_id, uint8_t word_template_ordinal, char* new_word, uint16_t new_word_length) {
   initRandomIfNeeded();
-  // TODO: implement
-  return ERROR;
+
+  new_history_phrase_template_id = phrase_template_id;
+  new_history_word_template_id = word_template_id; 
+  new_history_word_template_ordinal =word_template_ordinal;
+  new_history_new_word = new_word;
+  new_history_new_word_length = new_word_length;
+  
+  UpdateResponse update_response = phraseMutation(phrase_block_id, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    new_phrase_history_mutation
+  );
+  return update_response;
 }
 
-UpdateResponse generatePhraseWord(uint16_t phrase_block_id, uint16_t word_template_id, uint8_t word_template_ordinal) {
+UpdateResponse generatePhraseWord(uint16_t phrase_block_id, uint16_t phrase_template_id, uint16_t word_template_id, uint8_t word_template_ordinal) {
   WordTemplate* word_template = getWordTemplate(word_template_id);
   if (word_template == NULL) {
     return ERROR;
@@ -1276,10 +1368,12 @@ UpdateResponse generatePhraseWord(uint16_t phrase_block_id, uint16_t word_templa
 
   // generate generateable word, create non-generateable words empty
   char* new_word = generateWordOrReturnEmptyStr(word_template);
-  return updatePhraseWord(phrase_block_id, word_template_id, word_template_ordinal, new_word, strlen(new_word));
+  UpdateResponse update_response = updatePhraseWord(phrase_block_id, phrase_template_id, word_template_id, word_template_ordinal, new_word, strlen(new_word));
+  free(new_word);
+  return update_response;
 }
 
-UpdateResponse userEditPhraseWord(uint16_t phrase_block_id, uint16_t word_template_id, uint8_t word_template_ordinal, char* new_word, uint16_t new_word_length) {
+UpdateResponse userEditPhraseWord(uint16_t phrase_block_id, uint16_t phrase_template_id, uint16_t word_template_id, uint8_t word_template_ordinal, char* new_word, uint16_t new_word_length) {
   WordTemplate* word_template = getWordTemplate(word_template_id);
   if (word_template == NULL) {
     return ERROR;
@@ -1289,7 +1383,7 @@ UpdateResponse userEditPhraseWord(uint16_t phrase_block_id, uint16_t word_templa
     return ERROR;
   }
 
-  return updatePhraseWord(phrase_block_id, word_template_id, word_template_ordinal, new_word, new_word_length);
+  return updatePhraseWord(phrase_block_id, phrase_template_id, word_template_id, word_template_ordinal, new_word, new_word_length);
 }
 
 UpdateResponse deletePhraseHistory(uint16_t phrase_block_id, uint16_t phrase_history_index) {
@@ -1306,19 +1400,27 @@ UpdateResponse makePhraseHistoryCurrent(uint16_t phrase_block_id, uint16_t phras
 
 // ------------------------------------------------------
 
-Word* convertWord(phraser_Word_table_t *word_fb) {
-  Word* word = (Word*)malloc(sizeof(Word));
+Word* createWord(uint16_t word_template_id, uint8_t word_template_ordinal, 
+  char* name, int name_length,  char* word, int word_length, uint8_t permissions, phraser_Icon_enum_t icon) {
+  Word* word_obj = (Word*)malloc(sizeof(Word));
 
-  word->word_template_id = phraser_Word_word_template_id(*word_fb);
-  word->word_template_ordinal = phraser_Word_word_template_ordinal(*word_fb);
+  word_obj->word_template_id = word_template_id;
+  word_obj->word_template_ordinal = word_template_ordinal;
+  word_obj->name = copyString(name, name_length);
+  word_obj->word = copyString(word, word_length);
+  word_obj->permissions = permissions;
+  word_obj->icon = icon;
+
+  return word_obj;
+}
+
+Word* convertWord(phraser_Word_table_t *word_fb) {
   flatbuffers_string_t word_name = phraser_Word_name(*word_fb);
-  size_t word_name_length = flatbuffers_string_len(word_name);
-  word->name = copyString((char*)word_name, word_name_length);
   flatbuffers_string_t word_word = phraser_Word_word(*word_fb);
-  size_t word_word_length = flatbuffers_string_len(word_word);
-  word->word = copyString((char*)word_word, word_word_length);
-  word->permissions = phraser_Word_permissions(*word_fb);
-  word->icon = phraser_Word_icon(*word_fb);
+
+  Word* word = createWord(phraser_Word_word_template_id(*word_fb), phraser_Word_word_template_ordinal(*word_fb), (char*)word_name, 
+        flatbuffers_string_len(word_name), (char*)word_word, flatbuffers_string_len(word_word), phraser_Word_permissions(*word_fb), 
+        phraser_Word_icon(*word_fb));
 
   return word;
 }
