@@ -189,7 +189,7 @@ void typeWord(char* word, int word_length) {
   }
 }
 
-int init_phrase_view_menu_selection;
+int init_phrase_view_selection = 0;
 bool mainPhraseViewAction(int chosen_item, int code) {
   if (code == UP_TO_PARENT_LEVEL) {
     // Returning false from here moves back to Folders UI
@@ -198,7 +198,7 @@ bool mainPhraseViewAction(int chosen_item, int code) {
     // TODO: switch to History View
   } else if (code == WORD_AND_TEMPLATE) {
     WordAndTemplate* word_and_template = NULL;
-    init_phrase_view_menu_selection = chosen_item;
+    init_phrase_view_selection = chosen_item;
     if (chosen_item > 0) {
       int index = chosen_item - 1;
       if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
@@ -208,14 +208,22 @@ bool mainPhraseViewAction(int chosen_item, int code) {
 
     if (word_and_template == NULL) {
       // ERROR: word and template not chosen
-    } else if (word_and_template->word == NULL) {
+      char* text = "ERROR: Word and Word template not chosen.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+    } else if (word_and_template->word == NULL || word_and_template->word->word == NULL || strlen(word_and_template->word->word) == 0) {
       // ERROR: word has no value, generate or edit
+      char* text = "Word has no value assigned\nGenerate or edit.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
     } else {
       if (isTypeable(word_and_template->word->permissions)) {
         // Type word
         typeWord(word_and_template->word->word, strlen(word_and_template->word->word));
       } else if (isViewable(word_and_template->word->permissions)) {
-        //TODO: view
+        // View word
+        initTextAreaDialog(word_and_template->word->word, strlen(word_and_template->word->word), TEXT_AREA);
+        main_phrase_ui_phase = VIEW_WORD;
       }
     }
   }
@@ -224,7 +232,44 @@ bool mainPhraseViewAction(int chosen_item, int code) {
 }
 
 void mainPhraseViewMenuAction(int chosen_item, int code) {
-  //
+  if (code == PHRASE_VIEW_RENAME_PHRASE) {
+    // TODO: Rename Phrase
+  } else if (code == PHRASE_VIEW_CHANGE_PHRASE_TEMPLATE) {
+    // TODO: Change Phrase Template
+  } else if (code == PHRASE_VIEW_GENERATE_WORD) {
+    // TODO: Change Phrase Template
+  } else if (code == PHRASE_VIEW_EDIT_WORD) {
+    // TODO: Change Phrase Template
+  } else if (code == PHRASE_VIEW_VIEW_WORD || code == PHRASE_VIEW_TYPE_WORD) {
+    WordAndTemplate* word_and_template = NULL;
+    if (init_phrase_view_selection > 0) {
+      int index = init_phrase_view_selection - 1;
+      if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+        word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+      }
+    }
+
+    if (word_and_template == NULL) {
+      // ERROR: word and template not chosen
+      char* text = "ERROR: Word and Word template not chosen.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+    } else if (word_and_template->word == NULL || word_and_template->word->word == NULL || strlen(word_and_template->word->word) == 0) {
+      // ERROR: word has no value, generate or edit
+      char* text = "Word has no value assigned\nGenerate or edit.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+    } else {
+      if (code == PHRASE_VIEW_VIEW_WORD && isViewable(word_and_template->word->permissions)) {
+        // View word
+        initTextAreaDialog(word_and_template->word->word, strlen(word_and_template->word->word), TEXT_AREA);
+        main_phrase_ui_phase = VIEW_WORD;
+      } else if (code == PHRASE_VIEW_TYPE_WORD && isTypeable(word_and_template->word->permissions)) {
+        // Type word
+        typeWord(word_and_template->word->word, strlen(word_and_template->word->word));
+      } 
+    }
+  }
 }
 
 bool isPhraseMenuPhase() {
@@ -239,7 +284,6 @@ bool isPhraseMenuPhase() {
   return false;
 }
 
-int init_phrase_view_selection = 0;
 void init_phrase_view(int chosen_item) {
   main_phrase_ui_phase = PHRASE_VIEW;
   initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
@@ -263,7 +307,22 @@ void init_phrase_view_menu(int chosen_item) {
 
 void phraseDialogActionsLoop(Thumby* thumby) {
   switch (main_phrase_ui_phase) {
-    // TODO: implement
+    case PHRASE_MENU_OPERATION_ERROR_REPORT: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_OK) {
+        initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
+        main_phrase_ui_phase = PHRASE_VIEW;
+      }
+    }
+    break;
+    case VIEW_WORD: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_OK) {
+        initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
+        main_phrase_ui_phase = PHRASE_VIEW;
+      }
+    }
+    break;
   }
 }
 

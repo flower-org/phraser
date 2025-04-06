@@ -15,7 +15,7 @@ void restoreInit() {
   restore_block_ctr = 0;
   restore_bank = 0;// Will be acquired via protocol from the station
   restore_block_count = 0;// Will be acquired via protocol from the station
-  char* text = "Restore DB?\nExisting data\nwill be lost!";
+  char* text = "Restore DB?\nExisting data will be lost!";
   initTextAreaDialog(text, strlen(text), DLG_YES_NO);
 }
 
@@ -24,7 +24,7 @@ void restoreLoop(Thumby* thumby) {
     DialogResult result = textAreaLoop(thumby);
     if (result == DLG_RES_YES) {
       restore_phase = 1;
-      char* text = "Sending HELLO periodically to the station.";
+      char* text = "Sending HELLO\nperiodically\nto the station.";
       initTextAreaDialog(text, strlen(text), TEXT_AREA);
 
       Serial.begin(115200);

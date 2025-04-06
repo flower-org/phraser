@@ -25,7 +25,7 @@ void backupLoop(Thumby* thumby) {
     DialogResult result = textAreaLoop(thumby);
     if (result == DLG_RES_YES) {
       backup_phase = 1;
-      char* text = "Sending HELLO periodically to the station.";
+      char* text = "Sending HELLO\nperiodically\nto the station.";
       initTextAreaDialog(text, strlen(text), TEXT_AREA);
 
       Serial.begin(115200);

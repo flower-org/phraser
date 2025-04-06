@@ -78,7 +78,7 @@ void initTextAreaDialog(char* text, int text_length, TextAreaType type) {
   text_area_type = type;
   text_area_selection_pos = 0;
 
-  if (type == DLG_OK) {
+  if (type == DLG_OK || type == TEXT_AREA) {
     text_area_result = DLG_RES_OK;
   } else if (type == DLG_YES_NO) {
     text_area_result = DLG_RES_YES;

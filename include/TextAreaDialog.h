@@ -18,7 +18,7 @@ typedef enum {
   DLG_RES_NO
 } DialogResult;
 
-const int MAX_DISPLAY_CHARS_PER_LINE = 14;
+const int MAX_DISPLAY_CHARS_PER_LINE = 13;
 const int TEXT_AREA_LINES = 4;
 const int DIALOG_LINES = 3;
 

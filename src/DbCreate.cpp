@@ -64,7 +64,7 @@ void createNewDbInit() {
   init_pbkdf2_iterations = 0;
   cr_ui_draw_cycle = false;
 
-  char* text = "Create DB?\nExisting data\nwill be lost!";
+  char* text = "Create DB?\nExisting data will be lost!";
   initTextAreaDialog(text, strlen(text), DLG_YES_NO);
 }
 
@@ -143,7 +143,7 @@ void createNewDbLoop(Thumby* thumby) {
           return;
         } else if (create_new_db_phase == 9) {
           create_new_db_phase = 10;
-          char* text = "Calculating\nPBKDF2 key...";
+          char* text = "Calculating\nPBKDF2 key.";
           initTextAreaDialog(text, strlen(text), TEXT_AREA);
           cr_ui_draw_cycle = false;
           return;
