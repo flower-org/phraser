@@ -26,6 +26,9 @@ enum MainPhraseUiPhase {
   EDIT_WORD_YES_NO,
   ENTER_NEW_WORD,
   EDIT_WORD,
+  
+  GENERATE_WORD_YES_NO,
+  GENERATE_WORD,
 
   CHANGE_PHRASE_TEMPLATE_YES_NO, 
   CHANGE_PHRASE_TEMPLATE,
@@ -485,10 +488,45 @@ void mainPhraseViewMenuAction(int chosen_item, int code) {
     main_phrase_ui_phase = CHANGE_PHRASE_TEMPLATE_YES_NO;
   } else if (code == PHRASE_VIEW_RENAME_PHRASE) {
     // TODO: Rename Phrase
-  } else if (code == PHRASE_VIEW_GENERATE_WORD) {
-    // TODO: Generate word
-  } else if (code == PHRASE_VIEW_EDIT_WORD) {
-    // TODO: Edit word
+  } else if (code == PHRASE_VIEW_GENERATE_WORD || code == PHRASE_VIEW_EDIT_WORD) {
+    WordAndTemplate* word_and_template = NULL;
+    if (init_phrase_view_selection > 0) {
+      int index = init_phrase_view_selection - 1;
+      if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+        word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+      }
+    }
+
+    init_phrase_history_view_menu_selection = chosen_item;
+    if (word_and_template == NULL) {
+      // ERROR: word and template not chosen
+      char* text = "ERROR: Word and Word template not chosen.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+    } else {
+      WordTemplate* word_template = getWordTemplate(word_and_template->word_template_id);
+      if (word_template == NULL) {
+        // ERROR: word template not found
+        char text[350];
+        sprintf(text, "ERROR: Word template not found: %d", word_and_template->word_template_id);
+        initTextAreaDialog(text, strlen(text), DLG_OK);
+        main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+      } else {
+        if (code == PHRASE_VIEW_GENERATE_WORD && isGenerateable(word_template->permissions)) {
+          // Generate word
+          char text[350];
+          sprintf(text, "Generate word\n`%s`?", word_template->wordTemplateName);
+          initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+          main_phrase_ui_phase = GENERATE_WORD_YES_NO;
+        } else if (code == PHRASE_VIEW_EDIT_WORD && isUserEditable(word_template->permissions)) {
+          // Edit word
+          char text[350];
+          sprintf(text, "Edit word\n`%s`?", word_template->wordTemplateName);
+          initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+          main_phrase_ui_phase = EDIT_WORD_YES_NO;
+        } 
+      }
+    }
   } else if (code == PHRASE_VIEW_VIEW_WORD || code == PHRASE_VIEW_TYPE_WORD) {
     WordAndTemplate* word_and_template = NULL;
     if (init_phrase_view_selection > 0) {
@@ -718,6 +756,44 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
           }
           main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
         }
+      }
+    }
+    break;
+
+    case GENERATE_WORD_YES_NO: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        // TODO: implement
+      } else if (result == DLG_RES_NO) {
+        WordAndTemplate* word_and_template = NULL;
+        if (init_phrase_view_selection > 0) {
+          int index = init_phrase_view_selection - 1;
+          if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+            word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+          }
+        }
+        
+        main_phrase_ui_phase = PHRASE_VIEW_MENU;
+        initPhraseViewMenuScreenList(current_phrase, word_and_template, init_phrase_history_view_menu_selection);
+      }
+    }
+    break;
+
+    case EDIT_WORD_YES_NO: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        // TODO: implement
+      } else if (result == DLG_RES_NO) {
+        WordAndTemplate* word_and_template = NULL;
+        if (init_phrase_view_selection > 0) {
+          int index = init_phrase_view_selection - 1;
+          if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+            word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+          }
+        }
+        
+        main_phrase_ui_phase = PHRASE_VIEW_MENU;
+        initPhraseViewMenuScreenList(current_phrase, word_and_template, init_phrase_history_view_menu_selection);
       }
     }
     break;
