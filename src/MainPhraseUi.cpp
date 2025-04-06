@@ -120,10 +120,10 @@ void initCurrentPhraseHistoryScreenList(FullPhrase* phrase, int selection) {
 
 const int DELETE_HISTORY_ENTRY = 301;
 const int MAKE_HISTORY_ENTRY_CURRENT = 302;
-void initPhraseHistoryMenuScreenList(PhraseHistory* phrase_history, int history_index, int selection) {
-  int menu_items_count = 2;
-  if (0 == history_index) { return; }
+bool initPhraseHistoryMenuScreenList(PhraseHistory* phrase_history, int history_index, int selection) {
+  if (history_index == 0) { return false; }
 
+  int menu_items_count = 2;
   int menu_item_cursor = 0;
   ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
 
@@ -137,6 +137,8 @@ void initPhraseHistoryMenuScreenList(PhraseHistory* phrase_history, int history_
   if (selection >= menu_items_count) { selection = 0; }
   initList(screen_items, menu_items_count, selection);
   freeItemList(screen_items, menu_items_count);
+
+  return true;
 }
 
 void initPhraseHistoryEntryMenuScreenList(Word* word, int selection) {
@@ -285,6 +287,7 @@ void initPhraseView(FullPhrase* phrase) {
 // ----------------------------------------------------------------------------
 
 void typeWord(char* word, int word_length) {
+  // TODO: show "Typing..." splash screen
   for (int i = 0; i < word_length; i++) {
     char c = word[i];
     setChar(c);
@@ -529,8 +532,9 @@ void init_phrase_history_view_menu(int chosen_item) {
     }
 
     if (phrase_history != NULL) {
-      main_phrase_ui_phase = PHRASE_HISTORY_MENU;
-      initPhraseHistoryMenuScreenList(phrase_history, index, 0);
+      if (initPhraseHistoryMenuScreenList(phrase_history, index, 0)) {
+        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+      }
     }
   }
 }
