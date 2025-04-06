@@ -325,6 +325,9 @@ void typeWord(char* word, int word_length) {
     char c = word[i];
     setChar(c);
     Keyboard.print(c);
+    // Without this sleep characters are disappearing on Linux login.
+    // I tested and it turns out that 5ms is still not enough.
+    sleep_ms(10);
   }
 }
 
