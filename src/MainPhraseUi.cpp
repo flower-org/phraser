@@ -24,12 +24,10 @@ enum MainPhraseUiPhase {
   VIEW_HISTORY_ENTRY_MENU_WORD,
   
   EDIT_WORD_YES_NO,
-  ENTER_NEW_WORD,
-  EDIT_WORD,
+  INPUT_EDITED_WORD,
   
   GENERATE_WORD_YES_NO,
-  GENERATE_WORD,
-
+  
   CHANGE_PHRASE_TEMPLATE_YES_NO, 
   CHANGE_PHRASE_TEMPLATE,
 
@@ -789,7 +787,7 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
             char* text = "Generate word ERROR.";
             initTextAreaDialog(text, strlen(text), DLG_OK);
           } else if (generate_word_response == DB_FULL) {
-            char* text = "Database full. (Likely an issue, we updating word)";
+            char* text = "Database full. (Likely an issue, since we're just updating word)";
             initTextAreaDialog(text, strlen(text), DLG_OK);
           } else if (generate_word_response == BLOCK_SIZE_EXCEEDED) {
             char* text = "Block size exceeded.";
@@ -815,7 +813,20 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
     case EDIT_WORD_YES_NO: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_YES) {
-        // TODO: implement
+        char* text = "";
+        WordAndTemplate* word_and_template = NULL;
+        if (init_phrase_view_selection > 0) {
+          int index = init_phrase_view_selection - 1;
+          if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+            word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+            if (word_and_template != NULL && word_and_template->word != NULL && word_and_template->word->word != NULL) {
+              text = word_and_template->word->word;
+            }
+          }
+        }
+
+        initOnScreenKeyboard(text, strlen(text), false, false, false);
+        main_phrase_ui_phase = INPUT_EDITED_WORD;
       } else if (result == DLG_RES_NO) {
         WordAndTemplate* word_and_template = NULL;
         if (init_phrase_view_selection > 0) {
@@ -827,6 +838,46 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
         
         main_phrase_ui_phase = PHRASE_VIEW_MENU;
         initPhraseViewMenuScreenList(current_phrase, word_and_template, init_phrase_history_view_menu_selection);
+      }
+    }
+    break;
+    case INPUT_EDITED_WORD: {
+      char* new_word_value = keyboardLoop(thumby);
+      if (new_word_value != NULL) {
+        UpdateResponse edit_word_response = ERROR;
+        if (init_phrase_view_selection > 0) {
+          int index = init_phrase_view_selection - 1;
+
+          PhraseTemplate* phrase_template = getPhraseTemplate(current_phrase->phrase_template_id);
+          if (index >= 0 && index < arraylist_size(phrase_template->wordTemplateIds)) {
+            uint16_t word_template_id = (uint32_t)arraylist_get(phrase_template->wordTemplateIds, index);
+            uint8_t word_template_ordinal = (uint32_t)arraylist_get(phrase_template->wordTemplateOrdinals, index);
+        
+            edit_word_response = userEditPhraseWord(current_phrase->phrase_block_id, current_phrase->phrase_template_id,
+              word_template_id, word_template_ordinal, new_word_value, strlen(new_word_value));
+          }
+        }
+
+        if (edit_word_response == OK) {
+          reloadCurrentPhrase(current_phrase->phrase_block_id);
+          if (current_phrase == NULL) {
+            return false;
+          }
+          initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
+          main_phrase_ui_phase = PHRASE_VIEW;
+        } else {
+          if (edit_word_response == ERROR) {
+            char* text = "Edit word ERROR.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (edit_word_response == DB_FULL) {
+            char* text = "Database full. (Likely an issue, since we're just updating word)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (edit_word_response == BLOCK_SIZE_EXCEEDED) {
+            char* text = "Block size exceeded.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          }
+          main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+        }
       }
     }
     break;
