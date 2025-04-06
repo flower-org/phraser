@@ -122,19 +122,17 @@ const int DELETE_HISTORY_ENTRY = 301;
 const int MAKE_HISTORY_ENTRY_CURRENT = 302;
 void initPhraseHistoryMenuScreenList(PhraseHistory* phrase_history, int history_index, int selection) {
   int menu_items_count = 2;
-  if (0 == history_index) { menu_items_count = 1; }
+  if (0 == history_index) { return; }
 
   int menu_item_cursor = 0;
   ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
 
   char text[350];
-  sprintf(text, "Delete (History %d)", history_index);
+  sprintf(text, "Delete: History %d", history_index);
   screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, DELETE_HISTORY_ENTRY);
 
-  if (0 != history_index) {
-    sprintf(text, "Make current (History %d)", history_index);
-    screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Upload, MAKE_HISTORY_ENTRY_CURRENT);
-  }
+  sprintf(text, "Make current: History %d", history_index);
+  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Upload, MAKE_HISTORY_ENTRY_CURRENT);
   
   if (selection >= menu_items_count) { selection = 0; }
   initList(screen_items, menu_items_count, selection);
@@ -320,7 +318,7 @@ void phraseHistoryEntryViewAction(int chosen_item, int code) {
       main_phrase_ui_phase = VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT;
     } else if (word == NULL || word->word == NULL || strlen(word->word) == 0) {
       // ERROR: word has no value, generate or edit
-      char* text = "Word has no value assigned\nGenerate or edit.";
+      char* text = "History entry\nhas no value\nfor the word";
       initTextAreaDialog(text, strlen(text), DLG_OK);
       main_phrase_ui_phase = VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT;
     } else {
@@ -355,7 +353,7 @@ void phraseHistoryEntryViewMenuAction(int chosen_item, int code) {
       main_phrase_ui_phase = VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT;
     } else if (word == NULL || word->word == NULL || strlen(word->word) == 0) {
       // ERROR: word has no value, generate or edit
-      char* text = "Word has no value assigned\nGenerate or edit.";
+      char* text = "History entry\nhas no value\nfor the word";
       initTextAreaDialog(text, strlen(text), DLG_OK);
       main_phrase_ui_phase = VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT;
     } else {
@@ -530,7 +528,7 @@ void init_phrase_history_view_menu(int chosen_item) {
       phrase_history = (PhraseHistory*)arraylist_get(current_phrase->history, index);
     }
 
-    if (phrase_history == NULL) {
+    if (phrase_history != NULL) {
       main_phrase_ui_phase = PHRASE_HISTORY_MENU;
       initPhraseHistoryMenuScreenList(phrase_history, index, 0);
     }
