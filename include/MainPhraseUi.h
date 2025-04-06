@@ -3,5 +3,5 @@
 #include <Thumby.h>
 #include "BlockDAO.h"
 
-void initPhraseView(FullPhrase* phrase);
+bool initPhraseView(int phrase_block_id);
 bool phraserPhraseUiLoop(Thumby* thumby);

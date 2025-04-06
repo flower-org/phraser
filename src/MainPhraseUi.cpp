@@ -295,10 +295,21 @@ void initCurrentPhraseScreenList(FullPhrase* phrase, int selection) {
 }
 
 FullPhrase* current_phrase = NULL;
-void initPhraseView(FullPhrase* phrase) {
-  current_phrase = phrase; 
+bool initPhraseView(int phrase_block_id) {
+  // don't reuse loaded phrase, aways free and re-load (in case it's updated from folder menus)
+  if (current_phrase != NULL) {
+    releaseFullPhrase(current_phrase);
+    current_phrase = NULL;
+  }
+
+  current_phrase = getFullPhrase(phrase_block_id);
+  if (current_phrase == NULL) {
+    return false;
+  }
+
   main_phrase_ui_phase = PHRASE_VIEW;
   initCurrentPhraseScreenList(current_phrase, 0);
+  return true;
 }
 
 // ----------------------------------------------------------------------------

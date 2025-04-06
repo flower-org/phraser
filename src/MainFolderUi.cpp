@@ -142,22 +142,13 @@ void phraserFolderUiInit() {
   initFolder(0, -1, -1);
 }
 
-FullPhrase* chosen_phrase = NULL;
 void initPhraseUi(int phrase_block_id) {
-  // don't reuse loaded phrase, aways free and re-load (in case it's updated from folder menus)
-  if (chosen_phrase != NULL) {
-    releaseFullPhrase(chosen_phrase);
-    chosen_phrase = NULL;
-  }
-
-  chosen_phrase = getFullPhrase(phrase_block_id);
-  if (chosen_phrase == NULL) {
+  if (!initPhraseView(phrase_block_id)) {
     char text[350];
     sprintf(text, "Failed to load phrase `%d`?", phrase_block_id);
     initTextAreaDialog(text, strlen(text), DLG_OK);
     main_folder_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
   } else {
-    initPhraseView(chosen_phrase);
     main_folder_ui_phase = PHRASE_UI;
   }
 }
