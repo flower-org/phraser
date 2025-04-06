@@ -69,6 +69,9 @@ UpdateResponse renamePhrase(uint16_t phrase_block_id, char* update_phrase_name);
 UpdateResponse deletePhrase(uint16_t phrase_block_id);
 UpdateResponse movePhrase(uint16_t phrase_block_id, uint16_t new_folder_id);
 
+UpdateResponse changePhraseTemplate(uint16_t phrase_block_id, uint16_t new_phrase_template_id);
+
+
 uint32_t get_valid_block_number_on_the_right_of(node_t* root, uint32_t block_number);
 uint32_t get_free_block_number_on_the_left_of(node_t* root, uint32_t block_number, uint32_t db_block_count);
 

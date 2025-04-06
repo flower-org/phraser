@@ -1,5 +1,6 @@
 #include "UiCommon.h"
 #include "MainFolderUi.h"
+#include "BlockCache.h"
 
 Mode currentMode = UNDEFINED;
 
@@ -30,4 +31,11 @@ void mainDbUiInit() {
 void switchToMainDbUi() {
   currentMode = MAIN_DB_UI;
   mainDbUiInit();
+}
+
+ListItem** tmp_screen_items;
+int tmp_screen_item_cursor;
+void build_phrase_template_entries(hashtable *t, uint32_t key, void* value) {
+  PhraseTemplate* phrase_template = (PhraseTemplate*)value;
+  tmp_screen_items[tmp_screen_item_cursor++] = createListItemWithCode(phrase_template->phraseTemplateName, phraser_Icon_Copy, phrase_template->phraseTemplateId);
 }

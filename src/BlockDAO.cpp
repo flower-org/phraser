@@ -1185,10 +1185,17 @@ UpdateResponse renamePhrase(uint16_t phrase_block_id, char* update_phrase_name) 
   );
 }
 
-UpdateResponse changePhraseTemplate(uint16_t phrase_block_id, uint16_t new_phrase_template_id) {
-  initRandomIfNeeded();
-  //
-  return ERROR;
+UpdateResponse changePhraseTemplate(uint16_t phrase_block_id, uint16_t phrase_template_id) {
+  new_phrase_template_id = phrase_template_id;
+
+  UpdateResponse update_response = phraseMutation(phrase_block_id, 
+    phrase_template_id_mutation,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+  );
+  return update_response;
 }
 
 UpdateResponse generatePhraseWord(uint16_t phrase_block_id, uint16_t word_template_id, uint8_t word_template_ordinal) {

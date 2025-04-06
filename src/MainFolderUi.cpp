@@ -1,6 +1,7 @@
 #include "MainFolderUi.h"
 
 #include "MainPhraseUi.h"
+#include "UiCommon.h"
 #include "TextAreaDialog.h"
 #include "ScreenList.h"
 #include "ScreenKeyboard.h"
@@ -323,13 +324,6 @@ void init_folder_menu(int chosen_item) {
   screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Plus, FOLDER_MENU_NEW_FOLDER);
   initList(screen_items, menu_items_count);
   freeItemList(screen_items, menu_items_count);
-}
-
-ListItem** tmp_screen_items;
-int tmp_screen_item_cursor;
-void build_phrase_template_entries(hashtable *t, uint32_t key, void* value) {
-  PhraseTemplate* phrase_template = (PhraseTemplate*)value;
-  tmp_screen_items[tmp_screen_item_cursor++] = createListItemWithCode(phrase_template->phraseTemplateName, phraser_Icon_Copy, phrase_template->phraseTemplateId);
 }
 
 void build_folder_entries(hashtable *t, uint32_t key, void* value) {
