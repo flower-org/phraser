@@ -84,6 +84,56 @@ void initPhraseViewMenuScreenList(FullPhrase* phrase, WordAndTemplate* word_and_
   freeItemList(screen_items, menu_items_count);
 }
 
+const int UP_TO_PHRASE_LEVEL = 201;
+const int HISTORY_ENTRY = 202;
+void initCurrentPhraseHistoryScreenList(FullPhrase* phrase, int selection) {
+  int phrase_history_size = arraylist_size(phrase->history);
+
+  int menu_items_count = phrase_history_size + 1;
+  int menu_item_cursor = 0;
+  ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
+
+  screen_items[menu_item_cursor++] = createListItemWithCode("..", phraser_Icon_ToParentFolder, UP_TO_PHRASE_LEVEL);
+
+  if (phrase_history_size > 0) {
+    screen_items[menu_item_cursor++] = createListItemWithCode("History 0 (current)", phraser_Icon_Message, HISTORY_ENTRY);
+
+    for (int i = 1; i < phrase_history_size; i++) {
+      char text[350];
+      sprintf(text, "History %d", i);
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Message, HISTORY_ENTRY);
+    }
+  }
+
+  //initialize Screen List
+  if (selection >= menu_items_count) { selection = 0; }
+  initList(screen_items, menu_items_count, selection);
+  freeItemList(screen_items, menu_items_count);
+}
+
+const int DELETE_HISTORY_ENTRY = 301;
+const int MAKE_HISTORY_ENTRY_CURRENT = 302;
+void initPhraseHistoryMenuScreenList(PhraseHistory* phrase_history, int history_index, int selection) {
+  int menu_items_count = 2;
+  if (0 == history_index) { menu_items_count = 1; }
+
+  int menu_item_cursor = 0;
+  ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
+
+  char text[350];
+  sprintf(text, "Delete (History %d)", history_index);
+  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, DELETE_HISTORY_ENTRY);
+
+  if (0 != history_index) {
+    sprintf(text, "Make current (History %d)", history_index);
+    screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Upload, MAKE_HISTORY_ENTRY_CURRENT);
+  }
+  
+  if (selection >= menu_items_count) { selection = 0; }
+  initList(screen_items, menu_items_count, selection);
+  freeItemList(screen_items, menu_items_count);
+}
+
 const int UP_TO_PARENT_LEVEL = 101;
 const int DOWN_TO_HISTORY = 102;
 const int WORD_AND_TEMPLATE = 103;
@@ -91,7 +141,7 @@ arraylist* words_and_templates = NULL;// arraylist<WordAndTemplate>
 void initCurrentPhraseScreenList(FullPhrase* phrase, int selection) {
   if (words_and_templates != NULL) {
     for (int i = 0; i < arraylist_size(words_and_templates); i++) {
-      WordAndTemplate* word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, i);  
+      WordAndTemplate* word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, i);
       free(word_and_template);
     }
     arraylist_destroy(words_and_templates);
@@ -151,7 +201,6 @@ void initCurrentPhraseScreenList(FullPhrase* phrase, int selection) {
     WordAndTemplate* word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, i);
     WordTemplate* word_template = getWordTemplate(word_and_template->word_template_id);
 
-
     char* text = word_template == NULL ? word_and_template->word->name : word_template->wordTemplateName;
     phraser_Icon_enum_t icon;
     if (word_template != NULL && word_and_template->word != NULL) {
@@ -173,7 +222,7 @@ void initCurrentPhraseScreenList(FullPhrase* phrase, int selection) {
 }
 
 FullPhrase* current_phrase = NULL;
-void initPhrase(FullPhrase* phrase) {
+void initPhraseView(FullPhrase* phrase) {
   current_phrase = phrase; 
   main_phrase_ui_phase = PHRASE_VIEW;
   initCurrentPhraseScreenList(current_phrase, 0);
@@ -190,12 +239,26 @@ void typeWord(char* word, int word_length) {
 }
 
 int init_phrase_view_selection = 0;
+void phraseHistoryViewAction(int chosen_item, int code) {
+  if (code == UP_TO_PHRASE_LEVEL) {
+    initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
+    main_phrase_ui_phase = PHRASE_VIEW;
+  }
+}
+
+void phraseHistoryViewMenuAction(int chosen_item, int code) {
+  //
+}
+
 bool mainPhraseViewAction(int chosen_item, int code) {
   if (code == UP_TO_PARENT_LEVEL) {
     // Returning false from here moves back to Folders UI
     return false;
   } else if (code == DOWN_TO_HISTORY) {
-    // TODO: switch to History View
+    // switch to History View
+    init_phrase_view_selection = chosen_item;
+    initCurrentPhraseHistoryScreenList(current_phrase, 0);
+    main_phrase_ui_phase = PHRASE_HISTORY;
   } else if (code == WORD_AND_TEMPLATE) {
     WordAndTemplate* word_and_template = NULL;
     init_phrase_view_selection = chosen_item;
@@ -303,6 +366,27 @@ void init_phrase_view_menu(int chosen_item) {
   initPhraseViewMenuScreenList(current_phrase, word_and_template, 0);
 }
 
+int init_phrase_history_view_selection = 0;
+void init_phrase_history_view(int chosen_item) {
+  main_phrase_ui_phase = PHRASE_HISTORY;
+  initCurrentPhraseHistoryScreenList(current_phrase, init_phrase_history_view_selection);
+}
+
+void init_phrase_history_view_menu(int chosen_item) {
+  PhraseHistory* phrase_history = NULL;
+  init_phrase_history_view_selection = chosen_item;
+  if (chosen_item > 0) {
+    int index = chosen_item - 1;
+    
+    if (current_phrase != NULL && current_phrase->history != NULL && index < arraylist_size(current_phrase->history)) {
+      phrase_history = (PhraseHistory*)arraylist_get(current_phrase->history, index);
+    }
+
+    main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+    initPhraseHistoryMenuScreenList(phrase_history, index, 0);
+  }
+}
+
 // -------------------------------------------------------------------------------
 
 void phraseDialogActionsLoop(Thumby* thumby) {
@@ -336,10 +420,10 @@ void phraseMenuSwitch(int chosen_item) {
         init_phrase_view(chosen_item);
         break;
     case PHRASE_HISTORY: 
-        main_phrase_ui_phase = PHRASE_HISTORY_MENU; 
+        init_phrase_history_view_menu(chosen_item);
         break;
     case PHRASE_HISTORY_MENU: 
-        main_phrase_ui_phase = PHRASE_HISTORY; 
+        init_phrase_history_view(chosen_item);
         break;
     case PHRASE_HISTORY_ENTRY: 
         main_phrase_ui_phase = PHRASE_HISTORY_ENTRY_MENU; 
@@ -354,8 +438,8 @@ bool runMainPhraseUiPhaseAction(int chosen_item, int code) {
   switch (main_phrase_ui_phase) {
     case PHRASE_VIEW: return mainPhraseViewAction(chosen_item, code); break;
     case PHRASE_VIEW_MENU: mainPhraseViewMenuAction(chosen_item, code); break;
-    case PHRASE_HISTORY:
-    case PHRASE_HISTORY_MENU:
+    case PHRASE_HISTORY: phraseHistoryViewAction(chosen_item, code); break;
+    case PHRASE_HISTORY_MENU: phraseHistoryViewMenuAction(chosen_item, code); break;
     case PHRASE_HISTORY_ENTRY:
     case PHRASE_HISTORY_ENTRY_MENU:
     default: return true;

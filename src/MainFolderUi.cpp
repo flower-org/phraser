@@ -156,7 +156,7 @@ void initPhraseUi(int phrase_block_id) {
     initTextAreaDialog(text, strlen(text), DLG_OK);
     main_folder_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
   } else {
-    initPhrase(chosen_phrase);
+    initPhraseView(chosen_phrase);
     main_folder_ui_phase = PHRASE_UI;
   }
 }
