@@ -19,13 +19,19 @@ enum MainPhraseUiPhase {
   // Word Actions
   VIEW_WORD,
   VIEW_HISTORY_ENTRY_WORD,
-
+  VIEW_WORD_MENU,
+  VIEW_HISTORY_ENTRY_MENU_WORD,
+  
   EDIT_WORD_YES_NO,
   ENTER_NEW_WORD,
   EDIT_WORD,
 
   // BlockDAO Dialogs
+  PHRASE_VIEW_OPERATION_ERROR_REPORT,
   PHRASE_MENU_OPERATION_ERROR_REPORT,
+
+  VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT,
+  VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT,
 };
 
 MainPhraseUiPhase main_phrase_ui_phase = PHRASE_VIEW;
@@ -128,6 +134,34 @@ void initPhraseHistoryMenuScreenList(PhraseHistory* phrase_history, int history_
   if (0 != history_index) {
     sprintf(text, "Make current (History %d)", history_index);
     screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Upload, MAKE_HISTORY_ENTRY_CURRENT);
+  }
+  
+  if (selection >= menu_items_count) { selection = 0; }
+  initList(screen_items, menu_items_count, selection);
+  freeItemList(screen_items, menu_items_count);
+}
+
+void initPhraseHistoryEntryMenuScreenList(Word* word, int selection) {
+  int menu_items_count = 0;
+
+  if (word != NULL) {
+    if (isTypeable(word->permissions)) { menu_items_count++; }
+    if (isViewable(word->permissions)) { menu_items_count++; }
+  }
+
+  int menu_item_cursor = 0;
+  ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
+
+  char text[350];
+  if (word != NULL) {
+    if (isViewable(word->permissions)) {
+      sprintf(text, "View `%s`", word->name);
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_LookingGlass, PHRASE_VIEW_VIEW_WORD);
+    }
+    if (isTypeable(word->permissions)) {
+      sprintf(text, "Type `%s`", word->name);
+      screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_TextOut, PHRASE_VIEW_TYPE_WORD);
+    }
   }
   
   if (selection >= menu_items_count) { selection = 0; }
@@ -262,7 +296,9 @@ void typeWord(char* word, int word_length) {
 
 PhraseHistory* current_history_entry;
 int init_phrase_history_view_selection = 0;
+int init_phrase_history_view_menu_selection = 0;
 int init_phrase_history_entry_view_selection = 0;
+int init_phrase_history_entry_view_menu_selection = 0;
 void phraseHistoryEntryViewAction(int chosen_item, int code) {
   if (code == UP_TO_PHRASE_HISTORY_LEVEL) {
     initCurrentPhraseHistoryScreenList(current_phrase, init_phrase_history_view_selection);
@@ -277,7 +313,17 @@ void phraseHistoryEntryViewAction(int chosen_item, int code) {
       }
     }
 
-    if (word != NULL) {
+    if (word == NULL) {
+      // ERROR: word and template not chosen
+      char* text = "ERROR: Word not chosen.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_phrase_ui_phase = VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT;
+    } else if (word == NULL || word->word == NULL || strlen(word->word) == 0) {
+      // ERROR: word has no value, generate or edit
+      char* text = "Word has no value assigned\nGenerate or edit.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_phrase_ui_phase = VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT;
+    } else {
       if (isTypeable(word->permissions)) {
         // Type word
         typeWord(word->word, strlen(word->word));
@@ -291,11 +337,41 @@ void phraseHistoryEntryViewAction(int chosen_item, int code) {
 }
 
 void phraseHistoryEntryViewMenuAction(int chosen_item, int code) {
-  //
+  Word* word = NULL;
+  
+  if (init_phrase_history_entry_view_selection > 0) {
+    int index = init_phrase_history_entry_view_selection - 1;
+    
+    if (current_history_entry != NULL && current_history_entry->phrase != NULL && index < arraylist_size(current_history_entry->phrase)) {
+      word = (Word*)arraylist_get(current_history_entry->phrase, index);
+    }
+
+    init_phrase_history_entry_view_menu_selection = chosen_item;
+
+    if (word == NULL) {
+      // ERROR: word and template not chosen
+      char* text = "ERROR: Word not chosen.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_phrase_ui_phase = VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT;
+    } else if (word == NULL || word->word == NULL || strlen(word->word) == 0) {
+      // ERROR: word has no value, generate or edit
+      char* text = "Word has no value assigned\nGenerate or edit.";
+      initTextAreaDialog(text, strlen(text), DLG_OK);
+      main_phrase_ui_phase = VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT;
+    } else {
+      if (code == PHRASE_VIEW_VIEW_WORD && isViewable(word->permissions)) {
+        // View word
+        initTextAreaDialog(word->word, strlen(word->word), TEXT_AREA);
+        main_phrase_ui_phase = VIEW_HISTORY_ENTRY_MENU_WORD;
+      } else if (code == PHRASE_VIEW_TYPE_WORD && isTypeable(word->permissions)) {
+        // Type word
+        typeWord(word->word, strlen(word->word));
+      }
+    }
+  }
 }
 
 int init_phrase_view_selection = 0;
-
 void phraseHistoryViewAction(int chosen_item, int code) {
   if (code == UP_TO_PHRASE_LEVEL) {
     initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
@@ -345,12 +421,12 @@ bool mainPhraseViewAction(int chosen_item, int code) {
       // ERROR: word and template not chosen
       char* text = "ERROR: Word and Word template not chosen.";
       initTextAreaDialog(text, strlen(text), DLG_OK);
-      main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+      main_phrase_ui_phase = PHRASE_VIEW_OPERATION_ERROR_REPORT;
     } else if (word_and_template->word == NULL || word_and_template->word->word == NULL || strlen(word_and_template->word->word) == 0) {
       // ERROR: word has no value, generate or edit
       char* text = "Word has no value assigned\nGenerate or edit.";
       initTextAreaDialog(text, strlen(text), DLG_OK);
-      main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+      main_phrase_ui_phase = PHRASE_VIEW_OPERATION_ERROR_REPORT;
     } else {
       if (isTypeable(word_and_template->word->permissions)) {
         // Type word
@@ -384,6 +460,7 @@ void mainPhraseViewMenuAction(int chosen_item, int code) {
       }
     }
 
+    init_phrase_history_view_menu_selection = chosen_item;
     if (word_and_template == NULL) {
       // ERROR: word and template not chosen
       char* text = "ERROR: Word and Word template not chosen.";
@@ -398,7 +475,7 @@ void mainPhraseViewMenuAction(int chosen_item, int code) {
       if (code == PHRASE_VIEW_VIEW_WORD && isViewable(word_and_template->word->permissions)) {
         // View word
         initTextAreaDialog(word_and_template->word->word, strlen(word_and_template->word->word), TEXT_AREA);
-        main_phrase_ui_phase = VIEW_WORD;
+        main_phrase_ui_phase = VIEW_WORD_MENU;
       } else if (code == PHRASE_VIEW_TYPE_WORD && isTypeable(word_and_template->word->permissions)) {
         // Type word
         typeWord(word_and_template->word->word, strlen(word_and_template->word->word));
@@ -461,19 +538,33 @@ void init_phrase_history_view_menu(int chosen_item) {
 }
 
 void init_phrase_history_entry_view(int chosen_item) {
-  main_phrase_ui_phase = PHRASE_HISTORY;
   initPhraseHistoryEntryScreenList(current_history_entry, init_phrase_history_entry_view_selection);
+  main_phrase_ui_phase = PHRASE_HISTORY_ENTRY; 
 }
 
 void init_phrase_history_entry_view_menu(int chosen_item) {
-  //
+  Word* word = NULL;
+  init_phrase_history_entry_view_selection = chosen_item;
+  if (chosen_item > 0) {
+    int index = chosen_item - 1;
+    
+    if (current_history_entry != NULL && current_history_entry->phrase != NULL && index < arraylist_size(current_history_entry->phrase)) {
+      word = (Word*)arraylist_get(current_history_entry->phrase, index);
+    }
+
+    if (word != NULL) {
+      initPhraseHistoryEntryMenuScreenList(word, 0);
+      main_phrase_ui_phase = PHRASE_HISTORY_ENTRY_MENU; 
+    }
+  }
 }
 
 // -------------------------------------------------------------------------------
 
 void phraseDialogActionsLoop(Thumby* thumby) {
   switch (main_phrase_ui_phase) {
-    case PHRASE_MENU_OPERATION_ERROR_REPORT: {
+    case PHRASE_VIEW_OPERATION_ERROR_REPORT:
+    case VIEW_WORD: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_OK) {
         initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
@@ -481,12 +572,49 @@ void phraseDialogActionsLoop(Thumby* thumby) {
       }
     }
     break;
-    case VIEW_HISTORY_ENTRY_WORD:
-    case VIEW_WORD: {
+
+    case PHRASE_MENU_OPERATION_ERROR_REPORT:
+    case VIEW_WORD_MENU: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_OK) {
-        initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
-        main_phrase_ui_phase = main_phrase_ui_phase == VIEW_WORD ? PHRASE_VIEW : PHRASE_HISTORY_ENTRY;
+        WordAndTemplate* word_and_template = NULL;
+        if (init_phrase_view_selection > 0) {
+          int index = init_phrase_view_selection - 1;
+          if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+            word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+          }
+        }
+      
+        main_phrase_ui_phase = PHRASE_VIEW_MENU;
+        initPhraseViewMenuScreenList(current_phrase, word_and_template, init_phrase_history_view_menu_selection);
+      }
+    }
+    break;
+
+    case VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT: 
+    case VIEW_HISTORY_ENTRY_WORD: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_OK) {
+        initPhraseHistoryEntryScreenList(current_history_entry, init_phrase_history_entry_view_selection);
+        main_phrase_ui_phase = PHRASE_HISTORY_ENTRY;
+      }
+    }
+    break;
+
+    case VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT: 
+    case VIEW_HISTORY_ENTRY_MENU_WORD: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_OK) {
+        Word* word = NULL;
+        if (init_phrase_history_entry_view_selection > 0) {
+          int index = init_phrase_history_entry_view_selection - 1;
+          
+          if (current_history_entry != NULL && current_history_entry->phrase != NULL && index < arraylist_size(current_history_entry->phrase)) {
+            word = (Word*)arraylist_get(current_history_entry->phrase, index);
+          }
+        }
+        initPhraseHistoryEntryMenuScreenList(word, init_phrase_history_entry_view_menu_selection);
+        main_phrase_ui_phase = PHRASE_HISTORY_ENTRY_MENU;
       }
     }
     break;
@@ -510,11 +638,9 @@ void phraseMenuSwitch(int chosen_item) {
         break;
     case PHRASE_HISTORY_ENTRY: 
         init_phrase_history_entry_view_menu(chosen_item);
-        main_phrase_ui_phase = PHRASE_HISTORY_ENTRY_MENU; 
         break;
     case PHRASE_HISTORY_ENTRY_MENU: 
         init_phrase_history_entry_view(chosen_item);
-        main_phrase_ui_phase = PHRASE_HISTORY_ENTRY; 
         break;
   }
 }
