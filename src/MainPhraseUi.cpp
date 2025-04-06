@@ -457,7 +457,7 @@ bool mainPhraseViewAction(int chosen_item, int code) {
       main_phrase_ui_phase = PHRASE_VIEW_OPERATION_ERROR_REPORT;
     } else if (word_and_template->word == NULL || word_and_template->word->word == NULL || strlen(word_and_template->word->word) == 0) {
       // ERROR: word has no value, generate or edit
-      char* text = "Word has no value assigned\nGenerate or edit.";
+      char* text = "Word has no\nvalue assigned.";
       initTextAreaDialog(text, strlen(text), DLG_OK);
       main_phrase_ui_phase = PHRASE_VIEW_OPERATION_ERROR_REPORT;
     } else {
@@ -506,7 +506,7 @@ void mainPhraseViewMenuAction(int chosen_item, int code) {
       main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
     } else if (word_and_template->word == NULL || word_and_template->word->word == NULL || strlen(word_and_template->word->word) == 0) {
       // ERROR: word has no value, generate or edit
-      char* text = "Word has no value assigned\nGenerate or edit.";
+      char* text = "Word has no\nvalue assigned.";
       initTextAreaDialog(text, strlen(text), DLG_OK);
       main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
     } else {
