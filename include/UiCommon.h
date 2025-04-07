@@ -21,6 +21,8 @@ extern ListItem** startup_screen_items;
 
 extern ListItem** tmp_screen_items;
 extern int tmp_screen_item_cursor;
+extern int my_phrase_template_id;
+extern int my_phrase_template_index;
 
 void switchToStartupScreen();
 void switchToMainDbUi();

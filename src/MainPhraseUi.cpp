@@ -48,6 +48,9 @@ enum MainPhraseUiPhase {
 
   HISTORY_ENTRY_VIEW_ERROR_REPORT,
   HISTORY_ENTRY_MENU_ERROR_REPORT,
+
+  RENAME_PHRASE_YES_NO,
+  RENAME_PHRASE,
 };
 
 MainPhraseUiPhase main_phrase_ui_phase = PHRASE_VIEW;
@@ -526,7 +529,10 @@ void mainPhraseViewMenuAction(int chosen_item, int code) {
     initTextAreaDialog(text, strlen(text), DLG_YES_NO);
     main_phrase_ui_phase = CHANGE_PHRASE_TEMPLATE_YES_NO;
   } else if (code == PHRASE_VIEW_RENAME_PHRASE) {
-    // TODO: Rename Phrase
+    char text[350];
+    sprintf(text, "Rename phrase `%s`?", current_phrase->phrase_name);
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_phrase_ui_phase = RENAME_PHRASE_YES_NO;
   } else if (code == PHRASE_VIEW_GENERATE_WORD || code == PHRASE_VIEW_EDIT_WORD) {
     WordAndTemplate* word_and_template = NULL;
     if (init_phrase_view_selection > 0) {
@@ -756,11 +762,15 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
         ListItem** screen_items = (ListItem**)malloc(screen_item_count * sizeof(ListItem*));
         tmp_screen_items = screen_items;
         tmp_screen_item_cursor = 0;
+        my_phrase_template_id = current_phrase->phrase_template_id;
+        my_phrase_template_index = -1;
         hashtable_iterate_entries(phrase_templates, build_phrase_template_entries);
         tmp_screen_items = NULL;
         tmp_screen_item_cursor = 0;
+        my_phrase_template_id = -1;
 
-        initList(screen_items, screen_item_count);
+        initList(screen_items, screen_item_count, my_phrase_template_index);
+        my_phrase_template_index = -1;
         freeItemList(screen_items, screen_item_count);
         main_phrase_ui_phase = CHANGE_PHRASE_TEMPLATE;
       } else if (result == DLG_RES_NO) {
@@ -1073,6 +1083,59 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
       } else if (result == DLG_RES_NO) {
         init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
         main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+      }
+    }
+    break;
+
+    case RENAME_PHRASE_YES_NO: { 
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        main_phrase_ui_phase = RENAME_PHRASE;
+        initOnScreenKeyboard(current_phrase->phrase_name, strlen(current_phrase->phrase_name), false, false, false);
+      } else if (result == DLG_RES_NO) {
+        WordAndTemplate* word_and_template = NULL;
+        if (init_phrase_view_selection > 0) {
+          int index = init_phrase_view_selection - 1;
+          if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+            word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+          }
+        }
+        
+        main_phrase_ui_phase = PHRASE_VIEW_MENU;
+        initPhraseViewMenuScreenList(current_phrase, word_and_template, init_phrase_history_view_menu_selection);
+      }
+    }
+    break;
+    case RENAME_PHRASE: {
+      char* new_phrase_name = keyboardLoop(thumby);
+      if (new_phrase_name != NULL) {
+        if (strlen(new_phrase_name) == 0) {
+          char* text = "Phrase name can't be empty.";
+          initTextAreaDialog(text, strlen(text), DLG_OK);
+          main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+        } else {
+          UpdateResponse rename_phrase_response = renamePhrase(current_phrase->phrase_block_id, new_phrase_name);
+          if (rename_phrase_response == OK) {
+            reloadCurrentPhrase(current_phrase->phrase_block_id);
+            if (current_phrase == NULL) {
+              return false;
+            }
+            initCurrentPhraseScreenList(current_phrase, init_phrase_view_selection);
+            main_phrase_ui_phase = PHRASE_VIEW;
+          } else {
+            if (rename_phrase_response == ERROR) {
+              char* text = "Rename phrase ERROR.";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            } else if (rename_phrase_response == DB_FULL) {
+              char* text = "Database full (probably something is really wrong since we're trying to rename)";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            } else if (rename_phrase_response == BLOCK_SIZE_EXCEEDED) {
+              char* text = "Block size exceeded. Can't rename";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+            }
+            main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+          }
+        }
       }
     }
     break;

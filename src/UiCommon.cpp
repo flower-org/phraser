@@ -35,7 +35,12 @@ void switchToMainDbUi() {
 
 ListItem** tmp_screen_items;
 int tmp_screen_item_cursor;
+int my_phrase_template_id;
+int my_phrase_template_index;
 void build_phrase_template_entries(hashtable *t, uint32_t key, void* value) {
   PhraseTemplate* phrase_template = (PhraseTemplate*)value;
+  if (phrase_template->phraseTemplateId == my_phrase_template_id) {
+    my_phrase_template_index = tmp_screen_item_cursor;
+  }
   tmp_screen_items[tmp_screen_item_cursor++] = createListItemWithCode(phrase_template->phraseTemplateName, phraser_Icon_Copy, phrase_template->phraseTemplateId);
 }
