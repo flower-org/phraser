@@ -31,3 +31,49 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
 
 ## Acknowledgements
 - Special thanks to [Kirill Emelyanov](https://github.com/emelyanovkr) for the PlatformIO setup assistance.
+
+## Credits
+- Raspberry Pi Foundation for RP2040 microcontroller
+  - https://www.raspberrypi.com/products/rp2040/
+- TinyCircuits for amazing Thumby system and SDK
+  - https://github.com/TinyCircuits/TinyCircuits-Thumby-Lib/
+  - https://github.com/TinyCircuits/TinyCircuits-GraphicsBuffer-Lib
+- Platform IO for Raspberry Pi RP2040 platform
+  - https://github.com/platformio/platform-raspberrypi
+- Max Gerhardt for maintaining a fork of the above platform
+  - https://github.com/maxgerhardt/platform-raspberrypi
+- Earle F. Philhower, III for Arduino-Pico
+  - https://github.com/earlephilhower/arduino-pico
+- Google, Inc. for FlatBuffers technology
+  - https://github.com/google/flatbuffers
+- Divide Labs for FlatCC - FlatBuffers in C
+  - https://github.com/dvidelabs/flatcc
+- kokke for blazingly fast AES implementation
+  - https://github.com/kokke/tiny-AES-c
+- Rob Tillaart for Adler32 checksum implementation
+  - https://github.com/RobTillaart/Adler
+- PolarSSL and Dhiru Kholia for PBKDF2 and SHA256
+  - https://github.com/kholia/PKCS5_PBKDF2
+- Hyeon Kim for Tiny Red-Black Tree (modified version is used)
+  - https://github.com/simnalamburt/tiny-rbtree
+- marekweb for Arraylist and Hashtable in C (modified version is used)
+  - https://github.com/marekweb/datastructs-c
+
+## Notable project milestones
+
+- Apr 06, 2025: First real life use for actual passwords.
+  - Migrated passwords for several accounts to Phraser.
+
+
+- Apr 07, 2025: DB Backup lifecycle management IRL
+  - In ideal world, these operations should be performed on an offline machine:
+  - Create DB backup file using Phraser Manager;
+  - Encrypt the backup file with Cryptor (RSA);
+  - Date the encrypted file;
+  - Store the encrypted file reliably - multiple copies, local, cloud.
+  - DB is encrypted, why encrypt it again with RSA?
+    - Yes, the DB is always encrypted, but if somebody gets a hold of a backup file, they theoretically might still bruteforce its master pass (even though it's very hard given PBKDF2, double-layered encryption with Key Block and NO metadata leaks).
+    - To reduce that risk to absolute minimum, I additionally encrypt backup files with RSA, which is not considered bruteforceable.
+    - Even if the RSA private key gets compromised, one would still have to decrypt the DB itself.
+    - To make master pass bruteforcing even harder, use non-standard number of PBKDF2 iterations (UP+A+B on Unseal).
+    - Also, changing your passwords regularly will reduce the usefullness of outdated backups.
