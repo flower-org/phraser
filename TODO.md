@@ -4,7 +4,7 @@
 - Folder view functions - move up, move down in the list (Folders and Phrases)
 - mb Make `typing_delay_ms` configurable in KeyBlock (block flatbuf structure change)?
 - Wipe/randomize all the way up to the bank boundary on DB Restore/DB Create, even with less blocks in DB.
-
+- 73e8d53eb0e9f00e4ee1d2d6fef3c7c19c8b5d6b4053b1b7b3ba13bd55682626
 
 # Fundamental:
 

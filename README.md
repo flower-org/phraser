@@ -78,3 +78,4 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
     - Even if the RSA private key gets compromised, one would still have to decrypt the DB itself.
     - To make master pass bruteforcing even harder, use non-standard number of PBKDF2 iterations (UP+A+B on Unseal).
     - Also, changing your passwords regularly will reduce the usefullness of outdated backups.
+
