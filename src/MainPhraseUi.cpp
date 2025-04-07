@@ -979,6 +979,7 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
         initPhraseViewMenuScreenList(current_phrase, word_and_template, init_phrase_history_view_menu_selection);
       }
     }
+    break;
 
     case DELETE_HISTORY_YES_NO: {
       DialogResult result = textAreaLoop(thumby);
