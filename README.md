@@ -55,9 +55,9 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
   - https://github.com/RobTillaart/Adler
 - PolarSSL and Dhiru Kholia for PBKDF2 and SHA256
   - https://github.com/kholia/PKCS5_PBKDF2
-- Hyeon Kim for Tiny Red-Black Tree (modified version is used)
+- Hyeon Kim for Tiny Red-Black Tree (modified version in use)
   - https://github.com/simnalamburt/tiny-rbtree
-- marekweb for Arraylist and Hashtable in C (modified version is used)
+- marekweb for Arraylist and Hashtable in C (modified version in use)
   - https://github.com/marekweb/datastructs-c
 
 ## Notable project milestones
