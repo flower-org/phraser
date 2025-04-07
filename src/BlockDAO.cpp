@@ -349,6 +349,8 @@ UpdateResponse wrapUpBlock(uint8_t block_type, flatcc_builder_t* builder, uint8_
   block_buffer = flatcc_builder_finalize_aligned_buffer(builder, &block_buffer_size);
 
   if (block_buffer_size > DATA_BLOCK_SIZE) {
+    flatcc_builder_aligned_free(block_buffer);
+    flatcc_builder_clear(builder);
     return BLOCK_SIZE_EXCEEDED;
   }
 
@@ -999,6 +1001,22 @@ UpdateResponse initDefaultPhraseBlock(uint8_t* buffer, const uint8_t* aes_key, c
   return OK;
 }
 
+PhraseHistory* convertPhraseHistory(phraser_PhraseHistory_table_t *history);
+// Just copy without modifications
+//arraylist<PhraseHistory>
+arraylist* copyPhraseHistoryMutation(phraser_PhraseHistory_vec_t phrase_history_vec) {
+  arraylist* full_phrase_history = arraylist_create();
+
+  size_t old_phrase_history_vec_length = flatbuffers_vec_len(phrase_history_vec);
+  for (int i = 0; i < old_phrase_history_vec_length; i++) {
+    phraser_PhraseHistory_table_t history = phraser_PhraseHistory_vec_at(phrase_history_vec, i);
+    PhraseHistory* phrase_history = convertPhraseHistory(&history);
+    arraylist_add(full_phrase_history, phrase_history);
+  }
+
+  return full_phrase_history;
+}
+
 // If phrase_block_id = -1, it's a new phrase
 UpdateResponse phraseMutation(int phrase_block_id, 
                               uint16_t (*phraseTemplateIdMutation)(uint16_t phrase_template_id),
@@ -1006,7 +1024,8 @@ UpdateResponse phraseMutation(int phrase_block_id,
                               char* (*phraseNameMutation)(flatbuffers_string_t phraseName),
                               bool (*tombstoneMutation)(bool tombstone),
                               //arraylist<PhraseHistory>
-                              arraylist* (*phraseHistoryMutation)(phraser_PhraseHistory_vec_t history_vec)
+                              arraylist* (*phraseHistoryMutation)(phraser_PhraseHistory_vec_t history_vec),
+                              bool auto_truncate_history
                             ) {
   initRandomIfNeeded();
   bool is_new_phrase = phrase_block_id <= -1;
@@ -1105,9 +1124,12 @@ UpdateResponse phraseMutation(int phrase_block_id,
       is_tombstone_raw = tombstoneMutation(phraser_PhraseBlock_is_tombstone(phrase_block));
       is_tombstone = &is_tombstone_raw;
     }
+    phraser_PhraseHistory_vec_t phrase_history_vec = phraser_PhraseBlock_history(phrase_block);
     if (phraseHistoryMutation != NULL) {
-      phraser_PhraseHistory_vec_t phrase_history_vec = phraser_PhraseBlock_history(phrase_block);
       new_history = phraseHistoryMutation(phrase_history_vec);
+    } else {
+      // We need this for auto-truncate
+      new_history = copyPhraseHistoryMutation(phrase_history_vec);
     }
 
     // 4.1 Form versions
@@ -1115,8 +1137,21 @@ UpdateResponse phraseMutation(int phrase_block_id,
     uint32_t new_block_version = increment_and_get_next_block_version();
   
     // 6. Form updated block with updates
-    UpdateResponse block_response = updateVersionAndEntropyPhraseBlock(block, block_size, main_key, main_iv_mask, new_block_version,
-      phrase_template_id, folder_id, phrase_name, is_tombstone, new_history);
+    UpdateResponse block_response;
+    while (true) {
+      block_response = updateVersionAndEntropyPhraseBlock(block, block_size, main_key, main_iv_mask, new_block_version,
+        phrase_template_id, folder_id, phrase_name, is_tombstone, new_history);
+      
+      // Auto-truncate logic
+      if (!auto_truncate_history) { break; } // auto-truncate not requested
+      if (block_response != BLOCK_SIZE_EXCEEDED) { break; } // block size not exceeded
+      unsigned int new_history_size = arraylist_size(new_history);
+      if (new_history_size <= 1) { break; } // can't truncate current history
+
+      // truncate oldest history
+      PhraseHistory* phrase_history = (PhraseHistory*)arraylist_remove(new_history, new_history_size-1);
+      releaseFullPhraseHistory(phrase_history);
+    }
     
     serialDebugPrintf("6.\r\n");
 
@@ -1192,7 +1227,8 @@ UpdateResponse addNewPhrase(char* phrase_name, uint16_t phrase_template_id, uint
     folder_id_mutation,
     phrase_name_mutation,
     NULL,
-    NULL
+    NULL,
+    false
   );
   *created_phrase_id = last_block_id(); 
   return update_response;
@@ -1206,7 +1242,8 @@ UpdateResponse deletePhrase(uint16_t phrase_block_id) {
     NULL,
     NULL,
     tombstone_mutation,
-    NULL
+    NULL,
+    false
   );
   return OK;
 }
@@ -1219,11 +1256,12 @@ UpdateResponse movePhrase(uint16_t phrase_block_id, uint16_t move_to_folder_id) 
     folder_id_mutation,
     NULL,
     NULL,
-    NULL
+    NULL,
+    false
   );
 }
 
-UpdateResponse renamePhrase(uint16_t phrase_block_id, char* update_phrase_name) {
+UpdateResponse renamePhrase(uint16_t phrase_block_id, char* update_phrase_name, bool auto_truncate_history) {
   new_phrase_name = update_phrase_name;
 
   return phraseMutation(phrase_block_id, 
@@ -1231,7 +1269,8 @@ UpdateResponse renamePhrase(uint16_t phrase_block_id, char* update_phrase_name) 
     NULL,
     phrase_name_mutation,
     NULL,
-    NULL
+    NULL,
+    auto_truncate_history
   );
 }
 
@@ -1243,7 +1282,8 @@ UpdateResponse changePhraseTemplate(uint16_t phrase_block_id, uint16_t phrase_te
     NULL,
     NULL,
     NULL,
-    NULL
+    NULL,
+    false
   );
   return update_response;
 }
@@ -1332,7 +1372,7 @@ arraylist* new_phrase_history_mutation(phraser_PhraseHistory_vec_t phrase_histor
   return full_phrase_history;
 }
 
-UpdateResponse updatePhraseWord(uint16_t phrase_block_id, uint16_t phrase_template_id, uint16_t word_template_id, uint8_t word_template_ordinal, char* new_word, uint16_t new_word_length) {
+UpdateResponse updatePhraseWord(uint16_t phrase_block_id, uint16_t phrase_template_id, uint16_t word_template_id, uint8_t word_template_ordinal, char* new_word, uint16_t new_word_length, bool auto_truncate_history) {
   initRandomIfNeeded();
 
   new_history_phrase_template_id = phrase_template_id;
@@ -1346,12 +1386,13 @@ UpdateResponse updatePhraseWord(uint16_t phrase_block_id, uint16_t phrase_templa
     NULL,
     NULL,
     NULL,
-    new_phrase_history_mutation
+    new_phrase_history_mutation,
+    auto_truncate_history
   );
   return update_response;
 }
 
-UpdateResponse generatePhraseWord(uint16_t phrase_block_id, uint16_t phrase_template_id, uint16_t word_template_id, uint8_t word_template_ordinal) {
+UpdateResponse generatePhraseWord(uint16_t phrase_block_id, uint16_t phrase_template_id, uint16_t word_template_id, uint8_t word_template_ordinal, bool auto_truncate_history) {
   WordTemplate* word_template = getWordTemplate(word_template_id);
   if (word_template == NULL) {
     return ERROR;
@@ -1363,12 +1404,12 @@ UpdateResponse generatePhraseWord(uint16_t phrase_block_id, uint16_t phrase_temp
 
   // generate generateable word, create non-generateable words empty
   char* new_word = generateWordOrReturnEmptyStr(word_template);
-  UpdateResponse update_response = updatePhraseWord(phrase_block_id, phrase_template_id, word_template_id, word_template_ordinal, new_word, strlen(new_word));
+  UpdateResponse update_response = updatePhraseWord(phrase_block_id, phrase_template_id, word_template_id, word_template_ordinal, new_word, strlen(new_word), auto_truncate_history);
   free(new_word);
   return update_response;
 }
 
-UpdateResponse userEditPhraseWord(uint16_t phrase_block_id, uint16_t phrase_template_id, uint16_t word_template_id, uint8_t word_template_ordinal, char* new_word, uint16_t new_word_length) {
+UpdateResponse userEditPhraseWord(uint16_t phrase_block_id, uint16_t phrase_template_id, uint16_t word_template_id, uint8_t word_template_ordinal, char* new_word, uint16_t new_word_length, bool auto_truncate_history) {
   WordTemplate* word_template = getWordTemplate(word_template_id);
   if (word_template == NULL) {
     return ERROR;
@@ -1378,7 +1419,7 @@ UpdateResponse userEditPhraseWord(uint16_t phrase_block_id, uint16_t phrase_temp
     return ERROR;
   }
 
-  return updatePhraseWord(phrase_block_id, phrase_template_id, word_template_id, word_template_ordinal, new_word, new_word_length);
+  return updatePhraseWord(phrase_block_id, phrase_template_id, word_template_id, word_template_ordinal, new_word, new_word_length, auto_truncate_history);
 }
 
 uint16_t delete_phrase_history_index;
@@ -1412,7 +1453,8 @@ UpdateResponse deletePhraseHistory(uint16_t phrase_block_id, uint16_t phrase_his
     NULL,
     NULL,
     NULL,
-    delete_phrase_history_mutation
+    delete_phrase_history_mutation,
+    false
   );
   return update_response;
 }
@@ -1456,7 +1498,8 @@ UpdateResponse makePhraseHistoryCurrent(uint16_t phrase_block_id, uint16_t phras
     NULL,
     NULL,
     NULL,
-    make_phrase_history_current_mutation
+    make_phrase_history_current_mutation,
+    false
   );
   return update_response;
 }
@@ -1484,7 +1527,8 @@ UpdateResponse clearPhraseHistory(uint16_t phrase_block_id) {
     NULL,
     NULL,
     NULL,
-    clear_phrase_history_mutation
+    clear_phrase_history_mutation,
+    false
   );
   return update_response;
 }
