@@ -143,37 +143,49 @@ void initDefaultPhraseTemplatesBlock(uint8_t* buffer, const uint8_t* aes_key, co
   phraseTemplatesBlock_wordTemplate(&builder, 8, getWordPermissions(false, true, true, true), phraser_Icon_Email, 5, 255, "email", {}, 0);
   phraseTemplatesBlock_wordTemplate(&builder, 9, getWordPermissions(false, true, true, true), phraser_Icon_Key, 1, 4000, "key", {}, 0);
   phraseTemplatesBlock_wordTemplate(&builder, 10, getWordPermissions(false, true, true, true), phraser_Icon_Asterisk, 1, 4000, "private key", {}, 0);
+  uint16_t generated_linux_login_symbol_sets[] = {1,4};
+  phraseTemplatesBlock_wordTemplate(&builder, 11, getWordPermissions(true, true, true, true), phraser_Icon_Login, 8, 16, "gen. linux login", generated_linux_login_symbol_sets, 2);
   phraser_PhraseTemplatesBlock_word_templates_end(&builder);
   
   phraser_PhraseTemplatesBlock_phrase_templates_start(&builder);
+
   uint16_t login_pass_word_template_ids[] {    1, 2};
   uint8_t login_pass_word_template_ordinals[] {1, 1};
   phraseTemplatesBlock_phraseTemplate(&builder, 1, "Login/Pass", login_pass_word_template_ids, login_pass_word_template_ordinals, 2);
+
   uint16_t computer_word_template_ids[] {    1, 2, 5, 7};
   uint8_t computer_word_template_ordinals[] {1, 1, 1, 1};
   phraseTemplatesBlock_phraseTemplate(&builder, 2, "Computer", computer_word_template_ids, computer_word_template_ordinals, 4);
+
   uint16_t security_questions_word_template_ids[] {    1, 2, 3, 4, 3, 4, 3, 4};
   uint8_t security_questions_word_template_ordinals[] {1, 1, 1, 1, 2, 2, 3, 3};
   phraseTemplatesBlock_phraseTemplate(&builder, 3, "3 Security questions", security_questions_word_template_ids, security_questions_word_template_ordinals, 8);
+
   uint16_t generated_login_pass_word_template_ids[] {    6, 2};
   uint8_t generated_login_pass_word_template_ordinals[] {1, 1};
   phraseTemplatesBlock_phraseTemplate(&builder, 4, "Generated Login/Pass", generated_login_pass_word_template_ids, generated_login_pass_word_template_ordinals, 2);
+
   uint16_t login_email_pass_word_template_ids[] {    1, 8, 2};
   uint8_t login_email_pass_word_template_ordinals[] {1, 1, 1};
   phraseTemplatesBlock_phraseTemplate(&builder, 5, "Login/Email/Pass", login_email_pass_word_template_ids, login_email_pass_word_template_ordinals, 3);
+
   uint16_t key_word_template_ids[] {    9};
   uint8_t key_word_template_ordinals[] {1};
   phraseTemplatesBlock_phraseTemplate(&builder, 6, "Key", key_word_template_ids, key_word_template_ordinals, 1);
+
   uint16_t key_pair_word_template_ids[] {    9, 10};
   uint8_t key_pair_word_template_ordinals[] {1, 1};
   phraseTemplatesBlock_phraseTemplate(&builder, 7, "Key Pair", key_pair_word_template_ids, key_pair_word_template_ordinals, 2);
-  uint16_t computer_plus_word_template_ids[] {    6, 2, 5, 7};
+
+  uint16_t computer_plus_word_template_ids[] {    11, 2, 5, 7};
   uint8_t computer_plus_word_template_ordinals[] {1, 1, 1, 1};
   phraseTemplatesBlock_phraseTemplate(&builder, 8, "Computer+", computer_plus_word_template_ids, computer_plus_word_template_ordinals, 4);
+
   uint16_t windows_word_template_ids[] {    1, 2, 5, 7, 3, 4, 3, 4, 3, 4};
   uint8_t windows_word_template_ordinals[] {1, 1, 1, 1, 1, 1, 2, 2, 3, 3};
   phraseTemplatesBlock_phraseTemplate(&builder, 9, "Windows", windows_word_template_ids, windows_word_template_ordinals, 4);
-  uint16_t windows_plus_word_template_ids[] {    6, 2, 5, 7, 3, 4, 3, 4, 3, 4};
+
+  uint16_t windows_plus_word_template_ids[] {    11, 2, 5, 7, 3, 4, 3, 4, 3, 4};
   uint8_t windows_plus_word_template_ordinals[] {1, 1, 1, 1, 1, 1, 2, 2, 3, 3};
   phraseTemplatesBlock_phraseTemplate(&builder, 10, "Windows+", windows_plus_word_template_ids, windows_plus_word_template_ordinals, 4);
   phraser_PhraseTemplatesBlock_phrase_templates_end(&builder);
