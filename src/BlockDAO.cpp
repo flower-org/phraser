@@ -1261,7 +1261,7 @@ UpdateResponse movePhrase(uint16_t phrase_block_id, uint16_t move_to_folder_id) 
   );
 }
 
-UpdateResponse renamePhrase(uint16_t phrase_block_id, char* update_phrase_name, bool auto_truncate_history) {
+UpdateResponse renamePhrase(uint16_t phrase_block_id, char* update_phrase_name) {
   new_phrase_name = update_phrase_name;
 
   return phraseMutation(phrase_block_id, 
@@ -1270,7 +1270,7 @@ UpdateResponse renamePhrase(uint16_t phrase_block_id, char* update_phrase_name, 
     phrase_name_mutation,
     NULL,
     NULL,
-    auto_truncate_history
+    false
   );
 }
 
