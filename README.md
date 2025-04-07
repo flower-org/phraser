@@ -1,4 +1,3 @@
-# WIP! First release coming soon.
 # Phraser - USB Hardware Password Manager
 
 ![phraser.jpg](phraser.jpg)
@@ -79,3 +78,5 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
     - To make master pass bruteforcing even harder, use non-standard number of PBKDF2 iterations (UP+A+B on Unseal).
     - Also, changing your passwords regularly will reduce the usefullness of outdated backups.
 
+- Apr 07, 2025
+  - 0.0.1 released!
