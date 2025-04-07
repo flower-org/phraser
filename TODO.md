@@ -1,6 +1,6 @@
 # Features:
 
-- Change Phrase Template - select current template in template choosing list
+- Change Phrase Template - select current template in template list
 - "Typing" splash screen
 - Folder view functions - move up, move down in the list (Folders and Phrases)
 - mb Make `typing_delay_ms` configurable in KeyBlock (block flatbuf structure change)?
