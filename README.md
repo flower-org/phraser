@@ -36,6 +36,7 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
 - Raspberry Pi Foundation for RP2040 microcontroller
   - https://www.raspberrypi.com/products/rp2040/
 - TinyCircuits for amazing Thumby system and SDK
+  - https://thumby.us/
   - https://github.com/TinyCircuits/TinyCircuits-Thumby-Lib/
   - https://github.com/TinyCircuits/TinyCircuits-GraphicsBuffer-Lib
 - Platform IO for Raspberry Pi RP2040 platform
