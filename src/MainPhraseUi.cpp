@@ -930,7 +930,28 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
     case DELETE_HISTORY_YES_NO: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_YES) {
-        // TODO: implement
+        UpdateResponse delete_phrase_history_response = deletePhraseHistory(current_phrase->phrase_block_id, init_phrase_history_view_selection-1);
+
+        if (delete_phrase_history_response == OK) {
+          reloadCurrentPhrase(current_phrase->phrase_block_id);
+          if (current_phrase == NULL) {
+            return false;
+          }
+          initCurrentPhraseHistoryScreenList(current_phrase, init_phrase_history_view_selection-1);
+          main_phrase_ui_phase = PHRASE_HISTORY;
+        } else {
+          if (delete_phrase_history_response == ERROR) {
+            char* text = "Delete phrase history curren ERROR.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (delete_phrase_history_response == DB_FULL) {
+            char* text = "Database full. (Likely an issue, since we're deleting a history entry)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (delete_phrase_history_response == BLOCK_SIZE_EXCEEDED) {
+            char* text = "Block size exceeded. (Likely an issue, since we're deleting a history entry)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          }
+          main_phrase_ui_phase = HISTORY_VIEW_ERROR_REPORT;
+        }
       } else if (result == DLG_RES_NO) {
         init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
         main_phrase_ui_phase = PHRASE_HISTORY_MENU;
