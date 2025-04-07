@@ -31,6 +31,12 @@ enum MainPhraseUiPhase {
   CHANGE_PHRASE_TEMPLATE_YES_NO, 
   CHANGE_PHRASE_TEMPLATE,
 
+  DELETE_HISTORY_YES_NO,
+
+  MAKE_HISTORY_CURRENT_YES_NO,
+
+  CLEAR_HISTORY_YES_NO,
+
   // BlockDAO Dialogs
   PHRASE_VIEW_OPERATION_ERROR_REPORT,
   PHRASE_MENU_OPERATION_ERROR_REPORT,
@@ -137,25 +143,28 @@ void initCurrentPhraseHistoryScreenList(FullPhrase* phrase, int selection) {
 
 const int DELETE_HISTORY_ENTRY = 301;
 const int MAKE_HISTORY_ENTRY_CURRENT = 302;
-bool initPhraseHistoryMenuScreenList(PhraseHistory* phrase_history, int history_index, int selection) {
-  if (history_index == 0) { return false; }
+const int CLEAR_HISTORY = 303;
+void initPhraseHistoryMenuScreenList(PhraseHistory* phrase_history, int history_index, int selection) {
+  int menu_items_count = 3;
+  if (history_index == 0) { menu_items_count = 1; }
 
-  int menu_items_count = 2;
   int menu_item_cursor = 0;
   ListItem** screen_items = (ListItem**)malloc(menu_items_count * sizeof(ListItem*));
 
-  char text[350];
-  sprintf(text, "Delete: History %d", history_index);
-  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, DELETE_HISTORY_ENTRY);
-
-  sprintf(text, "Make current: History %d", history_index);
-  screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Upload, MAKE_HISTORY_ENTRY_CURRENT);
+  if (history_index != 0) {
+    char text[350];
+    sprintf(text, "Delete: History %d", history_index);
+    screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_X, DELETE_HISTORY_ENTRY);
   
+    sprintf(text, "Make current: History %d", history_index);
+    screen_items[menu_item_cursor++] = createListItemWithCode(text, phraser_Icon_Upload, MAKE_HISTORY_ENTRY_CURRENT);
+  }
+
+  screen_items[menu_item_cursor++] = createListItemWithCode("Delete all but latest", phraser_Icon_Skull, CLEAR_HISTORY);
+
   if (selection >= menu_items_count) { selection = 0; }
   initList(screen_items, menu_items_count, selection);
   freeItemList(screen_items, menu_items_count);
-
-  return true;
 }
 
 void initPhraseHistoryEntryMenuScreenList(Word* word, int selection) {
@@ -431,8 +440,30 @@ void phraseHistoryViewAction(int chosen_item, int code) {
   }
 }
 
+int init_history_selection = 0;
 void phraseHistoryViewMenuAction(int chosen_item, int code) {
-  //
+  serialDebugPrintf("phraseHistoryViewMenuAction chosen_item %d code %d\r\n", chosen_item, code);
+  if (code == DELETE_HISTORY_ENTRY) {
+    init_history_selection = chosen_item;
+
+    char text[350];
+    sprintf(text, "Delete history entry #%d?", init_phrase_history_view_selection - 1);
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_phrase_ui_phase = DELETE_HISTORY_YES_NO;
+  } else if (code == MAKE_HISTORY_ENTRY_CURRENT) {
+    init_history_selection = chosen_item;
+
+    char text[350];
+    sprintf(text, "Make history entry #%d current?", init_phrase_history_view_selection - 1);
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_phrase_ui_phase = MAKE_HISTORY_CURRENT_YES_NO;
+  } else if (code == CLEAR_HISTORY) {
+    init_history_selection = chosen_item;
+
+    char* text = "Delete all history except latest?";
+    initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    main_phrase_ui_phase = CLEAR_HISTORY_YES_NO;
+  }
 }
 
 bool mainPhraseViewAction(int chosen_item, int code) {
@@ -597,7 +628,7 @@ void init_phrase_history_view(int chosen_item) {
   initCurrentPhraseHistoryScreenList(current_phrase, init_phrase_history_view_selection);
 }
 
-void init_phrase_history_view_menu(int chosen_item) {
+void init_phrase_history_view_menu(int chosen_item, int selection) {
   PhraseHistory* phrase_history = NULL;
   init_phrase_history_view_selection = chosen_item;
   if (chosen_item > 0) {
@@ -608,9 +639,8 @@ void init_phrase_history_view_menu(int chosen_item) {
     }
 
     if (phrase_history != NULL) {
-      if (initPhraseHistoryMenuScreenList(phrase_history, index, 0)) {
-        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
-      }
+      initPhraseHistoryMenuScreenList(phrase_history, index, selection);
+      main_phrase_ui_phase = PHRASE_HISTORY_MENU;
     }
   }
 }
@@ -884,6 +914,42 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
       }
     }
     break;
+
+    case DELETE_HISTORY_YES_NO: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
+        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+      } else if (result == DLG_RES_NO) {
+        init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
+        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+      }
+    }
+    break;
+
+    case MAKE_HISTORY_CURRENT_YES_NO: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
+        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+      } else if (result == DLG_RES_NO) {
+        init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
+        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+      }
+    }
+    break;
+
+    case CLEAR_HISTORY_YES_NO: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
+        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+      } else if (result == DLG_RES_NO) {
+        init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
+        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+      }
+    }
+    break;
   }
   return true;
 }
@@ -898,7 +964,7 @@ void phraseMenuSwitch(int chosen_item) {
         init_phrase_view(chosen_item);
         break;
     case PHRASE_HISTORY: 
-        init_phrase_history_view_menu(chosen_item);
+        init_phrase_history_view_menu(chosen_item, 0);
         break;
     case PHRASE_HISTORY_MENU: 
         init_phrase_history_view(chosen_item);
