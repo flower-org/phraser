@@ -41,8 +41,11 @@ enum MainPhraseUiPhase {
   PHRASE_VIEW_OPERATION_ERROR_REPORT,
   PHRASE_MENU_OPERATION_ERROR_REPORT,
 
-  VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT,
-  VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT,
+  HISTORY_VIEW_ERROR_REPORT,
+  HISTORY_MENU_ERROR_REPORT,
+
+  HISTORY_ENTRY_VIEW_ERROR_REPORT,
+  HISTORY_ENTRY_MENU_ERROR_REPORT,
 };
 
 MainPhraseUiPhase main_phrase_ui_phase = PHRASE_VIEW;
@@ -363,12 +366,12 @@ void phraseHistoryEntryViewAction(int chosen_item, int code) {
       // ERROR: word and template not chosen
       char* text = "ERROR: Word not chosen.";
       initTextAreaDialog(text, strlen(text), DLG_OK);
-      main_phrase_ui_phase = VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT;
+      main_phrase_ui_phase = HISTORY_ENTRY_VIEW_ERROR_REPORT;
     } else if (word == NULL || word->word == NULL || strlen(word->word) == 0) {
       // ERROR: word has no value, generate or edit
       char* text = "History entry\nhas no value\nfor the word";
       initTextAreaDialog(text, strlen(text), DLG_OK);
-      main_phrase_ui_phase = VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT;
+      main_phrase_ui_phase = HISTORY_ENTRY_VIEW_ERROR_REPORT;
     } else {
       if (isTypeable(word->permissions)) {
         // Type word
@@ -398,12 +401,12 @@ void phraseHistoryEntryViewMenuAction(int chosen_item, int code) {
       // ERROR: word and template not chosen
       char* text = "ERROR: Word not chosen.";
       initTextAreaDialog(text, strlen(text), DLG_OK);
-      main_phrase_ui_phase = VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT;
+      main_phrase_ui_phase = HISTORY_ENTRY_MENU_ERROR_REPORT;
     } else if (word == NULL || word->word == NULL || strlen(word->word) == 0) {
       // ERROR: word has no value, generate or edit
       char* text = "History entry\nhas no value\nfor the word";
       initTextAreaDialog(text, strlen(text), DLG_OK);
-      main_phrase_ui_phase = VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT;
+      main_phrase_ui_phase = HISTORY_ENTRY_MENU_ERROR_REPORT;
     } else {
       if (code == PHRASE_VIEW_VIEW_WORD && isViewable(word->permissions)) {
         // View word
@@ -699,7 +702,16 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
     }
     break;
 
-    case VIEW_HISTORY_ENTRY_VIEW_ERROR_REPORT: 
+    case HISTORY_VIEW_ERROR_REPORT: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_OK) {
+        initCurrentPhraseHistoryScreenList(current_phrase, init_phrase_history_view_selection);
+        main_phrase_ui_phase = PHRASE_HISTORY;
+      }
+    }
+    break;
+
+    case HISTORY_ENTRY_VIEW_ERROR_REPORT: 
     case VIEW_HISTORY_ENTRY_WORD: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_OK) {
@@ -709,7 +721,7 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
     }
     break;
 
-    case VIEW_HISTORY_ENTRY_MENU_ERROR_REPORT: 
+    case HISTORY_ENTRY_MENU_ERROR_REPORT: 
     case VIEW_HISTORY_ENTRY_MENU_WORD: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_OK) {
@@ -918,8 +930,7 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
     case DELETE_HISTORY_YES_NO: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_YES) {
-        init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
-        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+        // TODO: implement
       } else if (result == DLG_RES_NO) {
         init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
         main_phrase_ui_phase = PHRASE_HISTORY_MENU;
@@ -930,8 +941,28 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
     case MAKE_HISTORY_CURRENT_YES_NO: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_YES) {
-        init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
-        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+        UpdateResponse make_phrase_history_current_response = makePhraseHistoryCurrent(current_phrase->phrase_block_id, init_phrase_history_view_selection-1);
+
+        if (make_phrase_history_current_response == OK) {
+          reloadCurrentPhrase(current_phrase->phrase_block_id);
+          if (current_phrase == NULL) {
+            return false;
+          }
+          initCurrentPhraseHistoryScreenList(current_phrase, 1);
+          main_phrase_ui_phase = PHRASE_HISTORY;
+        } else {
+          if (make_phrase_history_current_response == ERROR) {
+            char* text = "Make phrase history curren ERROR.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (make_phrase_history_current_response == DB_FULL) {
+            char* text = "Database full. (Likely an issue, since we're making a history entry current)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (make_phrase_history_current_response == BLOCK_SIZE_EXCEEDED) {
+            char* text = "Block size exceeded. (Likely an issue, since we're making a history entry current)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          }
+          main_phrase_ui_phase = HISTORY_VIEW_ERROR_REPORT;
+        }
       } else if (result == DLG_RES_NO) {
         init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
         main_phrase_ui_phase = PHRASE_HISTORY_MENU;
@@ -942,8 +973,28 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
     case CLEAR_HISTORY_YES_NO: {
       DialogResult result = textAreaLoop(thumby);
       if (result == DLG_RES_YES) {
-        init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
-        main_phrase_ui_phase = PHRASE_HISTORY_MENU;
+        UpdateResponse clear_phrase_history_response = clearPhraseHistory(current_phrase->phrase_block_id);
+
+        if (clear_phrase_history_response == OK) {
+          reloadCurrentPhrase(current_phrase->phrase_block_id);
+          if (current_phrase == NULL) {
+            return false;
+          }
+          initCurrentPhraseHistoryScreenList(current_phrase, 1);
+          main_phrase_ui_phase = PHRASE_HISTORY;
+        } else {
+          if (clear_phrase_history_response == ERROR) {
+            char* text = "Clear phrase history ERROR.";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (clear_phrase_history_response == DB_FULL) {
+            char* text = "Database full. (Likely an issue, since we're clearing history)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          } else if (clear_phrase_history_response == BLOCK_SIZE_EXCEEDED) {
+            char* text = "Block size exceeded. (Likely an issue, since we're clearing history)";
+            initTextAreaDialog(text, strlen(text), DLG_OK);
+          }
+          main_phrase_ui_phase = HISTORY_VIEW_ERROR_REPORT;
+        }
       } else if (result == DLG_RES_NO) {
         init_phrase_history_view_menu(init_phrase_history_view_selection, init_history_selection);
         main_phrase_ui_phase = PHRASE_HISTORY_MENU;

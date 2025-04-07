@@ -1381,16 +1381,112 @@ UpdateResponse userEditPhraseWord(uint16_t phrase_block_id, uint16_t phrase_temp
   return updatePhraseWord(phrase_block_id, phrase_template_id, word_template_id, word_template_ordinal, new_word, new_word_length);
 }
 
+uint16_t delete_phrase_history_index;
+//arraylist<PhraseHistory>
+arraylist* delete_phrase_history_mutation(phraser_PhraseHistory_vec_t phrase_history_vec) {
+  arraylist* full_phrase_history = arraylist_create();
+
+  size_t old_phrase_history_vec_length = flatbuffers_vec_len(phrase_history_vec);
+  for (int i = 0; i < old_phrase_history_vec_length; i++) {
+    phraser_PhraseHistory_table_t history = phraser_PhraseHistory_vec_at(phrase_history_vec, i);
+
+    // Add all history except for the deleted
+    if (i != delete_phrase_history_index) {
+      PhraseHistory* phrase_history = convertPhraseHistory(&history);
+      arraylist_add(full_phrase_history, phrase_history);
+    }
+  }
+
+  return full_phrase_history;
+}
+
 UpdateResponse deletePhraseHistory(uint16_t phrase_block_id, uint16_t phrase_history_index) {
+  if (phrase_history_index == 0) { return ERROR; }
+
   initRandomIfNeeded();
-  //
-  return ERROR;
+
+  delete_phrase_history_index = phrase_history_index;
+  
+  UpdateResponse update_response = phraseMutation(phrase_block_id, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    delete_phrase_history_mutation
+  );
+  return update_response;
+}
+
+uint16_t make_current_phrase_history_index;
+//arraylist<PhraseHistory>
+arraylist* make_phrase_history_current_mutation(phraser_PhraseHistory_vec_t phrase_history_vec) {
+  arraylist* full_phrase_history = arraylist_create();
+
+  size_t old_phrase_history_vec_length = flatbuffers_vec_len(phrase_history_vec);
+  if (make_current_phrase_history_index < old_phrase_history_vec_length) {
+    phraser_PhraseHistory_table_t history = phraser_PhraseHistory_vec_at(phrase_history_vec, make_current_phrase_history_index);
+
+    // First add the specified history
+    PhraseHistory* phrase_history = convertPhraseHistory(&history);
+    arraylist_add(full_phrase_history, phrase_history);
+  }
+
+  for (int i = 0; i < old_phrase_history_vec_length; i++) {
+    phraser_PhraseHistory_table_t history = phraser_PhraseHistory_vec_at(phrase_history_vec, i);
+
+    // Then add all history except for the one moved up
+    if (i != make_current_phrase_history_index) {
+      PhraseHistory* phrase_history = convertPhraseHistory(&history);
+      arraylist_add(full_phrase_history, phrase_history);
+    }
+  }
+
+  return full_phrase_history;
 }
 
 UpdateResponse makePhraseHistoryCurrent(uint16_t phrase_block_id, uint16_t phrase_history_index) {
+  if (phrase_history_index == 0) { return ERROR; }
+
   initRandomIfNeeded();
-  //
-  return ERROR;
+
+  make_current_phrase_history_index = phrase_history_index;
+  
+  UpdateResponse update_response = phraseMutation(phrase_block_id, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    make_phrase_history_current_mutation
+  );
+  return update_response;
+}
+
+//arraylist<PhraseHistory>
+arraylist* clear_phrase_history_mutation(phraser_PhraseHistory_vec_t phrase_history_vec) {
+  size_t old_phrase_history_vec_length = flatbuffers_vec_len(phrase_history_vec);
+  if (old_phrase_history_vec_length > 0) {
+    arraylist* full_phrase_history = arraylist_create();
+    phraser_PhraseHistory_table_t history = phraser_PhraseHistory_vec_at(phrase_history_vec, 0);
+
+    // Add history 0
+    PhraseHistory* phrase_history = convertPhraseHistory(&history);
+    arraylist_add(full_phrase_history, phrase_history);
+    return full_phrase_history;
+  }
+  return NULL;
+}
+
+UpdateResponse clearPhraseHistory(uint16_t phrase_block_id) {
+  initRandomIfNeeded();
+  
+  UpdateResponse update_response = phraseMutation(phrase_block_id, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    clear_phrase_history_mutation
+  );
+  return update_response;
 }
 
 // ------------------------------------------------------
