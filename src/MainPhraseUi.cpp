@@ -25,7 +25,9 @@ enum MainPhraseUiPhase {
   
   EDIT_WORD_YES_NO,
   INPUT_EDITED_WORD,
-  
+  EDIT_WORD,
+  EDIT_WORD_AUTO_TRUNCATE_YES_NO,
+
   GENERATE_WORD_YES_NO,
   
   CHANGE_PHRASE_TEMPLATE_YES_NO, 
@@ -513,6 +515,8 @@ bool mainPhraseViewAction(int chosen_item, int code) {
   return true;
 }
 
+bool perform_auto_truncate = false;
+char* phrase_ui_new_word_value = NULL;
 void mainPhraseViewMenuAction(int chosen_item, int code) {
   if (code == PHRASE_VIEW_CHANGE_PHRASE_TEMPLATE) {
     // Change Phrase Template
@@ -552,12 +556,15 @@ void mainPhraseViewMenuAction(int chosen_item, int code) {
           char text[350];
           sprintf(text, "Generate word\n`%s`?", word_template->wordTemplateName);
           initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+          perform_auto_truncate = false;
           main_phrase_ui_phase = GENERATE_WORD_YES_NO;
         } else if (code == PHRASE_VIEW_EDIT_WORD && isUserEditable(word_template->permissions)) {
           // Edit word
           char text[350];
           sprintf(text, "Edit word\n`%s`?", word_template->wordTemplateName);
           initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+          perform_auto_truncate = false;
+          phrase_ui_new_word_value = NULL;
           main_phrase_ui_phase = EDIT_WORD_YES_NO;
         } 
       }
@@ -816,7 +823,7 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
             uint8_t word_template_ordinal = (uint32_t)arraylist_get(phrase_template->wordTemplateOrdinals, index);
         
             generate_word_response = generatePhraseWord(current_phrase->phrase_block_id, current_phrase->phrase_template_id,
-              word_template_id, word_template_ordinal);
+              word_template_id, word_template_ordinal, perform_auto_truncate);
           }
         }
 
@@ -831,14 +838,23 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
           if (generate_word_response == ERROR) {
             char* text = "Generate word ERROR.";
             initTextAreaDialog(text, strlen(text), DLG_OK);
+            main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
           } else if (generate_word_response == DB_FULL) {
             char* text = "Database full. (Likely an issue, since we're just updating word)";
             initTextAreaDialog(text, strlen(text), DLG_OK);
+            main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
           } else if (generate_word_response == BLOCK_SIZE_EXCEEDED) {
-            char* text = "Block size exceeded.";
-            initTextAreaDialog(text, strlen(text), DLG_OK);
+            if (!perform_auto_truncate) {
+              perform_auto_truncate = true;
+              char* text = "Size exceeded\nAuto-truncate history?";
+              initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+              main_phrase_ui_phase = GENERATE_WORD_YES_NO;
+            } else {
+              char* text = "Block size exceeded.";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+              main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+            }
           }
-          main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
         }
       } else if (result == DLG_RES_NO) {
         WordAndTemplate* word_and_template = NULL;
@@ -887,8 +903,15 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
     }
     break;
     case INPUT_EDITED_WORD: {
-      char* new_word_value = keyboardLoop(thumby);
-      if (new_word_value != NULL) {
+      char* ui_new_word_value = keyboardLoop(thumby);
+      if (ui_new_word_value != NULL) {
+        phrase_ui_new_word_value = ui_new_word_value;
+      } else {
+        break;
+      }
+    }
+    case EDIT_WORD: {
+      if (phrase_ui_new_word_value != NULL) {
         UpdateResponse edit_word_response = ERROR;
         if (init_phrase_view_selection > 0) {
           int index = init_phrase_view_selection - 1;
@@ -899,7 +922,7 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
             uint8_t word_template_ordinal = (uint32_t)arraylist_get(phrase_template->wordTemplateOrdinals, index);
         
             edit_word_response = userEditPhraseWord(current_phrase->phrase_block_id, current_phrase->phrase_template_id,
-              word_template_id, word_template_ordinal, new_word_value, strlen(new_word_value));
+              word_template_id, word_template_ordinal, phrase_ui_new_word_value, strlen(phrase_ui_new_word_value), perform_auto_truncate);
           }
         }
 
@@ -914,18 +937,48 @@ bool phraseDialogActionsLoop(Thumby* thumby) {
           if (edit_word_response == ERROR) {
             char* text = "Edit word ERROR.";
             initTextAreaDialog(text, strlen(text), DLG_OK);
+            main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
           } else if (edit_word_response == DB_FULL) {
             char* text = "Database full. (Likely an issue, since we're just updating word)";
             initTextAreaDialog(text, strlen(text), DLG_OK);
+            main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
           } else if (edit_word_response == BLOCK_SIZE_EXCEEDED) {
-            char* text = "Block size exceeded.";
-            initTextAreaDialog(text, strlen(text), DLG_OK);
+            if (!perform_auto_truncate) {
+              char* text = "Size exceeded\nAuto-truncate history?";
+              initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+              main_phrase_ui_phase = EDIT_WORD_AUTO_TRUNCATE_YES_NO;
+            } else {
+              char* text = "Block size exceeded.";
+              initTextAreaDialog(text, strlen(text), DLG_OK);
+              main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
+            }
           }
-          main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
         }
+      } else {
+        char* text = "Edit word is NULL. (problem)";
+        initTextAreaDialog(text, strlen(text), DLG_OK);
+        main_phrase_ui_phase = PHRASE_MENU_OPERATION_ERROR_REPORT;
       }
     }
     break;
+    case EDIT_WORD_AUTO_TRUNCATE_YES_NO: {
+      DialogResult result = textAreaLoop(thumby);
+      if (result == DLG_RES_YES) {
+        perform_auto_truncate = true;
+        main_phrase_ui_phase = EDIT_WORD;
+      } else if (result == DLG_RES_NO) {
+        WordAndTemplate* word_and_template = NULL;
+        if (init_phrase_view_selection > 0) {
+          int index = init_phrase_view_selection - 1;
+          if (words_and_templates != NULL && index < arraylist_size(words_and_templates)) {
+            word_and_template = (WordAndTemplate*)arraylist_get(words_and_templates, index);
+          }
+        }
+        
+        main_phrase_ui_phase = PHRASE_VIEW_MENU;
+        initPhraseViewMenuScreenList(current_phrase, word_and_template, init_phrase_history_view_menu_selection);
+      }
+    }
 
     case DELETE_HISTORY_YES_NO: {
       DialogResult result = textAreaLoop(thumby);

@@ -188,6 +188,7 @@ void folderBrowserAction(int chosen_item) {
   }
 }
 
+bool perform_auto_truncate_rename = false;
 const int FOLDER_MENU_NEW_FOLDER = 1;
 const int FOLDER_MENU_RENAME_FOLDER = 2;
 const int FOLDER_MENU_DELETE_FOLDER = 3;
@@ -235,6 +236,7 @@ void folderBrowserMenuAction(int chosen_item, int code) {
     PhraseFolderAndName* selected_phrase = getPhrase(selected_phrase_id);
     sprintf(text, "Rename phrase `%s`?", selected_phrase->name);
     initTextAreaDialog(text, strlen(text), DLG_YES_NO);
+    perform_auto_truncate_rename = false;
     main_folder_ui_phase = RENAME_PHRASE_YES_NO;
   } else if (FOLDER_MENU_MOVE_FOLDER == code) {
     char text[350];
@@ -718,7 +720,7 @@ void dialogActionsLoop(Thumby* thumby) {
           initTextAreaDialog(text, strlen(text), DLG_OK);
           main_folder_ui_phase = FOLDER_MENU_OPERATION_ERROR_REPORT;
         } else {
-          UpdateResponse rename_phrase_response = renamePhrase(selected_phrase_id, new_phrase_name);
+          UpdateResponse rename_phrase_response = renamePhrase(selected_phrase_id, new_phrase_name, perform_auto_truncate_rename);
           if (rename_phrase_response == OK) {
             initFolder(folder_browser_folder_id, selected_folder_id, selected_phrase_id);
             main_folder_ui_phase = FOLDER_BROWSER;
