@@ -649,6 +649,7 @@ void dialogActionsLoop(Thumby* thumby) {
           main_folder_ui_phase = FOLDER_BROWSER;
         }
     }
+    break;
 
     case MOVE_FOLDER_YES_NO: {
       DialogResult result = textAreaLoop(thumby);
@@ -656,7 +657,8 @@ void dialogActionsLoop(Thumby* thumby) {
         initFoldersList(selected_folder_id);
         main_folder_ui_phase = MOVE_FOLDER;
       } else if (result == DLG_RES_NO) {
-        main_folder_ui_phase = FOLDER_MENU;
+        initFolder(folder_browser_folder_id, -1, selected_phrase_id);
+        main_folder_ui_phase = FOLDER_BROWSER;
       }
     }
     break;
@@ -698,6 +700,7 @@ void dialogActionsLoop(Thumby* thumby) {
           main_folder_ui_phase = FOLDER_BROWSER;
         }
     }
+    break;
 
     case RENAME_PHRASE_YES_NO: { 
       DialogResult result = textAreaLoop(thumby);

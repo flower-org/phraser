@@ -68,10 +68,12 @@ const int PHRASE_VIEW_TYPE_WORD = 5;
 const int PHRASE_VIEW_CHANGE_PHRASE_TEMPLATE = 6;
 void initPhraseViewMenuScreenList(FullPhrase* phrase, WordAndTemplate* word_and_template, int selection) {
   int menu_items_count = 2;
-  bool word_value_present = word_and_template->word != NULL && word_and_template->word->word != NULL && strlen(word_and_template->word->word) > 0;
-  WordTemplate* word_template = getWordTemplate(word_and_template->word_template_id);
 
+  bool word_value_present = false;
+  WordTemplate* word_template = NULL;
   if (word_and_template != NULL) {
+    word_value_present = word_and_template->word != NULL && word_and_template->word->word != NULL && strlen(word_and_template->word->word) > 0;
+    word_template = getWordTemplate(word_and_template->word_template_id);
     if (word_template != NULL) {
       if (isGenerateable(word_template->permissions)) { menu_items_count++; }
       if (isUserEditable(word_template->permissions)) { menu_items_count++; }
