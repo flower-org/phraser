@@ -65,18 +65,18 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
   - Migrated passwords for several accounts to Phraser.
 
 
-- Apr 07, 2025: DB Backup lifecycle management IRL
-  - In ideal world, these operations should be performed on an offline machine:
-  - Create DB backup file using Phraser Manager;
-  - Encrypt the backup file with Cryptor (RSA);
+- Apr 07, 2025: DB Backup management, the way I'm doing it:
+  - In an ideal world, these operations should be performed on an offline machine:
+  - Download DB from token into a backup file using [Phraser Manager](https://github.com/flower-org/PhraserManager/releases/latest);
+  - Encrypt the backup file with [Cryptor](https://github.com/flower-org/Fidd/releases/latest) (I use PKCS#11 + RSA);
   - Date the encrypted file;
   - Store the encrypted file reliably - multiple copies, local, cloud.
-  - DB is encrypted, why encrypt it again with RSA?
-    - Yes, the DB is always encrypted, but if somebody gets a hold of a backup file, they theoretically might still bruteforce its master pass (even though it's very hard given PBKDF2, double-layered encryption with Key Block and NO metadata leaks).
-    - To reduce that risk to absolute minimum, I additionally encrypt backup files with RSA, which is not considered bruteforceable.
-    - Even if the RSA private key gets compromised, one would still have to decrypt the DB itself.
-    - To make master pass bruteforcing even harder, use non-standard number of PBKDF2 iterations (UP+A+B on Unseal).
-    - Also, changing your passwords regularly will reduce the usefullness of outdated backups.
+  - Q: DB is encrypted, why encrypt it again with RSA?
+    - A: Yes, the DB is stored and transferred in an encrypted state, but if somebody gains access to a backup file, they could theoretically bruteforce its master password (even though it's very hard given PBKDF2, double-layered encryption with Key Block, and NO metadata leaks).
+    - To reduce that risk to an absolute minimum, I additionally encrypt backup files with RSA, which is not considered bruteforceable.
+    - Even if the RSA private key is compromised, one would still have to decrypt the DB itself.
+    - To make bruteforcing the master password even more difficult, use a non-standard number of PBKDF2 iterations (UP+A+B on Unseal).
+    - Additionally, changing your passwords regularly will reduce the relevance of older backups.
 
 - Apr 07, 2025
-  - 0.0.1 released!
+  - 0.0.2 released!
