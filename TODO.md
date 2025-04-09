@@ -41,7 +41,8 @@ With that said, if BlockDB technology is to be reused in any other projects, it'
 ### 2. UI
 
 It wasn't one of the primary goals of this project to implement a well-designed and robust UI component library.
-While current UI does look good (at least to me) and it's pretty fast, there was never an emphasis (especially given other priorities) to produce any kind of solid implementation, let alone engine. On the contrary, the goal was to put it together ASAP to avoid blocking the development of other features.
+While current UI does look good (at least to me) and is pretty fast, there was never an emphasis (especially given other priorities) on producing a solid implementation, let alone a complete UI engine. On the contrary, the goal was to put something together ASAP to avoid blocking the development of other features.
 That's why curently the UI code is very spaghetti-like and repetitive.
-If this project will find its continuation, it's worth remembering that there is a technical debt in the form of serious UI refactoring.
+
+If this project will find its continuation, it's worth remembering that it contains a technical debt in the form of serious UI refactoring.  
 No specific design ideas yet, but one thought is that it would probably make sense to switch to C++ to define UI flows and components as classes.
