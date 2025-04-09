@@ -144,7 +144,7 @@ void initDefaultPhraseTemplatesBlock(uint8_t* buffer, const uint8_t* aes_key, co
   phraseTemplatesBlock_wordTemplate(&builder, 9, getWordPermissions(false, true, true, true), phraser_Icon_Key, 1, 4000, "key", {}, 0);
   phraseTemplatesBlock_wordTemplate(&builder, 10, getWordPermissions(false, true, true, true), phraser_Icon_Asterisk, 1, 4000, "private key", {}, 0);
   uint16_t generated_linux_login_symbol_sets[] = {1,4};
-  phraseTemplatesBlock_wordTemplate(&builder, 11, getWordPermissions(true, true, true, true), phraser_Icon_Login, 8, 16, "gen. linux login", generated_linux_login_symbol_sets, 2);
+  phraseTemplatesBlock_wordTemplate(&builder, 11, getWordPermissions(true, true, true, true), phraser_Icon_Login, 8, 16, "login (lowercase) generated", generated_linux_login_symbol_sets, 2);
   phraser_PhraseTemplatesBlock_word_templates_end(&builder);
   
   phraser_PhraseTemplatesBlock_phrase_templates_start(&builder);
