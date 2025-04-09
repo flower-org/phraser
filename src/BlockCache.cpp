@@ -39,26 +39,6 @@ struct BlockIdAndVersion {
 
 BlockIdAndVersion BLOCK_NOT_UPDATED = { 0, 0, 0, false };
 
-struct Word {
-  uint16_t word_template_id;
-  uint8_t word_template_ordinal;
-  char* name;
-  char* word;
-  uint8_t permissions;
-  phraser_Icon_enum_t icon;
-};
-
-struct Phrase {
-  uint32_t phraseBlockId;
-  uint16_t phrase_template_id;
-  uint16_t folder_id;
-  bool is_tombstone;
-  char* phrase_name;
-
-  arraylist* history_phrase_template_ids;
-  arraylist* history;//Word
-};
-
 // DB data structures
 uint16_t lastBlockId;
 uint32_t lastBlockVersion;

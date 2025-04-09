@@ -338,8 +338,14 @@ bool initPhraseView(int phrase_block_id) {
 
 // ----------------------------------------------------------------------------
 
-void typeWord(char* word, int word_length) {
-  // TODO: show "Typing..." splash screen
+void typeWord(Thumby* thumby, char* word, int word_length) {
+  // Type word
+  char* text = "Typing...";
+  initTextAreaDialog(text, strlen(text), TEXT_AREA);
+  DialogResult result = textAreaLoop(thumby);
+  // Update the screen
+  thumby->writeBuffer(thumby->getBuffer(), thumby->getBufferSize());
+
   for (int i = 0; i < word_length; i++) {
     char c = word[i];
     setChar(c);
@@ -355,7 +361,7 @@ int init_phrase_history_view_selection = 0;
 int init_phrase_history_view_menu_selection = 0;
 int init_phrase_history_entry_view_selection = 0;
 int init_phrase_history_entry_view_menu_selection = 0;
-void phraseHistoryEntryViewAction(int chosen_item, int code) {
+void phraseHistoryEntryViewAction(Thumby* thumby, int chosen_item, int code) {
   if (code == UP_TO_PHRASE_HISTORY_LEVEL) {
     initCurrentPhraseHistoryScreenList(current_phrase, init_phrase_history_view_selection);
     main_phrase_ui_phase = PHRASE_HISTORY;
@@ -381,8 +387,7 @@ void phraseHistoryEntryViewAction(int chosen_item, int code) {
       main_phrase_ui_phase = HISTORY_ENTRY_VIEW_ERROR_REPORT;
     } else {
       if (isTypeable(word->permissions)) {
-        // Type word
-        typeWord(word->word, strlen(word->word));
+        typeWord(thumby, word->word, strlen(word->word));
       } else if (isViewable(word->permissions)) {
         // View word
         initTextAreaDialog(word->word, strlen(word->word), TEXT_AREA);
@@ -392,7 +397,7 @@ void phraseHistoryEntryViewAction(int chosen_item, int code) {
   }
 }
 
-void phraseHistoryEntryViewMenuAction(int chosen_item, int code) {
+void phraseHistoryEntryViewMenuAction(Thumby* thumby, int chosen_item, int code) {
   Word* word = NULL;
   
   if (init_phrase_history_entry_view_selection > 0) {
@@ -421,7 +426,7 @@ void phraseHistoryEntryViewMenuAction(int chosen_item, int code) {
         main_phrase_ui_phase = VIEW_HISTORY_ENTRY_MENU_WORD;
       } else if (code == PHRASE_VIEW_TYPE_WORD && isTypeable(word->permissions)) {
         // Type word
-        typeWord(word->word, strlen(word->word));
+        typeWord(thumby, word->word, strlen(word->word));
       }
     }
   }
@@ -476,7 +481,7 @@ void phraseHistoryViewMenuAction(int chosen_item, int code) {
   }
 }
 
-bool mainPhraseViewAction(int chosen_item, int code) {
+bool mainPhraseViewAction(Thumby* thumby, int chosen_item, int code) {
   if (code == UP_TO_PARENT_LEVEL) {
     // Returning false from here moves back to Folders UI
     return false;
@@ -508,7 +513,7 @@ bool mainPhraseViewAction(int chosen_item, int code) {
     } else {
       if (isTypeable(word_and_template->word->permissions)) {
         // Type word
-        typeWord(word_and_template->word->word, strlen(word_and_template->word->word));
+        typeWord(thumby, word_and_template->word->word, strlen(word_and_template->word->word));
       } else if (isViewable(word_and_template->word->permissions)) {
         // View word
         initTextAreaDialog(word_and_template->word->word, strlen(word_and_template->word->word), TEXT_AREA);
@@ -522,7 +527,7 @@ bool mainPhraseViewAction(int chosen_item, int code) {
 
 bool perform_auto_truncate = false;
 char* phrase_ui_new_word_value = NULL;
-void mainPhraseViewMenuAction(int chosen_item, int code) {
+void mainPhraseViewMenuAction(Thumby* thumby, int chosen_item, int code) {
   if (code == PHRASE_VIEW_CHANGE_PHRASE_TEMPLATE) {
     // Change Phrase Template
     init_phrase_history_view_menu_selection = chosen_item;
@@ -604,7 +609,7 @@ void mainPhraseViewMenuAction(int chosen_item, int code) {
         main_phrase_ui_phase = VIEW_WORD_MENU;
       } else if (code == PHRASE_VIEW_TYPE_WORD && isTypeable(word_and_template->word->permissions)) {
         // Type word
-        typeWord(word_and_template->word->word, strlen(word_and_template->word->word));
+        typeWord(thumby, word_and_template->word->word, strlen(word_and_template->word->word));
       } 
     }
   }
@@ -1169,14 +1174,14 @@ void phraseMenuSwitch(int chosen_item) {
   }
 }
 
-bool runMainPhraseUiPhaseAction(int chosen_item, int code) {
+bool runMainPhraseUiPhaseAction(Thumby* thumby, int chosen_item, int code) {
   switch (main_phrase_ui_phase) {
-    case PHRASE_VIEW: return mainPhraseViewAction(chosen_item, code); break;
-    case PHRASE_VIEW_MENU: mainPhraseViewMenuAction(chosen_item, code); break;
+    case PHRASE_VIEW: return mainPhraseViewAction(thumby, chosen_item, code); break;
+    case PHRASE_VIEW_MENU: mainPhraseViewMenuAction(thumby, chosen_item, code); break;
     case PHRASE_HISTORY: phraseHistoryViewAction(chosen_item, code); break;
     case PHRASE_HISTORY_MENU: phraseHistoryViewMenuAction(chosen_item, code); break;
-    case PHRASE_HISTORY_ENTRY: phraseHistoryEntryViewAction(chosen_item, code); break;
-    case PHRASE_HISTORY_ENTRY_MENU: phraseHistoryEntryViewMenuAction(chosen_item, code); break;
+    case PHRASE_HISTORY_ENTRY: phraseHistoryEntryViewAction(thumby, chosen_item, code); break;
+    case PHRASE_HISTORY_ENTRY_MENU: phraseHistoryEntryViewMenuAction(thumby, chosen_item, code); break;
     default: return true;
   }
   return true;
@@ -1189,7 +1194,7 @@ bool phraserPhraseUiLoop(Thumby* thumby) {
     SelectionAndCode chosen = listLoopWithCode(thumby, true);
     if (chosen.selection != -1) {
       if (getSelectButton() == SELECT_BUTTON_A) {
-        return runMainPhraseUiPhaseAction(chosen.selection, chosen.code);
+        return runMainPhraseUiPhaseAction(thumby, chosen.selection, chosen.code);
       } else { //SELECT_BUTTON_B
         phraseMenuSwitch(chosen.selection);
       }
