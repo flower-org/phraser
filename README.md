@@ -12,7 +12,7 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
 - **Emulates USB Keyboard**: Helps you to fill in pass- and other -words by emulating a USB keyboard.
 - **Open Source**: Fully open-source firmware, Apache 2.
 - **Flash-friendly DB design**: Facilitates uniform flash sector wear and bit rot protection ([more info](https://github.com/flower-org/PhraserManager/blob/main/1.%20Phraser%20DB%20-%20Optimizing%20Flash%20Wear%20and%20Bit%20Rot.md)).
-- **Up to 3 Password Banks**: Up to 3 independent password databases, each with it's own password.
+- **Up to 3 Password Banks**: Up to 3 independent password databases, each with it's own password. (`DOWN`+`A`+`B` on Unseal)
 
 ## Phraser Manager
 
@@ -54,7 +54,7 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
   - https://github.com/RobTillaart/Adler
 - PolarSSL and Dhiru Kholia for PBKDF2 and SHA256
   - https://github.com/kholia/PKCS5_PBKDF2
-- Hyeon Kim for Tiny Red-Black Tree (modified version in use)
+- Hyeon Kim for Tiny Red-Black Tree (extended version in use)
   - https://github.com/simnalamburt/tiny-rbtree
 - marekweb for Arraylist and Hashtable in C (modified version in use)
   - https://github.com/marekweb/datastructs-c
@@ -64,18 +64,18 @@ Phraser is a compact and secure USB hardware password manager designed to keep y
 - Apr 06, 2025: First real life use for actual passwords.
   - Migrated passwords for several accounts to Phraser.
 
-
 - Apr 07, 2025: DB Backup management, the way I'm doing it:
   - In an ideal world, these operations should be performed on an offline machine:
   - Download DB from token into a backup file using [Phraser Manager](https://github.com/flower-org/PhraserManager/releases/latest);
   - Encrypt the backup file with [Cryptor](https://github.com/flower-org/Fidd/releases/latest) (I use PKCS#11 + RSA);
   - Date the encrypted file;
   - Store the encrypted file reliably - multiple copies, local, cloud.
+    - Beware of a situation when your cloud password is in the Thumby DB Backup, which is stored in the cloud only.
   - Q: DB is encrypted, why encrypt it again with RSA?
     - A: Yes, the DB is stored and transferred in an encrypted state, but if somebody gains access to a backup file, they could theoretically bruteforce its master password (even though it's very hard given PBKDF2, double-layered encryption with Key Block, and NO metadata leaks).
     - To reduce that risk to an absolute minimum, I additionally encrypt backup files with RSA, which is not considered bruteforceable.
     - Even if the RSA private key is compromised, one would still have to decrypt the DB itself.
-    - To make bruteforcing the master password even more difficult, use a non-standard number of PBKDF2 iterations (UP+A+B on Unseal).
+    - To make bruteforcing the master password even more difficult, use a non-standard number of PBKDF2 iterations (`UP`+`A`+`B` on Unseal).
     - Additionally, changing your passwords regularly will reduce the relevance of older backups.
 
 - Apr 07, 2025
