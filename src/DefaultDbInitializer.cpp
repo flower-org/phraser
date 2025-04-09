@@ -165,9 +165,9 @@ void initDefaultPhraseTemplatesBlock(uint8_t* buffer, const uint8_t* aes_key, co
   uint8_t generated_login_pass_word_template_ordinals[] {1, 1};
   phraseTemplatesBlock_phraseTemplate(&builder, 4, "Generated Login/Pass", generated_login_pass_word_template_ids, generated_login_pass_word_template_ordinals, 2);
 
-  uint16_t login_email_pass_word_template_ids[] {    1, 8, 2};
+  uint16_t login_email_pass_word_template_ids[] {    1, 2, 8};
   uint8_t login_email_pass_word_template_ordinals[] {1, 1, 1};
-  phraseTemplatesBlock_phraseTemplate(&builder, 5, "Login/Email/Pass", login_email_pass_word_template_ids, login_email_pass_word_template_ordinals, 3);
+  phraseTemplatesBlock_phraseTemplate(&builder, 5, "Login/Pass/Email", login_email_pass_word_template_ids, login_email_pass_word_template_ordinals, 3);
 
   uint16_t key_word_template_ids[] {    9};
   uint8_t key_word_template_ordinals[] {1};
