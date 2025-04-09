@@ -40,3 +40,11 @@ Apart from making the base Block DB structure less reusable, it causes practical
 However, straightening this out is not likely to happen in Phraser, since the potential impact / improvement for this particular (non-commercial) project is hardly worth the effort required.
 
 With that said, if BlockDB technology is to be reused in any other projects, it's strongly recommended to make this structural change before everything else. If there are any afterthoughts in Phraser project, this is the most important of them all.
+
+### 2. UI
+
+It wasn't one of the primary goals of this project to implement a well-designed and robust UI component library.
+While current UI does look good (at least to me) and it's pretty fast, there was never an emphasis (especially given other priorities) to produce any kind of solid implementation, let alone engine. On the contrary, the goal was to put it together ASAP to avoid blocking the development of other features.
+That's why curently the UI code is very spaghetti-like and repetitive.
+If this project will find its continuation, it's worth remembering that there is a technical debt in the form of serious UI refactoring.
+No specific design ideas yet, but one thought is that it would probably make sense to switch to C++ to define UI flows and components as classes.
