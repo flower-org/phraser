@@ -11,6 +11,7 @@
   - Symbol Sets (Aa)
 - Copy DB from bank to bank
 - Update MasterPassword (not sure how safe that would be to do in place, but adding an option to copy the updated DB to another bank is definitely a good idea.)
+- Consider obfuscating IV by transforming its raw value with md5 of sha-256
 
 # Fundamental:
 
