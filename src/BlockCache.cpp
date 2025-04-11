@@ -820,7 +820,15 @@ void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value) {
     } else if (ts_block_info->isTombstoned && ts_block_info->copyCount == 2) {
       if (!db_has_non_tombstoned_space()) {
         // DB full, which means we only have 1 free block. If that's the second copy of our tombstone 
-        //  blockId, we can safely nuke it
+        //  blockId, we can safely nuke it. 
+        // (TODO: I'm pretty sure the above was added due to a bug, but I forgot to comment clearly then and now I forgot 
+        //  exactly why this works or is required.
+        //  I think that under the described circumstances those 2 copies are somehow guaranteed to be both with Tombstoned flag set.
+        //  M.b. throwback-copies of each other? I need to recall exactly why that works and clarify in the comment).
+        // (TODO: I also think that the throwback copy may fail when DB is full if the `copyCount == 2` clause is not present).
+        // (TODO: however, I'm not sure how would a tombstoned block have 2 copies, when the DB is full, since it's the only tombstoned block
+        //    and there are no free blocks in this case. This might be a rudiment of an incorrect logic)
+        // (TODO: consider testing without it and validating the correctness)
 
         // find the only free block number
         uint32_t free_block_number = get_free_block_number_on_the_left_of(occupied_block_numbers(), db_block_count(), db_block_count());
