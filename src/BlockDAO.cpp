@@ -126,10 +126,21 @@ void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8
   serialDebugPrintf("block_buffer_size %zu\r\n", (uint32_t)block_buffer_size);
 
   // Generate block IV
-  uint8_t block_iv[IV_MASK_LEN];
+  // It might be possible to deduce some facts about random number generator settings
+  // from sequences it produces. Since IV Part (block_iv) is stored as is, we're obfuscating
+  // the actual numbers produced by the number generator by hashing them with sha256.
+  uint8_t digest[32];
+  sha2_context ctx;
+  sha2_starts(&ctx, 0);
   for (int i = 0; i < IV_MASK_LEN; i++) {
-    main_buffer[FLASH_SECTOR_SIZE - IV_MASK_LEN + i] =
-      block_iv[i] = (uint8_t)random(256); // Generate random byte
+    int rnd = rand();
+    sha2_update(&ctx, (uint8_t*)&rnd, sizeof(rnd));
+  }
+  sha2_finish(&ctx, digest);
+
+  uint8_t* block_iv = xorByteArrays(digest, digest + IV_MASK_LEN, IV_MASK_LEN);
+  for (int i = 0; i < IV_MASK_LEN; i++) {
+    main_buffer[FLASH_SECTOR_SIZE - IV_MASK_LEN + i] = block_iv[i];
   }
 
   uint8_t* iv = xorByteArrays(block_iv, (uint8_t*)aes_iv_mask, IV_MASK_LEN);
@@ -151,6 +162,7 @@ void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8
   inPlaceEncryptBlock4096((uint8_t*)aes_key, iv, main_buffer);
 
   free(iv);
+  free(block_iv);
 }
 
 // -------------------- PHRASER -------------------- 
