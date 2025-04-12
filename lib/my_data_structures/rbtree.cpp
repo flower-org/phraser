@@ -234,7 +234,7 @@ void tree_insert(node_t **root, data_t query) {
 }
 
 bool tree_delete(node_t **root, data_t query) {
-  node_t *n = search(*root, query);
+  node_t *n = tree_search(*root, query);
   if (n != NULL) {
     tree_delete_raw(root, n);
     free(n);
@@ -332,10 +332,10 @@ void tree_insert_rec(node_t *n) {
 //
 // Search
 //
-node_t *search(const node_t *n, data_t query) {
+node_t *tree_search(const node_t *n, data_t query) {
   if (n == NULL) { return NULL; }
   if (get_data(n) == query) { return (node_t*)n; }
-  return get_data(n) > query ? search(n->left, query) : search(n->right, query);
+  return get_data(n) > query ? tree_search(n->left, query) : tree_search(n->right, query);
 }
 
 

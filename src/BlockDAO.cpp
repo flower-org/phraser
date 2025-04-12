@@ -599,49 +599,67 @@ UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size,
   return ERROR;
 }
 
+static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return false; }
 // returns block_number to which the main update shold go
 uint16_t throwbackCopy(uint32_t new_version) {
   serialDebugPrintf("t1.\r\n");
-//  traverse_inorder(occupied_block_numbers(), perNode);
+  traverse_inorder(occupied_block_numbers(), perNode);
 
   serialDebugPrintf("t1.\r\n");
   uint32_t border_block_number = last_block_number();
   serialDebugPrintf("t2 border_block_number %d.\r\n", border_block_number);
   uint32_t b1_block_number = get_valid_block_number_on_the_right_of(occupied_block_numbers(), border_block_number);
   serialDebugPrintf("t3 b1_block_number %d.\r\n", b1_block_number);
-  uint32_t b2_block_number = get_free_block_number_on_the_left_of(occupied_block_numbers(), border_block_number, db_block_count());
-  serialDebugPrintf("t4 b2_block_number %d.\r\n", b2_block_number);
+
+  // ---- find B2 and B3 ----
+
+  uint32_t r1_block_number = (border_block_number + 1) % db_block_count();
+  uint32_t r2_block_number = (border_block_number + 2) % db_block_count();
+  node_t* r1_node = tree_search(occupied_block_numbers(), r1_block_number);
+  bool r1_occupied = (r1_node != NULL);
+  node_t* r2_node = tree_search(occupied_block_numbers(), r2_block_number);
+  bool r2_occupied = (r2_node != NULL);
+
+  serialDebugPrintf("t3 r1_block_number %d.\r\n", r1_block_number);
+  serialDebugPrintf("t3 r1_occupied %d.\r\n", r1_occupied);
+  serialDebugPrintf("t3 r2_block_number %d.\r\n", r2_block_number);
+  serialDebugPrintf("t3 r2_occupied %d.\r\n", r2_occupied);
+
+  uint32_t b2_block_number;
   uint32_t b3_block_number;
-  serialDebugPrintf("t5.\r\n");
-  
-  if (db_full()) {
-    // In case we have only 1 free block, initially the only free block is B2.
-    // Since B1 overwrites B2, after Throwback Copy B1 becomes the only free block.
-    // Therefore the only place the main update can go to is B1
 
-    // Main updates goes to B1
-    serialDebugPrintf("t6.\r\n");
-    b3_block_number = b1_block_number;
+  if (!r1_occupied && !r2_occupied) {
+    // Happy path - whenever R1 and R2 are free, use them as B2 and B3
+    b2_block_number = r1_block_number;
+    b3_block_number = r2_block_number;
   } else {
-    // If we have more than 1 free block initially, then after Throwback Copy is done,
-    // the block immediately to the right of the border will always be free.
-    //
-    // This boils down to 2 possibilities:
-    // 1) B2 is actually the block immediately to the right of the border, and after 
-    //  throwback copy is done, it will become free.
-    //
-    // 2) The block immediately to the right of the border is not B2.
-    //  That would mean this block is free, because B2 is first non-free block to the right.
-    //  This block is also not B1, because B1 is the first free block to the left, and since 
-    //  we have more than 1 free block, B1 has to be some other block than the "rightest" 
-    //  free block.
-    //  In this case Throwback Copy updates B2 and B1, while the block immediately 
-    //  to the right of the border stays intact, i.e. it's free.
+    b2_block_number = get_free_block_number_on_the_left_of(occupied_block_numbers(), border_block_number, db_block_count());
+    serialDebugPrintf("t3 calculated b2_block_number %d.\r\n", b2_block_number);
 
-    // Main update goes to the block immediately to the right of the border
-    serialDebugPrintf("t7.\r\n");
-    b3_block_number = (border_block_number + 1) % db_block_count();
+    bool b2_is_closer_to_border_from_the_right_than_b1 = false;
+
+    uint32_t df = db_block_count() - border_block_number - 1;
+    uint32_t b1_block_number_adj = (b1_block_number + df) % db_block_count();
+    uint32_t b2_block_number_adj = (b2_block_number + df) % db_block_count();
+
+    b2_is_closer_to_border_from_the_right_than_b1 = b2_block_number_adj < b1_block_number_adj;
+
+    serialDebugPrintf("t3 b2_is_closer_to_border_from_the_right_than_b1 %d.\r\n", b2_is_closer_to_border_from_the_right_than_b1);
+  
+    if (b2_is_closer_to_border_from_the_right_than_b1) {
+      // Calculated B2 is closer to the right of the Last Block than B1
+      b2_block_number = r1_block_number;
+      b3_block_number = r2_block_number;
+    } else {
+      // Fall back to throwback copy
+      b3_block_number = r1_block_number;
+    }
   }
+
+  serialDebugPrintf("t3 b2_block_number %d.\r\n", b2_block_number);
+  serialDebugPrintf("t3 b3_block_number %d.\r\n", b3_block_number);
+
+  // -------------------------------------------------------------------------------------------------
 
   // 1. Load B1 (use keyBlockKey for key block)
   uint16_t block_size = FLASH_SECTOR_SIZE;
@@ -699,6 +717,15 @@ uint16_t throwbackCopy(uint32_t new_version) {
 
 UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_vec)) {
   initRandomIfNeeded();
+
+  if (!db_has_free_blocks()) {
+    // turn tombstoned blocks into free blocks
+    nuke_tombstone_blocks();
+  }
+  if (!db_has_free_blocks()) {
+    // DB integriy Error - at least one free or tombstoned block should be present at all times
+    return ERROR;
+  }
 
   // 1. load folders block
   uint16_t folder_block_number = get_folders_block_number();
