@@ -1210,12 +1210,14 @@ UpdateResponse phraseMutation(int phrase_block_id,
   }
   serialDebugPrintf("8.\r\n");
 
-  // Nuke tombstones again to workaround "tombstone with 2 copies" phenomenon
-  if (!db_has_non_tombstoned_space()) {
-    nuke_tombstone_blocks();
-  }
-  if (!db_has_non_tombstoned_space()) {
-    return ERROR;
+  if (is_new_phrase) {
+    // If we're creating a block, nuke tombstones again to workaround "tombstone with 2 copies" phenomenon
+    if (!db_has_non_tombstoned_space()) {
+      nuke_tombstone_blocks();
+    }
+    if (!db_has_non_tombstoned_space()) {
+      return ERROR;
+    }
   }
 
   // 9. Save the updated block to flash
