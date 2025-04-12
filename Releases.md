@@ -8,7 +8,7 @@ SHA256= 6b44158e8cd869cf112610a7ee4afb507bf501d19ad5055b905ab8d4f51aa10c
 ```
 Apr 12, 2025
 0.0.4
-291328 (???)
+291328 (???) - Not sure what caused the file size to grow, I hope it's not something bad. Anyway, use 0.0.5 or newer.
 SHA256= 8a19fc38d47ce5c343ab39b2b0e152fb35f7ddd0e98954f00b45bce532702fb0
 ```
 
