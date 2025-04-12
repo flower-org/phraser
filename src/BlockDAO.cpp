@@ -720,7 +720,7 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
 
   if (!db_has_free_blocks()) {
     // turn tombstoned blocks into free blocks
-    nuke_tombstone_blocks();
+    nuke_tombstone_blocks(false);
   }
   if (!db_has_free_blocks()) {
     // DB integriy Error - at least one free or tombstoned block should be present at all times
@@ -1078,7 +1078,7 @@ UpdateResponse phraseMutation(int phrase_block_id,
 
   if (!db_has_free_blocks()) {
     // turn tombstoned blocks into free blocks
-    nuke_tombstone_blocks();
+    nuke_tombstone_blocks(false);
   }
   if (!db_has_free_blocks()) {
     // DB integriy Error - at least one free or tombstoned block should be present at all times
@@ -1092,7 +1092,7 @@ UpdateResponse phraseMutation(int phrase_block_id,
       return DB_FULL;
     }
     if (!db_has_non_tombstoned_space()) {
-      nuke_tombstone_blocks();
+      nuke_tombstone_blocks(true);
     }
     if (!db_has_non_tombstoned_space()) {
       // Would indicate DB integrity issue, since
