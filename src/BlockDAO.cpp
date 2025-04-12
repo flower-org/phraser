@@ -9,6 +9,7 @@
 #include "SerialUtils.h"
 #include "rbtree.h"
 #include "hashtable.h"
+#include "Random.h"
 
 struct DAOFolder {
   uint16_t folder_id;
@@ -69,7 +70,7 @@ void initRandomIfNeeded() {
     sha2_finish(&ctx, digest);
 
     uint32_t seed = sha256ToUInt32(digest);
-    randomSeed(seed);
+    drbg_randomSeed(seed);
 
     random_seed_initialized = true;
   }
@@ -133,7 +134,7 @@ void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8
   sha2_context ctx;
   sha2_starts(&ctx, 0);
   for (int i = 0; i < IV_MASK_LEN; i++) {
-    int rnd = rand();
+    int rnd = drbg_rand();
     sha2_update(&ctx, (uint8_t*)&rnd, sizeof(rnd));
   }
   sha2_finish(&ctx, digest);
@@ -151,9 +152,7 @@ void wrapDataBufferInBlock(uint8_t block_type, uint8_t* main_buffer, const uint8
   memcpy(main_buffer + 3, block_buffer, block_buffer_size);
   
   uint32_t length_without_adler = FLASH_SECTOR_SIZE - IV_MASK_LEN - 4;
-  for (int i = 3 + block_buffer_size; i < length_without_adler; i++) {
-    main_buffer[i] = (uint8_t)random(256);
-  }
+  drbg_generate(main_buffer + (3 + block_buffer_size), length_without_adler-(3 + block_buffer_size));
   reverseInPlace(main_buffer, length_without_adler);
   
   uint32_t adler32_checksum = adler32(main_buffer, length_without_adler);
@@ -953,11 +952,11 @@ char* generateWordOrReturnEmptyStr(WordTemplate* word_template) {
 
         uint32_t s1 = word_template->minLength;
         uint32_t s2 = word_template->maxLength;
-        int resultLength = s1 + random(s2 - s1 + 1);
+        int resultLength = s1 + drbg_random(s2 - s1 + 1);
 
         char* resultString = (char*)malloc(resultLength + 1);
         for (int i = 0; i < resultLength; i++) {
-          int randomIndex = random(uniqueCount);
+          int randomIndex = drbg_random(uniqueCount);
           resultString[i] = combinedSet[randomIndex];
         }
         resultString[resultLength] = '\0';

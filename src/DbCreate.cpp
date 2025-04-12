@@ -1,6 +1,7 @@
 #include "DbCreate.h"
 #include "TextAreaDialog.h"
 #include "UiCommon.h"
+#include "Random.h"
 #include "PhraserUtils.h"
 #include "SerialUtils.h"
 #include "ScreenKeyboard.h"
@@ -99,7 +100,7 @@ void createNewDbLoop(Thumby* thumby) {
     DialogResult result = textAreaLoop(thumby);
     if (result == DLG_RES_YES) {
       // Superficial randomization at first pass
-      randomSeed(micros());
+      drbg_randomSeed(micros());
 
       create_new_db_phase = 2;
     } else if (result == DLG_RES_NO) {
@@ -153,9 +154,7 @@ void createNewDbLoop(Thumby* thumby) {
 
     // Fill the buffer with random data
     uint8_t buffer[FLASH_SECTOR_SIZE];
-    for (int i = 0; i < FLASH_SECTOR_SIZE; i++) {
-      buffer[i] = random(0, 256);
-    }
+    drbg_generate(buffer, FLASH_SECTOR_SIZE);
 
     //Save random data to block
     writeDbBlockToFlashBank(current_bank, current_bank_cursor, buffer);
@@ -336,7 +335,7 @@ void createNewDbLoop(Thumby* thumby) {
     sha2_finish(&ctx, digest);
 
     uint32_t seed = sha256ToUInt32(digest);
-    randomSeed(seed);
+    drbg_randomSeed(seed);
 
 /*    serialDebugPrintf("new_password %s\r\n", new_password);
     serialDebugPrintf("random_str %s\r\n", random_str);
@@ -385,7 +384,7 @@ void createNewDbLoop(Thumby* thumby) {
         block_numbers[0] = block_numbers[swap];
         block_numbers[swap] = tmp;
       } else {
-        block_numbers[0] = random(128);
+        block_numbers[0] = drbg_random(128);
       }
     }
 
@@ -396,10 +395,14 @@ void createNewDbLoop(Thumby* thumby) {
 
     uint8_t new_aes_key[AES256_KEY_LENGTH];
     uint8_t new_aes_iv_mask[AES256_IV_LENGTH];
+    //serialDebugPrintf("initDefaultKeyBlock\r\n");
     initDefaultKeyBlock(key_block, new_key_block_key, HARDCODED_IV_MASK, new_aes_key, new_aes_iv_mask, init_block_count);
 
+    //serialDebugPrintf("initDefaultSymbolSetsBlock\r\n");
     initDefaultSymbolSetsBlock(symbol_sets_block, new_aes_key, new_aes_iv_mask);
+    //serialDebugPrintf("initDefaultFoldersBlock\r\n");
     initDefaultFoldersBlock(folders_block, new_aes_key, new_aes_iv_mask);
+    //serialDebugPrintf("initDefaultPhraseTemplatesBlock\r\n");
     initDefaultPhraseTemplatesBlock(phrase_templates_block, new_aes_key, new_aes_iv_mask);
 
     //serialDebugPrintf("Saving key_block to %d\r\n", block_numbers[0]);

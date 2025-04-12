@@ -1,6 +1,7 @@
 #include "DefaultDbInitializer.h"
 #include "DbCreate.h"
 #include "Schema_builder.h"
+#include "Random.h"
 #include "PhraserUtils.h"
 #include "Adler.h"
 #include "SerialUtils.h"
@@ -8,15 +9,9 @@
 
 void initDefaultKeyBlock(uint8_t* out_buffer, const uint8_t* in_aes_key, const uint8_t* in_aes_iv_mask,
   uint8_t* out_new_aes_key, uint8_t* out_new_aes_iv_mask, const uint16_t in_block_count) {
-  // Generate random AES key
-  for (int i = 0; i < AES256_KEY_LENGTH; i++) {
-    out_new_aes_key[i] = (uint8_t)random(256); // Generate random byte
-  }
 
-  // Generate random IV
-  for (int i = 0; i < AES256_IV_LENGTH; i++) {
-    out_new_aes_iv_mask[i] = (uint8_t)random(256); // Generate random byte
-  }
+  drbg_generate(out_new_aes_key, AES256_KEY_LENGTH);
+  drbg_generate(out_new_aes_iv_mask, AES256_IV_LENGTH);
 
   flatcc_builder_t builder;
   flatcc_builder_init(&builder);

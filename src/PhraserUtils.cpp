@@ -1,4 +1,5 @@
 #include "PhraserUtils.h"
+#include "Random.h"
 
 const uint16_t BANK_BLOCK_COUNT = 128;
 
@@ -448,7 +449,7 @@ void generateUniqueNumbers(int N, int count, int* result) {
 
   int i = 0;
   while (i < count) {
-      int num = random(N);
+      int num = drbg_random(N);
       bool unique = true;
 
       // Check if the number is already in the array
@@ -482,9 +483,7 @@ uint32_t sha256ToUInt32(uint8_t* sha256_digest) {
 }
 
 uint32_t random_uint32() {
-  uint32_t high = random();
-  uint32_t low = random();
-  return (high << 1) | (low & 0x1);
+  return drbg_rand();
 }
 
 
