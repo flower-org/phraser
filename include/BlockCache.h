@@ -135,5 +135,5 @@ WordTemplate* getWordTemplate(uint16_t word_template_id);
 SymbolSet* getSymbolSet(uint16_t symbol_set_id);
 
 hashtable* getPhraseTemplates();
-void nuke_tombstone_blocks(bool creating_new_block);
+void nuke_tombstone_blocks();
 bool db_has_free_blocks();

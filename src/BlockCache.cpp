@@ -793,7 +793,7 @@ bool db_has_free_blocks() {
   return free_block_count_without_tombstones() > 0;
 }
 
-void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value, bool creating_new_block) {
+void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value) {
   // Check and invalidate block if it's tombstoned and with 1 copy only
   uint16_t ts_block_id = key;
   BlockNumberAndVersionAndCount* ts_block_info = 
@@ -804,29 +804,6 @@ void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value, bool creating_n
     bool can_remove = false;
     if (ts_block_info->isTombstoned && ts_block_info->copyCount <= 1) {
         can_remove = true;
-    } else if (ts_block_info->isTombstoned && ts_block_info->copyCount == 2 && creating_new_block) {
-      if (!db_has_non_tombstoned_space()) {
-        // DB doesn't have non-tombstoned space, which means we only have 1 free block. 
-        // Since this block has have 2 copies, that must be the second copy of this tombstoned blockId. 
-        // Since we're creating_new_block, both blocks will be overwritten, 1 with throwback copy, another with new block.
-        // Given that, it's fine to nuke the tombstone block, because both itself and its copy will be overwritten  
-        //    (TODO: comprehensively test whether the `both blocks will be overwritten` part is always true)
-        //            I think a situation is possible in which only the tombstoned block will be overwritten, 
-        //            and its non-tombstoned copy stays intact and potentially will revive on restart)
-
-        // find the only free block number
-        uint32_t free_block_number = get_free_block_number_on_the_left_of(occupied_block_numbers(), db_block_count(), db_block_count());
-
-        // get its blockId from blockIdByBlockNumber and compare with ts_block_id.
-        // If they match, we can invalidate this tombstone.
-        uint32_t free_block_id = (uint32_t)hashtable_get(blockIdByBlockNumber, free_block_number);
-
-        serialDebugPrintf("Trying to nuke block_id %d - free block lookup: free_block_number %d free_block_id %d\r\n", 
-          ts_block_id, free_block_number, free_block_id);
-
-        // Sanity check, the free block must be a copy of our tombstone block 
-        can_remove = (free_block_id == ts_block_id);
-      }
     }
 
     if (can_remove) {
@@ -853,26 +830,14 @@ void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value, bool creating_n
   }
 }
 
-void nukeTombstoneBlockUpdate(hashtable *t, uint32_t key, void* value) {
-  nukeTombstoneBlock(t, key, value, false);
-}
-
-void nukeTombstoneBlockCreate(hashtable *t, uint32_t key, void* value) {
-  nukeTombstoneBlock(t, key, value, true);
-}
-
-void nuke_tombstone_blocks(bool creating_new_block) {
+void nuke_tombstone_blocks() {
   serialDebugPrintf("NUKING TOMBSTONES!!! \r\n");
   serialDebugPrintf("tombstonedBlockIds BEFORE: \r\n");
   hashtable_iterate_entries(tombstonedBlockIds, perKeyValue);
   serialDebugPrintf("\r\n");
 
   // iterate over tombstones, nuke those with 1 copy
-  if (creating_new_block) {
-    hashtable_iterate_entries(tombstonedBlockIds, nukeTombstoneBlockCreate);
-  } else {
-    hashtable_iterate_entries(tombstonedBlockIds, nukeTombstoneBlockUpdate);
-  }
+  hashtable_iterate_entries(tombstonedBlockIds, nukeTombstoneBlock);
 
   serialDebugPrintf("tombstonedBlockIds AFTER: \r\n");
   hashtable_iterate_entries(tombstonedBlockIds, perKeyValue);

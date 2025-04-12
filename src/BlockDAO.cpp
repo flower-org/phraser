@@ -720,7 +720,7 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
 
   if (!db_has_free_blocks()) {
     // turn tombstoned blocks into free blocks
-    nuke_tombstone_blocks(false);
+    nuke_tombstone_blocks();
   }
   if (!db_has_free_blocks()) {
     // DB integriy Error - at least one free or tombstoned block should be present at all times
@@ -1078,7 +1078,7 @@ UpdateResponse phraseMutation(int phrase_block_id,
 
   if (!db_has_free_blocks()) {
     // turn tombstoned blocks into free blocks
-    nuke_tombstone_blocks(false);
+    nuke_tombstone_blocks();
   }
   if (!db_has_free_blocks()) {
     // DB integriy Error - at least one free or tombstoned block should be present at all times
@@ -1092,17 +1092,10 @@ UpdateResponse phraseMutation(int phrase_block_id,
       return DB_FULL;
     }
     if (!db_has_non_tombstoned_space()) {
-      nuke_tombstone_blocks(true);
-    }
-    if (!db_has_non_tombstoned_space()) {
-      // Would indicate DB integrity issue, since
-      // 1. there have to be be tombstones (db_full()==TRUE; db_has_non_tombstoned_space()==FALSE)
-      // 2. (db_full()==TRUE) suggests that all tombstone blocks have exactly 1 copy
-      // 3. therefore a call to `nuke_tombstone_blocks()` which removes tombstone blocks with 1 or 
-      //    less copies from indices must create free blocks
-      // 4. And the fact that after that call `db_has_non_tombstoned_space()` still returns false, 
-      //    indicates an issue with our DB/cache/indices.
-      return ERROR;
+    // The first call to nuke_tombstone_blocks might fail to recover space due to 
+    // `tombstoned block with 2 copies` phenomenon, so we will repeat this call after throwback copy,
+    // because throwback copy will always overwrite the 2nd copy residing in the free block. 
+    nuke_tombstone_blocks();
     }
 
     // Create new PhraseBlock
@@ -1216,6 +1209,14 @@ UpdateResponse phraseMutation(int phrase_block_id,
     return ERROR;
   }
   serialDebugPrintf("8.\r\n");
+
+  // Nuke tombstones again to workaround "tombstone with 2 copies" phenomenon
+  if (!db_has_non_tombstoned_space()) {
+    nuke_tombstone_blocks();
+  }
+  if (!db_has_non_tombstoned_space()) {
+    return ERROR;
+  }
 
   // 9. Save the updated block to flash
   saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
