@@ -98,28 +98,3 @@ uint32_t drbg_random(uint32_t howsmall, uint32_t howbig) {
 
   return drbg_random(diff) + howsmall;
 }
-
-
-
-/*
-int main() {
-    Hash_DRBG drbg;
-    unsigned char seed[] = "my_secret_seed";
-    unsigned char output[64]; // Buffer for random output
-
-    // Initialize the DRBG
-    hash_drbg_init(&drbg, seed, strlen((char *)seed));
-
-    // Generate random bytes
-    hash_drbg_generate(&drbg, output, sizeof(output));
-
-    // Print the generated random bytes
-    printf("Generated random bytes:\n");
-    for (size_t i = 0; i < sizeof(output); i++) {
-        printf("%02x", output[i]);
-    }
-    printf("\n");
-
-    return 0;
-}
-*/
