@@ -121,13 +121,13 @@ BlockIdAndVersion setKeyBlock(uint8_t* block) {
 
     uint32_t old_key_block_version = getBlockVersion(key_block_id);
     uint32_t new_key_block_version = phraser_StoreBlock_version(storeblock);
+    uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
     serialDebugPrintf("new_key_block_version %d; old_key_block_version %d \r\n", new_key_block_version, old_key_block_version);
     if (new_key_block_version >= old_key_block_version) {
       if (main_key != NULL) { free(main_key); }
       if (main_iv_mask != NULL) { free(main_iv_mask); }
       if (db_name != NULL) { free(db_name); }
     
-      uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       serialDebugPrintf("entropy %d\r\n", entropy);
 
       max_block_count = phraser_KeyBlock_block_count(key_block);
@@ -149,10 +149,8 @@ BlockIdAndVersion setKeyBlock(uint8_t* block) {
       serialDebugPrintf("aes256_iv_mask_length %d\r\n", main_iv_mask_length);
 
       serialDebugPrintf("ZXC. Before RETURN\r\n");
-      return { key_block_id, new_key_block_version, entropy, false };
-    } else {
-      return BLOCK_NOT_UPDATED;
     }
+    return { key_block_id, new_key_block_version, entropy, false };
   } else {
     return BLOCK_NOT_UPDATED;
   }
@@ -180,11 +178,11 @@ BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
 
     uint32_t old_symbol_sets_block_version = getBlockVersion(symbol_sets_block_id);
     uint32_t new_symbol_sets_block_version = phraser_StoreBlock_version(storeblock);
+    uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
     serialDebugPrintf("new_symbol_sets_block_version %d; old_symbol_sets_block_version %d\r\n", new_symbol_sets_block_version, old_symbol_sets_block_version);
     if (new_symbol_sets_block_version > old_symbol_sets_block_version) {
       if (symbol_sets != NULL) { hashtable_iterate_entries(symbol_sets, removeAllSymbolSets); }
 
-      uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       serialDebugPrintf("entropy %d\r\n", entropy);
 
       phraser_SymbolSet_vec_t symbol_sets_vec = phraser_SymbolSetsBlock_symbol_sets(symbol_sets_block);
@@ -217,11 +215,8 @@ BlockIdAndVersion setSymbolSetsBlock(uint8_t* block) {
         serialDebugPrintf("symbolSetName %s\r\n", symbol_set->symbolSetName);
         serialDebugPrintf("symbolSet %s\r\n", symbol_set->symbolSet);
       }
-
-      return { symbol_sets_block_id, new_symbol_sets_block_version, entropy, false };
-    } else {
-      return BLOCK_NOT_UPDATED;
     }
+    return { symbol_sets_block_id, new_symbol_sets_block_version, entropy, false };
   } else {
     return BLOCK_NOT_UPDATED;
   }
@@ -255,12 +250,12 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
 
     uint32_t old_folders_block_version = getBlockVersion(folders_block_id);
     uint32_t new_folders_block_version = phraser_StoreBlock_version(storeblock);
+    uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
     serialDebugPrintf("new_folders_block_version %d; old_folders_block_version %d\r\n", new_folders_block_version, old_folders_block_version);
     if (new_folders_block_version > old_folders_block_version) {
       if (folders != NULL) { hashtable_iterate_entries(folders, removeAllFolders); }
       if (sub_folders_by_folder != NULL) { hashtable_iterate_entries(sub_folders_by_folder, removeAllSubFoldersByfolder); }
       
-      uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       serialDebugPrintf("entropy %d\r\n", entropy);
 
       phraser_Folder_vec_t folders_vec = phraser_FoldersBlock_folders(folders_block);
@@ -308,11 +303,8 @@ BlockIdAndVersion setFoldersBlock(uint8_t* block) {
         }
         serialDebugPrintf("\r\n");
       }
-
-      return { folders_block_id, new_folders_block_version, entropy, false };
-    } else {
-      return BLOCK_NOT_UPDATED;
     }
+    return { folders_block_id, new_folders_block_version, entropy, false };
   } else {
     return BLOCK_NOT_UPDATED;
   }
@@ -350,12 +342,12 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
   
     uint32_t old_phrase_templates_block_version = getBlockVersion(phrase_templates_block_id);
     uint32_t new_phrase_templates_block_version = phraser_StoreBlock_version(storeblock);
+    uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
     serialDebugPrintf("new_phrase_templates_block_version %d; old_phrase_templates_block_version %d\r\n", new_phrase_templates_block_version, old_phrase_templates_block_version);
     if (new_phrase_templates_block_version > old_phrase_templates_block_version) {
       if (word_templates != NULL) { hashtable_iterate_entries(word_templates, removeWordTemplates); }
       if (phrase_templates != NULL) { hashtable_iterate_entries(phrase_templates, removePhraseTemplates); }
     
-      uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       serialDebugPrintf("entropy %d\r\n", entropy);
 
       phraser_PhraseTemplate_vec_t phrase_templates_vec = phraser_PhraseTemplatesBlock_phrase_templates(phrase_templates_block);
@@ -446,11 +438,8 @@ BlockIdAndVersion setPhraseTemplatesBlock(uint8_t* block) {
           serialDebugPrintf("symbol_set_id %d\r\n", symbol_set_id);
         }
       }
-
-      return { phrase_templates_block_id, new_phrase_templates_block_version, entropy, false };
-    } else {
-      return BLOCK_NOT_UPDATED;
     }
+    return { phrase_templates_block_id, new_phrase_templates_block_version, entropy, false };
   } else {
     return BLOCK_NOT_UPDATED;
   }
@@ -505,15 +494,16 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
     }
 
     uint32_t new_phrase_block_version = phraser_StoreBlock_version(storeblock);
+    flatbuffers_bool_t is_tombstone = phraser_PhraseBlock_is_tombstone(phrase_block);
+    uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
+
     serialDebugPrintf("new_phrase_block_version %d, old_phrase_block_version %d \r\n", new_phrase_block_version, old_phrase_block_version);
     if (new_phrase_block_version > old_phrase_block_version) {
-      uint32_t entropy = phraser_StoreBlock_entropy(storeblock);
       serialDebugPrintf("entropy %d\r\n", entropy);
 
       uint16_t folder_id = phraser_PhraseBlock_folder_id(phrase_block);
       serialDebugPrintf("folder_id %d\r\n", folder_id);
       flatbuffers_string_t phrase_name_str = phraser_PhraseBlock_phrase_name(phrase_block);
-      flatbuffers_bool_t is_tombstone = phraser_PhraseBlock_is_tombstone(phrase_block);
       size_t phrase_name_length = flatbuffers_string_len(phrase_name_str);
 
       if (is_tombstone) {
@@ -554,11 +544,8 @@ BlockIdAndVersion registerPhraseBlock(uint8_t* block) {
           serialDebugPrintf("Update phrase %s\r\n", phrase_folder_and_name->name);
         }
       }
-
-      return { phrase_block_id, new_phrase_block_version, entropy, (bool)is_tombstone };
-    } else {
-      return BLOCK_NOT_UPDATED;
     }
+    return { phrase_block_id, new_phrase_block_version, entropy, (bool)is_tombstone };
   } else {
     return BLOCK_NOT_UPDATED;
   }
@@ -586,6 +573,8 @@ void startBlockCacheInit() {
 void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
   // TODO: There is a fundamental inefficiency manifesting itself in the implementation of this method. 
   //  More details in TODO.md - Afterthoughts. 
+
+  serialDebugPrintf("CC BLOCK ID block_number %d \r\n", block_number);
 
   // 1. Update caches
   BlockIdAndVersion blockAndVersion = BLOCK_NOT_UPDATED;
@@ -681,6 +670,7 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
       }
       blockInfo->copyCount++;
     }
+    serialDebugPrintf("CC BLOCK ID %d block_number %d COPY COUNT %d \r\n", blockAndVersion.blockId, block_number, blockInfo->copyCount);
 
     if (version_updated) {
       // 2.3.3 If we got a new version of a block, update tombstoned index
@@ -806,7 +796,7 @@ bool db_has_free_blocks() {
   return free_block_count_without_tombstones() > 0;
 }
 
-void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value) {
+void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value, bool creating_new_block) {
   // Check and invalidate block if it's tombstoned and with 1 copy only
   uint16_t ts_block_id = key;
   BlockNumberAndVersionAndCount* ts_block_info = 
@@ -817,18 +807,11 @@ void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value) {
     bool can_remove = false;
     if (ts_block_info->isTombstoned && ts_block_info->copyCount <= 1) {
         can_remove = true;
-    } else if (ts_block_info->isTombstoned && ts_block_info->copyCount == 2) {
+    } else if (ts_block_info->isTombstoned && ts_block_info->copyCount == 2 && creating_new_block) {
       if (!db_has_non_tombstoned_space()) {
-        // DB full, which means we only have 1 free block. If that's the second copy of our tombstone 
-        //  blockId, we can safely nuke it. 
-        // (TODO: I'm pretty sure the above was added due to a bug, but I forgot to comment clearly then and now I forgot 
-        //  exactly why this works or is required.
-        //  I think that under the described circumstances those 2 copies are somehow guaranteed to be both with Tombstoned flag set.
-        //  M.b. throwback-copies of each other? I need to recall exactly why that works and clarify in the comment).
-        // (TODO: I also think that the throwback copy may fail when DB is full if the `copyCount == 2` clause is not present).
-        // (TODO: however, I'm not sure how would a tombstoned block have 2 copies, when the DB is full, since it's the only tombstoned block
-        //    and there are no free blocks in this case. This might be a rudiment of an incorrect logic)
-        // (TODO: consider testing without it and validating the correctness)
+        // DB full, which means we only have 1 free block. Since we have 2 copies, that must be the second copy of our tombstone 
+        //blockId. Since we're creating a new block, we will overwrite those 2 blocks, 1 with throwback copy, another with new block.
+        // Given that, it's fine to nuke the tombstone block, because both itself and its copy will be overwritten  
 
         // find the only free block number
         uint32_t free_block_number = get_free_block_number_on_the_left_of(occupied_block_numbers(), db_block_count(), db_block_count());
@@ -840,6 +823,7 @@ void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value) {
         serialDebugPrintf("Trying to nuke block_id %d - free block lookup: free_block_number %d free_block_id %d\r\n", 
           ts_block_id, free_block_number, free_block_id);
 
+        // Sanity check, the free block must be a copy of our tombstone block 
         can_remove = (free_block_id == ts_block_id);
       }
     }
@@ -866,6 +850,10 @@ void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value) {
     // Best we can do at this point is to remove invalidated block id from tombstonedBlockIds
     hashtable_remove(tombstonedBlockIds, ts_block_id);
   }
+}
+
+void nukeTombstoneBlock(hashtable *t, uint32_t key, void* value) {
+  nukeTombstoneBlock(t, key, value, false);
 }
 
 void nuke_tombstone_blocks() {
