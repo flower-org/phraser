@@ -29,4 +29,11 @@ jobs:
           pio run
 
       - name: ls
-        run: ls -al 
+        run: ls -al .pio
+
+      - name: ls fw
+        run: ls -al .pio/build/pico/
+
+      - name: sha fw
+        run: openssl sha256 .pio/build/pico/*
+
