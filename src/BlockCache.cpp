@@ -638,7 +638,7 @@ void registerBlockInBlockCache(uint8_t* block, uint16_t block_number) {
 
     // 2.3 Add/update the new block information 
     // 2.3.1 Add BlockNumber to BlockId mapping
-    serialDebugPrintf("2.3.1 Add BlockNumber to BlockId mapping\r\n");
+    serialDebugPrintf("2.3.1 Add BlockNumber %d to BlockId %d mapping\r\n", blockIdByBlockNumber, block_number, blockAndVersion.blockId);
     hashtable_set(blockIdByBlockNumber, block_number, (void*)blockAndVersion.blockId);
 
     // 2.3.2 Update BlockId to BlockNumberAndVersionAndCount mapping

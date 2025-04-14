@@ -600,7 +600,70 @@ UpdateResponse updateVersionAndEntropyBlock(uint8_t* block, uint16_t block_size,
 
 static bool perNode(data_t val) { serialDebugPrintf("%u ", val); return false; }
 // returns block_number to which the main update shold go
-uint16_t throwbackCopy(uint32_t new_version) {
+UpdateResponse throwbackCopy(uint32_t new_version, uint32_t b1_block_number, uint32_t b2_block_number) {
+  // 1. Load B1 (use keyBlockKey for key block)
+  uint16_t block_size = FLASH_SECTOR_SIZE;
+  uint8_t block[block_size];
+  uint8_t* aes_key; 
+  uint8_t* aes_iv_mask;
+
+  if (b1_block_number == key_block_number()) {
+    aes_key = key_block_key;
+    aes_iv_mask = HARDCODED_IV_MASK;
+  } else {
+    aes_key = main_key;
+    aes_iv_mask = main_iv_mask;
+  }
+
+  serialDebugPrintf("t8. bank_number %d b1_block_number %d\r\n", bank_number, b1_block_number);
+  bool load_success = loadBlockFromFlash(bank_number, b1_block_number, block_size, aes_key, aes_iv_mask, block);
+  if (!load_success) {
+    return ERROR;
+  }
+
+  // 2. Update B1 version - block getting encrypted here
+  serialDebugPrintf("t9.\r\n");
+  UpdateResponse update_response = updateVersionAndEntropyBlock(block, block_size, aes_key, aes_iv_mask, new_version, false);
+  if (update_response != OK) {
+    return ERROR;
+  }
+
+  // 3. Save B1 with bumped version to B2
+  serialDebugPrintf("t10 bank_number %d b2_block_number %d.\r\n", bank_number, b2_block_number);
+  saveBlockUpdateToFlash(bank_number, b2_block_number, block, block_size);
+
+  // 4. Update DB indices
+
+  // B2-related logic, it was replaced at B2 block_number by B1 blockId
+  serialDebugPrintf("t11.\r\n");
+  // B1-related logic, new version of which replaced B2
+  serialDebugPrintf("t12.\r\n");
+
+  // 5. Re-Load new block version from flash, to make sure our cache is consistent with persisted content
+  if (!loadBlockFromFlash(bank_number, b2_block_number, block_size, aes_key, aes_iv_mask, block)) {
+    return ERROR;
+  }
+  serialDebugPrintf("5.\r\n");
+
+  // 6. Register new version in cache
+  registerBlockInBlockCache(block, b2_block_number);
+  return OK;
+}
+
+
+bool b2IsCloserToBorderFromTheRightThanB1(uint32_t border_block_number, uint32_t b1_block_number, uint32_t b2_block_number) {
+  bool b2_is_closer_to_border_from_the_right_than_b1 = false;
+
+  uint32_t df = db_block_count() - border_block_number - 1;
+  uint32_t b1_block_number_adj = (b1_block_number + df) % db_block_count();
+  uint32_t b2_block_number_adj = (b2_block_number + df) % db_block_count();
+
+  b2_is_closer_to_border_from_the_right_than_b1 = b2_block_number_adj < b1_block_number_adj;
+  return b2_is_closer_to_border_from_the_right_than_b1;
+}
+
+CopyType calculatePositions(uint32_t b0_block_number, uint32_t *b1_block_number_out, uint32_t *b2_block_number_out, 
+  uint32_t *b3_block_number_out, uint32_t *throwback_copy_version) {
   serialDebugPrintf("t1.\r\n");
   traverse_inorder(occupied_block_numbers(), perNode);
 
@@ -635,14 +698,7 @@ uint16_t throwbackCopy(uint32_t new_version) {
     b2_block_number = get_free_block_number_on_the_left_of(occupied_block_numbers(), border_block_number, db_block_count());
     serialDebugPrintf("t3 calculated b2_block_number %d.\r\n", b2_block_number);
 
-    bool b2_is_closer_to_border_from_the_right_than_b1 = false;
-
-    uint32_t df = db_block_count() - border_block_number - 1;
-    uint32_t b1_block_number_adj = (b1_block_number + df) % db_block_count();
-    uint32_t b2_block_number_adj = (b2_block_number + df) % db_block_count();
-
-    b2_is_closer_to_border_from_the_right_than_b1 = b2_block_number_adj < b1_block_number_adj;
-
+    bool b2_is_closer_to_border_from_the_right_than_b1 = b2IsCloserToBorderFromTheRightThanB1(border_block_number, b1_block_number, b2_block_number);
     serialDebugPrintf("t3 b2_is_closer_to_border_from_the_right_than_b1 %d.\r\n", b2_is_closer_to_border_from_the_right_than_b1);
   
     if (b2_is_closer_to_border_from_the_right_than_b1) {
@@ -655,61 +711,106 @@ uint16_t throwbackCopy(uint32_t new_version) {
     }
   }
 
+  //advance B1 is B0 == B1
+  if (b0_block_number == b1_block_number) {
+    b1_block_number = get_valid_block_number_on_the_right_of(occupied_block_numbers(), b0_block_number);
+  }
+
+  //reverse copy order if B0 == B3
+  CopyType copy_type;
+  if (b0_block_number == b3_block_number) {
+    copy_type = DOUBLE_COPY_PREVENTION;
+//    bool b2_is_closer_to_border_from_the_right_than_b0 = b2IsCloserToBorderFromTheRightThanB1(border_block_number, b0_block_number, b2_block_number);
+//    serialDebugPrintf("t3 b2_is_closer_to_border_from_the_right_than_b0 %d.\r\n", b2_is_closer_to_border_from_the_right_than_b0);
+
+//    if (b2_is_closer_to_border_from_the_right_than_b0) {
+      *throwback_copy_version = increment_and_get_next_block_version();
+//    }
+  } else {
+    copy_type = REGULAR;
+  }
+
+  *b1_block_number_out = b1_block_number;
+  *b2_block_number_out = b2_block_number;
+  *b3_block_number_out = b3_block_number;
+
+  serialDebugPrintf("t3 b0_block_number %d.\r\n", b0_block_number);
+  serialDebugPrintf("t3 b1_block_number %d.\r\n", b1_block_number);
   serialDebugPrintf("t3 b2_block_number %d.\r\n", b2_block_number);
   serialDebugPrintf("t3 b3_block_number %d.\r\n", b3_block_number);
+  serialDebugPrintf("t3 throwback_copy_version %d.\r\n", throwback_copy_version);
 
-  // -------------------------------------------------------------------------------------------------
+  return copy_type;
+}
 
-  // 1. Load B1 (use keyBlockKey for key block)
-  uint16_t block_size = FLASH_SECTOR_SIZE;
-  uint8_t block[block_size];
-  uint8_t* aes_key; 
-  uint8_t* aes_iv_mask;
+UpdateResponse saveBlock(bool is_new_block, uint8_t* block, uint16_t block_size, uint32_t b0_block_number, uint32_t throwback_copy_version) {
+  uint32_t b1_block_number;
+  uint32_t b2_block_number;
+  uint32_t b3_block_number;
 
-  if (b1_block_number == key_block_number()) {
-    aes_key = key_block_key;
-    aes_iv_mask = HARDCODED_IV_MASK;
-  } else {
-    aes_key = main_key;
-    aes_iv_mask = main_iv_mask;
-  }
-
-  serialDebugPrintf("t8. bank_number %d b1_block_number %d\r\n", bank_number, b1_block_number);
-  bool load_success = loadBlockFromFlash(bank_number, b1_block_number, block_size, aes_key, aes_iv_mask, block);
-  if (!load_success) {
-    return -1;
-  }
-
-  // 2. Update B1 version - block getting encrypted here
-  serialDebugPrintf("t9.\r\n");
-  UpdateResponse update_response = updateVersionAndEntropyBlock(block, block_size, aes_key, aes_iv_mask, new_version, false);
-  if (update_response != OK) {
-    return -1;
-  }
-
-  // 3. Save B1 with bumped version to B2
-  serialDebugPrintf("t10 bank_number %d b2_block_number %d.\r\n", bank_number, b2_block_number);
-  saveBlockUpdateToFlash(bank_number, b2_block_number, block, block_size);
-
-  // 4. Update DB indices
-
-  // B2-related logic, it was replaced at B2 block_number by B1 blockId
-  serialDebugPrintf("t11.\r\n");
-  // B1-related logic, new version of which replaced B2
-  serialDebugPrintf("t12.\r\n");
-
-  // 5. Re-Load new block version from flash, to make sure our cache is consistent with persisted content
-  if (!loadBlockFromFlash(bank_number, b2_block_number, block_size, aes_key, aes_iv_mask, block)) {
+  CopyType copy_type = calculatePositions(b0_block_number, &b1_block_number, &b2_block_number, &b3_block_number, &throwback_copy_version);
+  if (b3_block_number == -1) {
     return ERROR;
   }
-  serialDebugPrintf("5.\r\n");
 
-  // 6. Register new version in cache
-  registerBlockInBlockCache(block, b2_block_number);
+  if (copy_type == REGULAR) {
+    throwbackCopy(throwback_copy_version, b1_block_number, b2_block_number);
 
-  // ---- Return block_number to which Main Update shold go ----
-  serialDebugPrintf("t13 b3_block_number %d.\r\n", b3_block_number);
-  return b3_block_number;
+    if (is_new_block) {
+      // If we're creating a block, nuke tombstones again to workaround "tombstone with 2 copies" phenomenon
+      if (!db_has_non_tombstoned_space()) {
+        nuke_tombstone_blocks();
+      }
+      if (!db_has_non_tombstoned_space()) {
+        return ERROR;
+      }
+    }
+  
+    // Save the updated block to flash
+    saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
+  } else if (copy_type == DOUBLE_COPY_PREVENTION) {
+    uint32_t tmp = b3_block_number;
+    b3_block_number = b2_block_number;
+    b2_block_number = tmp;
+
+    // Save the updated block to flash
+    saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
+
+    if (is_new_block) {
+      // If we're creating a block, nuke tombstones again to workaround "tombstone with 2 copies" phenomenon
+      if (!db_has_non_tombstoned_space()) {
+        nuke_tombstone_blocks();
+      }
+      if (!db_has_non_tombstoned_space()) {
+        return ERROR;
+      }
+    }
+  
+    throwbackCopy(throwback_copy_version, b1_block_number, b2_block_number);
+  } else {
+    return ERROR;
+  }
+
+  serialDebugPrintf("loadBlockFromFlash(bank_number %d, b3_block_number %d, block_size %d, main_key %d, main_iv_mask %d, block %d);\r\n", 
+    bank_number, b3_block_number, block_size, main_key, main_iv_mask, block);
+  // Re-Load new block version from flash, to make sure our cache is consistent with persisted content
+  if (!loadBlockFromFlash(bank_number, b3_block_number, block_size, main_key, main_iv_mask, block)) {
+    return ERROR;
+  }
+
+  serialDebugPrintf("registerBlockInBlockCache(block %d, b3_block_number %d);\r\n", block, b3_block_number);
+  // Register new version in cache
+  registerBlockInBlockCache(block, b3_block_number);
+
+  return OK;
+}
+
+UpdateResponse saveNewBlock(uint8_t* block, uint16_t block_size, uint32_t throwback_copy_version) {
+  return saveBlock(true, block, block_size, -1, throwback_copy_version);
+}
+
+UpdateResponse saveExistingBlock(uint8_t* block, uint16_t block_size, uint32_t b0_block_number, uint32_t throwback_copy_version) {
+  return saveBlock(false, block, block_size, b0_block_number, throwback_copy_version);
 }
 
 // -------------------- FOLDERS --------------------
@@ -750,7 +851,6 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
   arraylist* dao_folders = func(&folders_vec);
 
   serialDebugPrintf("4.\r\n");
-  serialDebugPrintf("5.\r\n");
 
   uint32_t throwback_copy_version = increment_and_get_next_block_version();//throwback version comes first
   uint32_t new_block_version = increment_and_get_next_block_version();
@@ -770,33 +870,7 @@ UpdateResponse folderMutation(arraylist* (*func)(phraser_Folder_vec_t* folders_v
   }
   serialDebugPrintf("7.\r\n");
 
-  // 6. Perform Throwback Copy, according to flash preservation algorithm
-  uint16_t b3_block_number = throwbackCopy(throwback_copy_version);
-  if (b3_block_number == -1) {
-    return ERROR;
-  }
-  serialDebugPrintf("8.\r\n");
-
-  // 7. Save the updated block to flash
-  saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
-  serialDebugPrintf("9.\r\n");
-
-  // 8. Re-Load new block version from flash, to make sure our cache is consistent with persisted content
-  if (!loadBlockFromFlash(bank_number, b3_block_number, block_size,
-    main_key, main_iv_mask, 
-    block)) {
-    return ERROR;
-  }
-  serialDebugPrintf("10.\r\n");
-
-  // 9. Update DB indices
-
-  // B3-related logic, it was replaced at B3 block_number by B0 blockId
-  // 10. Register new version in cache
-  registerBlockInBlockCache(block, b3_block_number);
-  serialDebugPrintf("12.\r\n");
-
-  return OK;
+  return saveExistingBlock(block, block_size, folder_block_number, throwback_copy_version);
 }
 
 uint16_t add_f_m_out_new_folder_id;
@@ -1073,7 +1147,7 @@ UpdateResponse phraseMutation(int phrase_block_id,
 
   uint16_t block_size = FLASH_SECTOR_SIZE;
   uint8_t block[block_size];
-  uint32_t old_phrase_block_number;
+  uint32_t old_phrase_block_number = -1;
 
   if (!db_has_free_blocks()) {
     // turn tombstoned blocks into free blocks
@@ -1091,10 +1165,10 @@ UpdateResponse phraseMutation(int phrase_block_id,
       return DB_FULL;
     }
     if (!db_has_non_tombstoned_space()) {
-    // The first call to nuke_tombstone_blocks might fail to recover space due to 
-    // `tombstoned block with 2 copies` phenomenon, so we will repeat this call after throwback copy,
-    // because throwback copy will always overwrite the 2nd copy residing in the free block. 
-    nuke_tombstone_blocks();
+      // The first call to nuke_tombstone_blocks might fail to recover space due to 
+      // `tombstoned block with 2 copies` phenomenon, so we will repeat this call after throwback copy,
+      // because throwback copy will always overwrite the 2nd copy residing in the free block. 
+      nuke_tombstone_blocks();
     }
 
     // Create new PhraseBlock
@@ -1202,40 +1276,13 @@ UpdateResponse phraseMutation(int phrase_block_id,
     serialDebugPrintf("7.\r\n");
   }
 
-  // 8. Perform Throwback Copy, according to flash preservation algorithm
-  uint16_t b3_block_number = throwbackCopy(throwback_copy_version);
-  if (b3_block_number == -1) {
-    return ERROR;
-  }
-  serialDebugPrintf("8.\r\n");
-
   if (is_new_phrase) {
-    // If we're creating a block, nuke tombstones again to workaround "tombstone with 2 copies" phenomenon
-    if (!db_has_non_tombstoned_space()) {
-      nuke_tombstone_blocks();
-    }
-    if (!db_has_non_tombstoned_space()) {
-      return ERROR;
-    }
+    serialDebugPrintf("8. saveNewBlock is_new_phrase %d \r\n", is_new_phrase);
+    return saveNewBlock(block, block_size, throwback_copy_version);
+  } else {
+    serialDebugPrintf("8. saveExistingBlock is_new_phrase %d \r\n", is_new_phrase);
+    return saveExistingBlock(block, block_size, old_phrase_block_number, throwback_copy_version);
   }
-
-  // 9. Save the updated block to flash
-  saveBlockUpdateToFlash(bank_number, b3_block_number, block, block_size);
-  serialDebugPrintf("9.\r\n");
-
-  // 10. Re-Load new block version from flash, to make sure our cache is consistent with persisted content
-  if (!loadBlockFromFlash(bank_number, b3_block_number, block_size,
-    main_key, main_iv_mask, 
-    block)) {
-    return ERROR;
-  }
-  serialDebugPrintf("10.\r\n");
-
-  // 11. Register new version in cache
-  registerBlockInBlockCache(block, b3_block_number);
-  serialDebugPrintf("11.\r\n");
-
-  return OK;
 }
 
 uint16_t new_phrase_template_id;

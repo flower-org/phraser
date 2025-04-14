@@ -36,6 +36,11 @@ enum UpdateResponse {
   ERROR
 };
 
+enum CopyType {
+  REGULAR,
+  DOUBLE_COPY_PREVENTION
+};
+
 bool inPlaceDecryptAndValidateBlock(uint8_t *in_out_db_block, uint32_t block_size, uint8_t* aes_key, uint8_t* aes_iv_mask);
 
 bool loadBlockFromFlash(uint8_t bank_number, uint16_t block_number, uint32_t block_size, 
