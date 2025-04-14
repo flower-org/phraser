@@ -29,12 +29,29 @@ jobs:
           pio run
 
       - name: ls
-        run: ls -al .pio
-
-      - name: ls fw
         run: ls -al .pio/build/pico/
 
-      - name: sha fw
+      - name: sha256
         run: openssl sha256 .pio/build/pico/firmware*
 
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Phraser Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload firmware binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: .pio/build/pico/firmware.uf2
+          asset_name: firmware.uf2
+          asset_content_type: application/binary
 
