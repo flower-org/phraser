@@ -27,3 +27,6 @@ jobs:
       - name: Build the project
         run: |
           pio run
+
+      - name: ls
+        run: ls -al 
