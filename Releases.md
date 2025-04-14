@@ -1,4 +1,11 @@
 ```
+Apr 13, 2025
+0.0.6
+291840 (size changed again)
+SHA256(firmware.uf2)= ccdeb09f3e8a6f70495ff53821c85dba7fbdb7f71b78fb1c8ae7f4065b37d429
+```
+
+```
 Apr 12, 2025
 0.0.5
 290816
