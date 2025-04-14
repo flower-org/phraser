@@ -720,12 +720,7 @@ CopyType calculatePositions(uint32_t b0_block_number, uint32_t *b1_block_number_
   CopyType copy_type;
   if (b0_block_number == b3_block_number) {
     copy_type = DOUBLE_COPY_PREVENTION;
-//    bool b2_is_closer_to_border_from_the_right_than_b0 = b2IsCloserToBorderFromTheRightThanB1(border_block_number, b0_block_number, b2_block_number);
-//    serialDebugPrintf("t3 b2_is_closer_to_border_from_the_right_than_b0 %d.\r\n", b2_is_closer_to_border_from_the_right_than_b0);
-
-//    if (b2_is_closer_to_border_from_the_right_than_b0) {
-      *throwback_copy_version = increment_and_get_next_block_version();
-//    }
+    *throwback_copy_version = increment_and_get_next_block_version();
   } else {
     copy_type = REGULAR;
   }
