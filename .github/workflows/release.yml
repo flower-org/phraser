@@ -1,10 +1,7 @@
 name: Release PhraserManager
 
-# This triggers workflow on tag push
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 jobs:
   release:
