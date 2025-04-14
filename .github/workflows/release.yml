@@ -1,7 +1,10 @@
 name: Release Phraser firmware
 
+# This triggers workflow on tag push
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   release:
