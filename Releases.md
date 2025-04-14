@@ -12,6 +12,9 @@ Apr 13, 2025
 SHA2-256= 58e364a8d97996dfd87886fe8fa1c22264e5937554f29e697ba3a5e9319fe170
 ```
 
+> Starting from v 0.0.7 version release was automated with Github Actions, i.e. builds and sebsequent releases of firmware binaries is happening on GitHub Actions servers.  
+See [.github/workflows/release.yml](.github/workflows/release.yml)
+
 ```
 Apr 13, 2025
 0.0.6
